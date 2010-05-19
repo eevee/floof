@@ -1,0 +1,3 @@
+include floof/config/deployment.ini_tmpl
+recursive-include floof/public *
+recursive-include floof/templates *

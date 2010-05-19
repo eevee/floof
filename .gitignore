@@ -1,0 +1,7 @@
+*.swp
+*.pyc
+
+*.db
+*.ini
+*.egg-info/
+data/
