@@ -16,6 +16,17 @@ TableBase = declarative_base()
 
 ### USERS
 
+class AnonymousUser(object):
+    """Fake not-logged-in user.
+
+    Tests as false and generally responds correctly to User methods.
+    """
+
+    def __nonzero__(self):
+        return False
+    def __bool__(self):
+        return False
+
 class User(TableBase):
     __tablename__ = 'users'
     id = Column(Integer, primary_key=True, nullable=False)
