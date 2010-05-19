@@ -99,8 +99,8 @@ class AccountController(BaseController):
             session['user_id'] = user.id
             session.save()
 
-            #h.flash(u"""Hello, {0}!""".format(user.display_name),
-            #        icon='user')
+            h.flash(u"""Hello, {0}!""".format(user.display_name),
+                    icon='user')
 
             redirect_to('/', _code=303)
 
@@ -131,7 +131,7 @@ class AccountController(BaseController):
 
             # Not in the session or is already registered.  Neither makes
             # sense.  Bail.
-            #h.flash('Your session expired.  Please try logging in again.')
+            h.flash('Your session expired.  Please try logging in again.')
             redirect_to(controller='account', action='login', _code=303)
 
         # Check username
@@ -169,7 +169,7 @@ class AccountController(BaseController):
             del session['user_id']
             session.save()
 
-            #h.flash(u"""Logged out.""",
-            #        icon='user-silhouette')
+            h.flash(u"""Logged out.""",
+                    icon='user-silhouette')
 
         redirect_to('/', _code=303)

@@ -18,6 +18,16 @@
             % endif
         </div>
     </div>
+
+    <% flash = h._flash.pop_messages() %>
+    % if flash:
+    <ul id="flash">
+        % for message, extras in flash:
+        <li>${message}</li>
+        % endfor
+    </ul>
+    % endif
+
     <div id="content">
         ${next.body()}
     </div>
