@@ -1,36 +1,42 @@
 """The application's model objects"""
-import sqlalchemy as sa
-from sqlalchemy import orm
+from sqlalchemy import Column, ForeignKey, MetaData, Table
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relation
+from sqlalchemy.types import *
 
 from floof.model import meta
 
 def init_model(engine):
     """Call me before using any of the tables or classes in the model"""
-    ## Reflected tables must be defined and mapped here
-    #global reflected_table
-    #reflected_table = sa.Table("Reflected", meta.metadata, autoload=True,
-    #                           autoload_with=engine)
-    #orm.mapper(Reflected, reflected_table)
-    #
     meta.Session.configure(bind=engine)
     meta.engine = engine
 
 
-## Non-reflected tables may be defined and mapped at module level
-#foo_table = sa.Table("Foo", meta.metadata,
-#    sa.Column("id", sa.types.Integer, primary_key=True),
-#    sa.Column("bar", sa.types.String(255), nullable=False),
-#    )
-#
-#class Foo(object):
-#    pass
-#
-#orm.mapper(Foo, foo_table)
+TableBase = declarative_base()
+
+### USERS
+
+class User(TableBase):
+    __tablename__ = 'users'
+    id = Column(Integer, primary_key=True, nullable=False)
+    name = Column(Unicode(24), nullable=False, index=True, unique=True)
+
+    @property
+    def display_name(self):
+        """Returns a flavory string that should be used to present this user.
+        """
+
+        return self.name
+
+class IdentityURL(TableBase):
+    __tablename__ = 'identity_urls'
+    id = Column(Integer, primary_key=True, nullable=False)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    url = Column(Unicode(250), nullable=False, index=True, unique=True)
 
 
-## Classes for reflected tables may be defined here, but the table and
-## mapping itself must be done in the init_model function
-#reflected_table = None
-#
-#class Reflected(object):
-#    pass
+
+### RELATIONS
+
+# Users
+IdentityURL.user = relation(User, backref='identity_urls')

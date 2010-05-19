@@ -13,10 +13,19 @@ def make_map():
                  always_scan=config['debug'])
     map.minimization = False
 
+    require_POST = dict(conditions=dict(method=['POST']))
+
     # The ErrorController route (handles 404/500 error pages); it should
     # likely stay at the top, ensuring it can always be resolved
     map.connect('/error/{action}', controller='error')
     map.connect('/error/{action}/{id}', controller='error')
+
+    map.connect('/account/login', controller='account', action='login')
+    map.connect('/account/login_begin', controller='account', action='login_begin',
+        **require_POST)
+    map.connect('/account/login_finish', controller='account', action='login_finish')
+    map.connect('/account/register', controller='account', action='register',
+        **require_POST)
 
     map.connect('/', controller='main', action='index')
 
