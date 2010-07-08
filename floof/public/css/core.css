@@ -1,0 +1,8 @@
+body { background: #7e8780; }
+
+#header { margin: 1em; padding: 1em; background: #ccd0cd; }
+
+#flash { background: #ccd0cd; }
+#flash li { margin: 0.25em 1em; padding: 1em; }
+
+#content { margin: 1em; padding: 1em; background: #ccd0cd; }
