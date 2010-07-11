@@ -29,6 +29,11 @@ def make_map():
     map.connect('/account/logout', controller='account', action='logout',
         **require_POST)
 
+    map.connect('/art', controller='art', action='gallery')
+    map.connect('/art/{id:\d+};{title}', controller='art', action='view')
+    map.connect('/art/{id:\d+}', controller='art', action='view')
+    map.connect('/art/upload', controller='art', action='upload')
+
     map.connect('/', controller='main', action='index')
 
     return map

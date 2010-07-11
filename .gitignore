@@ -5,3 +5,4 @@
 *.ini
 *.egg-info/
 data/
+floof/public/files
