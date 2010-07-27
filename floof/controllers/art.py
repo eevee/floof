@@ -17,16 +17,19 @@ log = logging.getLogger(__name__)
 
 class UploadArtworkForm(wtforms.form.Form):
     file = wtforms.fields.FileField(u'')
+    title = wtforms.fields.TextField(u'Title')
 
 class ArtController(BaseController):
     HASH_BUFFER_SIZE = 524288  # half a meg
 
     def upload(self):
         """Uploads something.  Sort of important, you know."""
+        if not c.user.can('upload_art'):
+            abort(403)
+
         c.form = UploadArtworkForm(request.POST)
 
         # XXX protect against duplicate files
-        # XXX ummm associate an artist and only allow for logged-in users.
         # XXX optipng
 
         if request.method == 'POST' and c.form.validate():
@@ -66,9 +69,13 @@ class ArtController(BaseController):
             fileobj.seek(0)
             storage.put(hash, fileobj)
 
+            # Deal with user-supplied metadata
+            # nb: it's perfectly valid to have no title
+            title = c.form.title.data.strip()
+
             # Stuff it all in the db
             general_data = dict(
-                title = '',
+                title = title,
                 hash = hash,
                 original_filename = uploaded_file.filename,
                 mime_type = mimetype,
@@ -80,8 +87,19 @@ class ArtController(BaseController):
                 **general_data
             )
 
+            # Associate the uploader
+            # XXX should be able to specify s/he is not the artist
+            artwork.user_artwork.append(
+                model.UserArtwork(
+                    user_id = c.user.id,
+                    artwork_id = artwork.id,
+                    relationship_type = u'by',
+                )
+            )
+
             meta.Session.add(artwork)
             meta.Session.commit()
+
             # XXX include title
             return redirect_to(url(controller='art', action='view', id=artwork.id))
 

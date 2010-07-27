@@ -6,9 +6,13 @@
 
 ${h.form(url.current(), multipart=True)}
 <dl class="standard-form">
+    ${c.form.errors}
+
     <dd>
         ${c.form.file() | n}
-        ${c.form.errors}
+    </dd>
+    <dd>
+        ${c.form.title(size=64, maxlength=133) | n}
     </dd>
 
     <dd><button type="submit">Upload!</button></dd>

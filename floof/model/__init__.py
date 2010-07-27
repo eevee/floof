@@ -29,10 +29,21 @@ class AnonymousUser(object):
     def __bool__(self):
         return False
 
+    def can(self, permission):
+        """Anonymous users aren't allowed to do anything that needs explicit
+        permission.
+        """
+        return False
+
 class User(TableBase):
     __tablename__ = 'users'
     id = Column(Integer, primary_key=True, nullable=False)
     name = Column(Unicode(24), nullable=False, index=True, unique=True)
+
+    def can(self, permission):
+        """Returns True iff this user has the named permission."""
+        # TODO actually implement me!
+        return True
 
     @property
     def display_name(self):
@@ -97,3 +108,9 @@ class UserArtwork(TableBase):
 
 # Users
 IdentityURL.user = relation(User, backref='identity_urls')
+
+
+# Art
+Artwork.user_artwork = relation(UserArtwork, backref='artwork')
+
+User.user_artwork = relation(UserArtwork, backref='user')
