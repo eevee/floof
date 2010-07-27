@@ -68,6 +68,7 @@ class Artwork(TableBase):
     media_type = Column(Enum(u'image', u'text', u'audio', u'video', name='artwork_media_type'), nullable=False)
     title = Column(Unicode(133), nullable=False)
     hash = Column(Unicode(256), nullable=False, unique=True, index=True)
+    uploader_user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
     uploaded_time = Column(DateTime, nullable=False, index=True, default=datetime.datetime.now)
     created_time = Column(DateTime, nullable=False, index=True, default=datetime.datetime.now)
     original_filename = Column(Unicode(255), nullable=False)
@@ -111,6 +112,7 @@ IdentityURL.user = relation(User, backref='identity_urls')
 
 
 # Art
+Artwork.uploader = relation(User, backref='uploaded_artwork')
 Artwork.user_artwork = relation(UserArtwork, backref='artwork')
 
 User.user_artwork = relation(UserArtwork, backref='user')

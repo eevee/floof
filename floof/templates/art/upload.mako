@@ -15,6 +15,14 @@ ${h.form(url.current(), multipart=True)}
         ${c.form.title(size=64, maxlength=133) | n}
     </dd>
 
+    <dd>
+        ${c.form.relationship_by_for() | n}
+    </dd>
+    <dd>
+        ${c.form.relationship_of() | n}
+        ${c.form.relationship_of.label() | n}
+    </dd>
+
     <dd><button type="submit">Upload!</button></dd>
 </dl>
 ${h.end_form()}

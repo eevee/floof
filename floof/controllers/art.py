@@ -18,6 +18,13 @@ log = logging.getLogger(__name__)
 class UploadArtworkForm(wtforms.form.Form):
     file = wtforms.fields.FileField(u'')
     title = wtforms.fields.TextField(u'Title')
+    relationship_by_for = wtforms.fields.RadioField(u'',
+        choices=[
+            (u'by',  u"by me: I'm the artist; I created this!"),
+            (u'for', u"for me: I commissioned this, or it was a gift specifically for me"),
+        ]
+    )
+    relationship_of = wtforms.fields.BooleanField(u"of me: I'm depicted in this artwork")
 
 class ArtController(BaseController):
     HASH_BUFFER_SIZE = 524288  # half a meg
@@ -77,6 +84,7 @@ class ArtController(BaseController):
             general_data = dict(
                 title = title,
                 hash = hash,
+                uploader = c.user,
                 original_filename = uploaded_file.filename,
                 mime_type = mimetype,
                 file_size = file_size,
@@ -87,15 +95,21 @@ class ArtController(BaseController):
                 **general_data
             )
 
-            # Associate the uploader
-            # XXX should be able to specify s/he is not the artist
+            # Associate the uploader as artist or recipient
             artwork.user_artwork.append(
                 model.UserArtwork(
                     user_id = c.user.id,
-                    artwork_id = artwork.id,
-                    relationship_type = u'by',
+                    relationship_type = c.form.relationship_by_for.data,
                 )
             )
+            # Also as a participant if appropriate
+            if c.form.relationship_of.data:
+                artwork.user_artwork.append(
+                    model.UserArtwork(
+                        user_id = c.user.id,
+                        relationship_type = u'of',
+                    )
+                )
 
             meta.Session.add(artwork)
             meta.Session.commit()
