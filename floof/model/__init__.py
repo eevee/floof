@@ -1,5 +1,6 @@
 """The application's model objects"""
 import datetime
+import re
 
 from sqlalchemy import Column, ForeignKey, MetaData, Table
 from sqlalchemy.ext.declarative import declarative_base
@@ -75,6 +76,19 @@ class Artwork(TableBase):
     mime_type = Column(Unicode(255), nullable=False)
     file_size = Column(Integer, nullable=False)
     __mapper_args__ = {'polymorphic_on': media_type}
+
+    @property
+    def url_title(self):
+        """Returns the title, munged to be friendly within a URL.
+
+        For the sake of making routing pretty, returns None if there be no
+        title.
+        """
+        if not self.title:
+            return None
+
+        # RFC 3986 section 2.3 says: letters, numbers, and -_.~ are unreserved
+        return re.sub('[^-_.~a-zA-Z0-9]', '-', self.title)
 
 # Dynamic subclasses of the 'artwork' table for storing metadata for different
 # types of media

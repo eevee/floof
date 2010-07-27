@@ -47,7 +47,6 @@ class ArtController(BaseController):
 
             # Figure out mimetype (and if we even support it)
             mimetype = magic.Magic(mime=True).from_buffer(fileobj.read(1024))
-            # XXX only one so far...
             if mimetype != 'image/png':
                 c.form.file.errors.append("Unrecognized filetype; only PNG is supported at the moment.")
                 return render('/art/upload.mako')
@@ -71,6 +70,16 @@ class ArtController(BaseController):
                 file_size += len(buffer)
                 hasher.update(buffer)
             hash = hasher.hexdigest()
+
+            # Assert that the thing is unique
+            existing_artwork = meta.Session.query(model.Artwork) \
+                .filter_by(hash = hash) \
+                .all()
+            if existing_artwork:
+                # XXX flash here
+                redirect_to(url(controller='art', action='view',
+                    id=existing_artwork[0].id,
+                    title=existing_artwork[0].url_title))
 
             # Store the file.  Reset the file object first!
             fileobj.seek(0)
@@ -114,8 +123,7 @@ class ArtController(BaseController):
             meta.Session.add(artwork)
             meta.Session.commit()
 
-            # XXX include title
-            return redirect_to(url(controller='art', action='view', id=artwork.id))
+            return redirect_to(url(controller='art', action='view', id=artwork.id, title=artwork.url_title))
 
         else:
             return render('/art/upload.mako')
