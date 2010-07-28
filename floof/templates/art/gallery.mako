@@ -1,12 +1,8 @@
 <%inherit file="/base.mako" />
+<%namespace name="artlib" file="/art/lib.mako" />
 
-<ul>
+<ul class="thumbnail-grid">
     % for artwork in c.artwork:
-    <li>
-        ## XXX include title..  shared code?
-        <a href="${url(controller='art', action='view', id=artwork.id)}">
-            ${artwork.title or 'Untitled'}; ${artwork.media_type}
-        </a>
-    </li>
+    ${artlib.thumbnail(artwork)}
     % endfor
 </ul>

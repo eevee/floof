@@ -24,6 +24,14 @@ beaker.session.key = floof
 beaker.session.secret = ${app_instance_secret}
 app_instance_uuid = ${app_instance_uuid}
 
+# Filestore module to load, and its configuration
+filestore = local
+filestore.directory = %(here)s/floof/public/files
+filestore.url_prefix = /files
+
+# Size for a thumbnail, in pixels
+thumbnail_size = 160
+
 # If you'd like to fine-tune the individual locations of the cache data dirs
 # for the Cache data, or the Session saves, un-comment the desired settings
 # here:

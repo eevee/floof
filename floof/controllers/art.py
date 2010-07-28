@@ -10,7 +10,7 @@ from sqlalchemy.orm.exc import NoResultFound
 import wtforms.form, wtforms.fields
 
 from floof.lib.base import BaseController, render
-from floof.model import filestore, meta
+from floof.model import meta
 from floof import model
 
 log = logging.getLogger(__name__)
@@ -28,6 +28,7 @@ class UploadArtworkForm(wtforms.form.Form):
 
 class ArtController(BaseController):
     HASH_BUFFER_SIZE = 524288  # half a meg
+    MAX_ASPECT_RATIO = 2
 
     def upload(self):
         """Uploads something.  Sort of important, you know."""
@@ -41,7 +42,7 @@ class ArtController(BaseController):
 
         if request.method == 'POST' and c.form.validate():
             # Grab the file
-            storage = filestore.get_storage(config)
+            storage = config['filestore']
             uploaded_file = request.POST['file']
             fileobj = uploaded_file.file
 
@@ -50,13 +51,6 @@ class ArtController(BaseController):
             if mimetype != 'image/png':
                 c.form.file.errors.append("Unrecognized filetype; only PNG is supported at the moment.")
                 return render('/art/upload.mako')
-
-            # Open the image
-            # XXX surely this can be done more easily
-            fileobj.seek(0)
-            image = PIL.Image.open(fileobj)
-            width, height = image.size
-            del image
 
             # Hash the thing
             hasher = hashlib.sha256()
@@ -81,9 +75,45 @@ class ArtController(BaseController):
                     id=existing_artwork[0].id,
                     title=existing_artwork[0].url_title))
 
-            # Store the file.  Reset the file object first!
+            ### By now, all error-checking should be done.
+
+            # OK, store the file.  Reset the file object first!
             fileobj.seek(0)
             storage.put(hash, fileobj)
+
+            # Open the image, determine its size, and generate a thumbnail
+            fileobj.seek(0)
+            image = PIL.Image.open(fileobj)
+            width, height = image.size
+
+            # Thumbnailin'
+            thumbnail_size = int(config['thumbnail_size'])
+            # To avoid super-skinny thumbnails, don't let the aspect ratio go
+            # beyond 2
+            height = min(height, width * self.MAX_ASPECT_RATIO)
+            width = min(width, height * self.MAX_ASPECT_RATIO)
+            # crop() takes left, top, right, bottom
+            cropped_image = image.crop((0, 0, width, height))
+            # And resize...  if necessary
+            if width > thumbnail_size or height > thumbnail_size:
+                if width > height:
+                    new_size = (thumbnail_size, height * thumbnail_size // width)
+                else:
+                    new_size = (width * thumbnail_size // height, thumbnail_size)
+
+                thumbnail_image = cropped_image.resize(
+                    new_size, PIL.Image.ANTIALIAS)
+
+            else:
+                thumbnail_image = cropped_image
+
+            # Dump the thumbnail in a buffer and save it, too
+            # XXX might need a tempfile for optipng later!
+            from cStringIO import StringIO
+            buf = StringIO()
+            thumbnail_image.save(buf, 'PNG')
+            buf.seek(0)
+            storage.put(hash + '.thumbnail', buf)
 
             # Deal with user-supplied metadata
             # nb: it's perfectly valid to have no title
@@ -142,7 +172,7 @@ class ArtController(BaseController):
         except NoResultFound:
             abort(404)
 
-        storage = filestore.get_storage(config)
+        storage = config['filestore']
         c.artwork_url = storage.url(c.artwork.hash)
 
         return render('/art/view.mako')

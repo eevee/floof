@@ -23,6 +23,6 @@ class FileStorage(BaseFileStorage):
     def put(self, key, fileobj):
         dest = open(os.path.join(self.directory, key), 'wb')
         shutil.copyfileobj(fileobj, dest)
-        
+
     def url(self, key, maxsize=None):
         return url("{0}/{1}".format(self.url_prefix, key))

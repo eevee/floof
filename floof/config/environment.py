@@ -9,7 +9,7 @@ from sqlalchemy import engine_from_config
 import floof.lib.app_globals as app_globals
 import floof.lib.helpers
 from floof.config.routing import make_map
-from floof.model import init_model
+from floof.model import filestore, init_model
 
 def load_environment(global_conf, app_conf):
     """Configure the Pylons environment via the ``pylons.config``
@@ -43,3 +43,7 @@ def load_environment(global_conf, app_conf):
 
     # CONFIGURATION OPTIONS HERE (note: all config options will override
     # any Pylons config options)
+
+    # Create file storage object and stick it back in the config
+    storage = filestore.get_storage(config)
+    config['filestore'] = storage
