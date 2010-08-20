@@ -25,7 +25,10 @@
     % if flash:
     <ul id="flash">
         % for message, extras in flash:
-        <li>${message}</li>
+        <li class="flash-level-${extras['level']}">
+            <img src="/icons/${extras['icon']}.png" alt="">
+            ${message}
+        </li>
         % endfor
     </ul>
     % endif

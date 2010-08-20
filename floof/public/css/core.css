@@ -2,8 +2,13 @@ body { background: #7e8780; }
 
 #header { margin: 1em; padding: 1em; background: #ccd0cd; }
 
-#flash { background: #ccd0cd; }
-#flash li { margin: 0.25em 1em; padding: 1em; }
+#flash { margin: 1em; }
+#flash li { position: relative; margin: 0.5em 0; padding: 0.25em 0.5em; line-height: 1.5; border: 1px solid #d0d0d0; border-left-width: 24px; background: #d8d8d8; -moz-border-radius: 0.5em; }
+#flash li img { display: block; position: absolute; top: -8px; left: -20px; margin-top: 1em; }
+#flash li.flash-level-success { border-color: #c5ecc5; background-color: #e7f1e7; }
+#flash li.flash-level-info { border-color: #c5ecec; background-color: #e7f1f1; }
+#flash li.flash-level-warning { border-color: #ecdcc5; background-color: #f1eee7; }
+#flash li.flash-level-error { border-color: #ecc5c5; background-color: #f1e7e7; }
 
 #content { margin: 1em; padding: 1em; background: #ccd0cd; }
 

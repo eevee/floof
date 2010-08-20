@@ -10,13 +10,18 @@ from webhelpers.pylonslib import Flash
 
 
 _flash = Flash()
-def flash(message, icon=None):
-    """Custom add-to-flash function that supports remembering an optional icon
-    per message.
+def flash(message, icon=None, level='info', **extras):
+    """Custom add-to-flash function.  Arbitrary metadata may be saved with a
+    message, but the main options are a Fugue icon and the message level:
+    success, info, warning, or error.
     """
     # Messages are stored as (message, dict_of_extra_stuff)
-    extras = dict()
     if icon:
         extras['icon'] = icon
+    else:
+        # XXX base on level
+        extras['icon'] = 'finger'
+
+    extras['level'] = level
 
     _flash((message, extras))
