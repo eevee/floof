@@ -33,6 +33,10 @@
     <div id="content">
         ${next.body()}
     </div>
+
+    <div id="footer">
+        Icons from the <a href="http://p.yusukekamiyamane.com/">Fugue set</a>
+    </div>
 </body>
 </html>
 
