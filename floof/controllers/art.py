@@ -9,6 +9,7 @@ from pylons.controllers.util import abort, redirect_to
 from sqlalchemy.orm.exc import NoResultFound
 import wtforms.form, wtforms.fields
 
+from floof.lib import helpers
 from floof.lib.base import BaseController, render
 from floof.model import meta
 from floof import model
@@ -37,7 +38,6 @@ class ArtController(BaseController):
 
         c.form = UploadArtworkForm(request.POST)
 
-        # XXX protect against duplicate files
         # XXX optipng
 
         if request.method == 'POST' and c.form.validate():
@@ -71,6 +71,8 @@ class ArtController(BaseController):
                 .all()
             if existing_artwork:
                 # XXX flash here
+                helpers.flash(u'This artwork has already been uploaded.',
+                    level=u'warning', icon=u'image-import')
                 redirect_to(url(controller='art', action='view',
                     id=existing_artwork[0].id,
                     title=existing_artwork[0].url_title))
@@ -153,7 +155,9 @@ class ArtController(BaseController):
             meta.Session.add(artwork)
             meta.Session.commit()
 
-            return redirect_to(url(controller='art', action='view', id=artwork.id, title=artwork.url_title))
+            helpers.flash(u'Uploaded!',
+                level=u'success', icon=u'image--plus')
+            redirect_to(url(controller='art', action='view', id=artwork.id, title=artwork.url_title))
 
         else:
             return render('/art/upload.mako')
