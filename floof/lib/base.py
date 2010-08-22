@@ -15,7 +15,6 @@ class BaseController(WSGIController):
         try:
             c.user = meta.Session.query(User).get(session['user_id'])
         except BaseException, e:
-            print e
             c.user = AnonymousUser()
 
     def __call__(self, environ, start_response):

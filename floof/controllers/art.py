@@ -47,8 +47,9 @@ class ArtController(BaseController):
             fileobj = uploaded_file.file
 
             # Figure out mimetype (and if we even support it)
-            mimetype = magic.Magic(mime=True).from_buffer(fileobj.read(1024))
-            if mimetype != 'image/png':
+            mimetype = magic.Magic(mime=True).from_buffer(fileobj.read(1024)) \
+                .decode('ascii')
+            if mimetype != u'image/png':
                 c.form.file.errors.append("Unrecognized filetype; only PNG is supported at the moment.")
                 return render('/art/upload.mako')
 
@@ -63,7 +64,7 @@ class ArtController(BaseController):
 
                 file_size += len(buffer)
                 hasher.update(buffer)
-            hash = hasher.hexdigest()
+            hash = hasher.hexdigest().decode('ascii')
 
             # Assert that the thing is unique
             existing_artwork = meta.Session.query(model.Artwork) \

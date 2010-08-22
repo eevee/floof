@@ -15,7 +15,7 @@ def init_model(engine):
     meta.engine = engine
 
 
-TableBase = declarative_base()
+TableBase = declarative_base(metadata=meta.metadata)
 
 ### USERS
 
@@ -94,7 +94,7 @@ class Artwork(TableBase):
 # types of media
 class MediaImage(Artwork):
     __tablename__ = 'media_images'
-    __mapper_args__ = {'polymorphic_identity': 'image'}
+    __mapper_args__ = {'polymorphic_identity': u'image'}
     id = Column(Integer, ForeignKey('artwork.id'), primary_key=True, nullable=False)
     height = Column(Integer, nullable=False)
     width = Column(Integer, nullable=False)
@@ -106,7 +106,7 @@ class MediaImage(Artwork):
 
 class MediaText(Artwork):
     __tablename__ = 'media_text'
-    __mapper_args__ = {'polymorphic_identity': 'text'}
+    __mapper_args__ = {'polymorphic_identity': u'text'}
     id = Column(Integer, ForeignKey('artwork.id'), primary_key=True, nullable=False)
     words = Column(Integer, nullable=False)
     paragraphs = Column(Integer, nullable=False)
