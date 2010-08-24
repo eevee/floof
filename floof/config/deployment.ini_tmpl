@@ -24,6 +24,8 @@ beaker.session.key = floof
 beaker.session.secret = ${app_instance_secret}
 app_instance_uuid = ${app_instance_uuid}
 
+site_title = floof
+
 # Filestore module to load, and its configuration
 filestore = local
 filestore.directory = %(here)s/floof/public/files

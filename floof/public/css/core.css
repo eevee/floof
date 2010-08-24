@@ -1,6 +1,12 @@
+/*** Core layout ***/
 body { background: #7e8780; }
 
-#header { margin: 1em; padding: 1em; background: #ccd0cd; }
+#header { overflow: hidden; margin: 1em; padding: 1em; background: #a6ada8; }
+#header #user { float: right; }
+#header #navigation { ; }
+#header #navigation li { display: inline-block; }
+#header #navigation li:before { content: '• '; }
+#header #navigation li:first-child:before { content: ''; }
 
 #flash { margin: 1em; }
 #flash li { position: relative; margin: 0.5em 0; padding: 0.25em 0.5em; line-height: 1.5; border: 1px solid #d0d0d0; border-left-width: 24px; background: #d8d8d8; -moz-border-radius: 0.5em; }
@@ -12,4 +18,50 @@ body { background: #7e8780; }
 
 #content { margin: 1em; padding: 1em; background: #ccd0cd; }
 
-#footer { margin: 1em; padding: 1em; background: #ccd0cd; }
+#footer { margin: 1em; padding: 1em; background: #a6ada8; }
+
+/* Core elements */
+img { vertical-align: middle; }
+
+/* Headers */
+h1 { font-size: 2em; margin: 1em 0 0.5em; padding: 0.5em 1em; background: #a6ada8; }
+#content > h1:first-child { margin: -0.5em -0.5em 0.5em; }
+h1 img:first-child { margin-left: -16px; }
+
+h2 { font-size: 1.5em; margin: 1em 0 0.5em; padding: 0.25em 0.5em; background: #a6ada8; border-bottom: 3px double #ccd0cd; }
+
+/* Forms */
+input, button, select { vertical-align: middle; }
+
+.form-error { margin: 0.25em 0.25em 0.5em; padding-left: 16px; background: url(/icons/exclamation-small-red.png) left center no-repeat; color: darkred; }
+
+/* Lists */
+dl.standard-form dl { overflow: hidden /* new float context */; margin-bottom: 0.75em; }
+dl.standard-form dt { float: left; clear: left; width: 11.5em; margin-right: 0.5em; text-align: right; color: #4f5551; }
+dl.standard-form dt:after { content: ':'; }
+dl.standard-form dd { padding-left: 12em /* float width, so hover highlight includes dt but lines wrap correctly */; }
+dl.standard-form dd:after { content: 'float clear'; display: block; clear: both; height: 0; visibility: hidden; }
+dl.standard-form dt, dl.standard-form dd { line-height: 1.5; }
+
+
+/*** Globally useful stuff ***/
+
+/* Cool three-column layout */
+.column-container { clear: both; overflow: hidden /* float context */; margin-top: 1em; }
+.column { float: left; width: 32.666%; margin-left: 1%; }
+.column:first-child { margin-left: 0; }
+.column-2x { float: left; width: 66.333%; margin-left: 1%; }
+.column-2x:first-child { margin-left: 0; }
+
+
+
+/*** Art ***/
+ul.thumbnail-grid { ; }
+ul.thumbnail-grid li.thumbnail { display: inline-block; height: 160px; width: 160px; margin: 0.5em; }
+ul.thumbnail-grid li.thumbnail a { display: block; height: 160px; width: 160px; line-height: 160px; text-align: center; }
+ul.thumbnail-grid li.thumbnail a img { vertical-align: middle; -moz-box-shadow: 1px 1px 5px black; }
+ul.thumbnail-grid li.thumbnail .thumbnail-meta { display: none; position: absolute; width: 180px; margin-top: 1em; margin-left: -15px; padding: 0.5em 4px; border: 1px solid #7e8780; background: #a6ada8; text-align: center; -moz-border-radius: 0.5em; }
+ul.thumbnail-grid li.thumbnail:hover .thumbnail-meta { display: block; }
+
+.artwork { text-align: center; }
+.artwork img { max-width: 100%; }

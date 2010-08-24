@@ -7,7 +7,7 @@ import PIL.Image
 from pylons import config, request, response, session, tmpl_context as c, url
 from pylons.controllers.util import abort, redirect_to
 from sqlalchemy.orm.exc import NoResultFound
-import wtforms.form, wtforms.fields
+import wtforms.form, wtforms.fields, wtforms.validators
 
 from floof.lib import helpers
 from floof.lib.base import BaseController, render
@@ -17,13 +17,15 @@ from floof import model
 log = logging.getLogger(__name__)
 
 class UploadArtworkForm(wtforms.form.Form):
-    file = wtforms.fields.FileField(u'')
+    file = wtforms.fields.FileField(u'',
+        [wtforms.validators.required()])
     title = wtforms.fields.TextField(u'Title')
     relationship_by_for = wtforms.fields.RadioField(u'',
+        [wtforms.validators.required()],
         choices=[
             (u'by',  u"by me: I'm the artist; I created this!"),
             (u'for', u"for me: I commissioned this, or it was a gift specifically for me"),
-        ]
+        ],
     )
     relationship_of = wtforms.fields.BooleanField(u"of me: I'm depicted in this artwork")
 

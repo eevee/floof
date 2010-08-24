@@ -4,7 +4,9 @@
 <li class="thumbnail">
     <a href="${url(controller='art', action='view', id=artwork.id, title=artwork.url_title)}">
         <img src="${config['filestore'].url(artwork.hash + '.thumbnail')}" alt="">
-        ${artwork.title or 'Untitled'}; ${artwork.media_type}
     </a>
+    <div class="thumbnail-meta">
+        ${artwork.title or 'Untitled'}; ${artwork.media_type}
+    </div>
 </li>
 </%def>

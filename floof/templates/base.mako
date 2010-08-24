@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>${self.title()}</title>
+    <title>${self.title()} - ${config['site_title']}</title>
     <link rel="stylesheet" type="text/css" href="/css/reset.css">
     <link rel="stylesheet" type="text/css" href="/css/core.css">
 </head>
@@ -19,6 +19,10 @@
             <a href="${url(controller='account', action='login')}">Log in or register</a>
             % endif
         </div>
+        <ul id="navigation">
+            <li><a href="${url(controller='art', action='gallery')}">Art</a></li>
+            <li><a href="${url(controller='art', action='upload')}">Upload</a></li>
+        </ul>
     </div>
 
     <% flash = h._flash.pop_messages() %>
