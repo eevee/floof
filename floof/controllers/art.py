@@ -76,9 +76,7 @@ class ArtController(BaseController):
                 # XXX flash here
                 helpers.flash(u'This artwork has already been uploaded.',
                     level=u'warning', icon=u'image-import')
-                redirect_to(url(controller='art', action='view',
-                    id=existing_artwork[0].id,
-                    title=existing_artwork[0].url_title))
+                redirect_to(helpers.art_url(existing_artwork[0]))
 
             ### By now, all error-checking should be done.
 
@@ -160,7 +158,7 @@ class ArtController(BaseController):
 
             helpers.flash(u'Uploaded!',
                 level=u'success', icon=u'image--plus')
-            redirect_to(url(controller='art', action='view', id=artwork.id, title=artwork.url_title))
+            redirect_to(helpers.art_url(artwork))
 
         else:
             return render('/art/upload.mako')

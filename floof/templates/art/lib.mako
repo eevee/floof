@@ -2,7 +2,7 @@
 ## Spits out..  a thumbnail of this artwork.  It's an <li>, so this should be
 ## called inside a <ul>.
 <li class="thumbnail">
-    <a href="${url(controller='art', action='view', id=artwork.id, title=artwork.url_title)}">
+    <a href="${h.art_url(artwork)}">
         <img src="${config['filestore'].url(artwork.hash + '.thumbnail')}" alt="">
     </a>
     <div class="thumbnail-meta">

@@ -8,6 +8,8 @@ from webhelpers.html import escape, HTML, literal, url_escape
 from webhelpers.html.tags import *
 from webhelpers.pylonslib import Flash
 
+import re
+
 
 _flash = Flash()
 def flash(message, icon=None, level='info', **extras):
@@ -25,3 +27,13 @@ def flash(message, icon=None, level='info', **extras):
     extras['level'] = level
 
     _flash((message, extras))
+
+def art_url(artwork):
+    """Returns the URL for the given piece of artwork."""
+    # Only fill in the title if the piece actually has one
+    title = dict()
+    if artwork.title:
+        # RFC 3986 section 2.3 says: letters, numbers, and -_.~ are unreserved
+        title['title'] = re.sub('[^-_.~a-zA-Z0-9]', '-', artwork.title)
+
+    return url(controller='art', action='view', id=artwork.id, **title)
