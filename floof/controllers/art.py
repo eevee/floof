@@ -17,8 +17,7 @@ from floof import model
 log = logging.getLogger(__name__)
 
 class UploadArtworkForm(wtforms.form.Form):
-    file = wtforms.fields.FileField(u'',
-        [wtforms.validators.required()])
+    file = wtforms.fields.FileField(u'')
     title = wtforms.fields.TextField(u'Title')
     relationship_by_for = wtforms.fields.RadioField(u'',
         [wtforms.validators.required()],
@@ -45,8 +44,13 @@ class ArtController(BaseController):
         if request.method == 'POST' and c.form.validate():
             # Grab the file
             storage = config['filestore']
-            uploaded_file = request.POST['file']
-            fileobj = uploaded_file.file
+            uploaded_file = request.POST.get('file')
+
+            try:
+                fileobj = uploaded_file.file
+            except AttributeError:
+                c.form.file.errors.append("Please select a file to upload!")
+                return render('/art/upload.mako')
 
             # Figure out mimetype (and if we even support it)
             mimetype = magic.Magic(mime=True).from_buffer(fileobj.read(1024)) \

@@ -23,9 +23,11 @@ ${h.form(url.current(), multipart=True)}
         <img src="/icons/present.png" alt="">
         % endif
         ${field.label() | n}
-        ${lib.field_errors(field)}
     </dd>
     % endfor
+    % if c.form.relationship_by_for.errors:
+    <dd>${lib.field_errors(c.form.relationship_by_for)}</dd>
+    % endif
     <dd>
         ${c.form.relationship_of() | n}
         <img src="/icons/camera.png" alt="">
