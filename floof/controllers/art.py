@@ -176,9 +176,8 @@ class ArtController(BaseController):
 
     def view(self, id):
         """View a single item of artwork."""
-        try:
-            c.artwork = meta.Session.query(model.Artwork).get(id)
-        except NoResultFound:
+        c.artwork = meta.Session.query(model.Artwork).get(id)
+        if not c.artwork:
             abort(404)
 
         storage = config['filestore']
