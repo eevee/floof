@@ -16,6 +16,37 @@ from floof import model
 
 log = logging.getLogger(__name__)
 
+def get_number_of_colors(image):
+    """Does what it says on the tin.
+
+    This attempts to return the number of POSSIBLE colors in the image, not the
+    number of colors actually used.  In the case of a paletted image, PIL is
+    often limited to only returning the actual number of colors.  But that's
+    usually what we mean for palettes, so eh.
+
+    But full-color images will always return 16777216.  Alpha doesn't count, so
+    RGBA is still 24-bit color.
+    """
+    # See http://www.pythonware.com/library/pil/handbook/concepts.htm for list
+    # of all possible PIL modes
+    mode = image.mode
+    if mode == '1':
+        return 2
+    elif mode == 'L':
+        return 256
+    elif mode == 'P':
+        # This is sort of (a) questionable and (b) undocumented, BUT:
+        # palette.getdata() returns a tuple of mode and raw bytes.  The raw
+        # bytes are rgb encoded as three bytes each, so its length is three
+        # times the number of palette entries.
+        palmode, paldata = image.palette.getdata()
+        return len(paldata) / 3
+    elif mode in ('RGB', 'RGBA', 'CMYK', 'YCbCr', 'I', 'F',
+        'LA', 'RGBX', 'RGBa'):
+        return 2 ** 24
+    else:
+        raise ValueError("Unknown palette mode, argh!")
+
 class UploadArtworkForm(wtforms.form.Form):
     file = wtforms.fields.FileField(u'')
     title = wtforms.fields.TextField(u'Title')
@@ -138,6 +169,7 @@ class ArtController(BaseController):
             artwork = model.MediaImage(
                 height = height,
                 width = width,
+                number_of_colors = get_number_of_colors(image),
                 **general_data
             )
 

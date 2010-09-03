@@ -85,6 +85,7 @@ class MediaImage(Artwork):
     id = Column(Integer, ForeignKey('artwork.id'), primary_key=True, nullable=False)
     height = Column(Integer, nullable=False)
     width = Column(Integer, nullable=False)
+    number_of_colors = Column(Integer, nullable=False)
     # animated only
     frames = Column(Integer, nullable=True)
     length = Column(Time, nullable=True)
