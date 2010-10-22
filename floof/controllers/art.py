@@ -70,8 +70,6 @@ class ArtController(BaseController):
 
         c.form = UploadArtworkForm(request.POST)
 
-        # XXX optipng
-
         if request.method == 'POST' and c.form.validate():
             # Grab the file
             storage = config['filestore']
@@ -86,8 +84,8 @@ class ArtController(BaseController):
             # Figure out mimetype (and if we even support it)
             mimetype = magic.Magic(mime=True).from_buffer(fileobj.read(1024)) \
                 .decode('ascii')
-            if mimetype != u'image/png':
-                c.form.file.errors.append("Unrecognized filetype; only PNG is supported at the moment.")
+            if mimetype not in (u'image/png', u'image/gif', u'image/jpeg'):
+                c.form.file.errors.append("Only PNG, GIF, and JPEG are supported at the moment.")
                 return render('/art/upload.mako')
 
             # Hash the thing
@@ -146,10 +144,16 @@ class ArtController(BaseController):
                 thumbnail_image = cropped_image
 
             # Dump the thumbnail in a buffer and save it, too
-            # XXX might need a tempfile for optipng later!
+            # XXX find a better storage medium for these perhaps!
             from cStringIO import StringIO
             buf = StringIO()
-            thumbnail_image.save(buf, 'PNG')
+            if mimetype == u'image/png':
+                thumbnail_format = 'PNG'
+            elif mimetype == u'image/gif':
+                thumbnail_format = 'GIF'
+            elif mimetype == u'image/jpeg':
+                thumbnail_format = 'JPEG'
+            thumbnail_image.save(buf, thumbnail_format)
             buf.seek(0)
             storage.put(hash + '.thumbnail', buf)
 
