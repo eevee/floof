@@ -48,6 +48,7 @@ class AnonymousUser(object):
 class User(TableBase):
     __tablename__ = 'users'
     id = Column(Integer, primary_key=True, nullable=False)
+    discussion_id = Column(Integer, ForeignKey('discussions.id'), nullable=False)
     name = Column(Unicode(24), nullable=False, index=True, unique=True)
     timezone = Column(Timezone, nullable=True)
     role_id = Column(Integer, ForeignKey('roles.id'), nullable=False)
@@ -87,6 +88,7 @@ class IdentityURL(TableBase):
 class Artwork(TableBase):
     __tablename__ = 'artwork'
     id = Column(Integer, primary_key=True, nullable=False)
+    discussion_id = Column(Integer, ForeignKey('discussions.id'), nullable=False)
     media_type = Column(Enum(u'image', u'text', u'audio', u'video', name='artwork_media_type'), nullable=False)
     title = Column(Unicode(133), nullable=False)
     hash = Column(Unicode(256), nullable=False, unique=True, index=True)
@@ -148,6 +150,25 @@ class RolePrivilege(TableBase):
     priv_id = Column(Integer, ForeignKey('privileges.id'), primary_key=True, nullable=False)
 
 
+### COMMENTS
+
+class Discussion(TableBase):
+    __tablename__ = 'discussions'
+    id = Column(Integer, primary_key=True, nullable=False)
+    comment_count = Column(Integer, nullable=False, default=0)
+
+class Comment(TableBase):
+    __tablename__ = 'comments'
+    id = Column(Integer, primary_key=True, nullable=False)
+    discussion_id = Column(Integer, ForeignKey('discussions.id'), nullable=False)
+    posted_time = Column(DateTime, nullable=False, index=True, default=datetime.datetime.now)
+    author_user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    # Nested set threading; Google it
+    left = Column(Integer, index=True, nullable=False)
+    right = Column(Integer, index=True, nullable=False)
+    content = Column(UnicodeText(4096), nullable=False)
+
+
 ### RELATIONS
 
 # Users
@@ -155,11 +176,18 @@ IdentityURL.user = relation(User, backref='identity_urls')
 
 
 # Art
+Artwork.discussion = relation(Discussion, backref='artwork')
 Artwork.uploader = relation(User, backref='uploaded_artwork')
 Artwork.user_artwork = relation(UserArtwork, backref='artwork')
 
+User.discussion = relation(Discussion, backref='user')
 User.user_artwork = relation(UserArtwork, backref='user')
 
 # Permissions
 User.role = relation(Role, uselist=False, backref='users')
 Role.privileges = relation(Privilege, secondary=RolePrivilege.__table__)
+
+# Comments
+Comment.author = relation(User, backref='comments')
+
+Discussion.comments = relation(Comment, order_by=Comment.left.asc(), backref='discussion')

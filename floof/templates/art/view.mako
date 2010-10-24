@@ -1,5 +1,6 @@
 <%inherit file="/base.mako" />
 <%namespace name="lib" file="/lib.mako" />
+<%namespace name="comments_lib" file="/comments/lib.mako" />
 
 <%def name="title()">${c.artwork.title or 'Untitled'} - Artwork</%def>
 
@@ -8,10 +9,12 @@
     ${c.artwork.title or 'Untitled'}
 </h1>
 
+## Ye art itself
 <div class="artwork">
     <img src="${c.artwork_url}" alt="">
 </div>
 
+## Metadata and whatever
 <div class="column-container">
 <div class="column-2x">
     <h2>Art</h2>
@@ -54,3 +57,7 @@
     </dl>
 </div>
 </div>
+
+## Comments
+<h1>Comments</h1>
+${comments_lib.comment_tree(c.artwork.discussion.comments)}
