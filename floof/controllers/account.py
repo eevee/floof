@@ -6,7 +6,7 @@ from openid.extensions.sreg import SRegRequest, SRegResponse
 from openid.store.filestore import FileOpenIDStore
 from openid.yadis.discover import DiscoveryFailure
 from pylons import request, response, session, tmpl_context as c, url
-from pylons.controllers.util import abort, redirect_to
+from pylons.controllers.util import abort, redirect
 from routes import request_config
 from sqlalchemy.orm.exc import NoResultFound
 
@@ -74,7 +74,7 @@ class AccountController(BaseController):
         return_url = url(host=host, controller='account', action='login_finish')
         new_url = auth_request.redirectURL(return_to=return_url,
                                            realm=protocol + '://' + host)
-        redirect_to(new_url)
+        redirect(new_url)
 
     def login_finish(self):
         """Step two of logging in; the OpenID provider redirects back here."""
@@ -102,7 +102,7 @@ class AccountController(BaseController):
             h.flash(u"""Hello, {0}!""".format(user.display_name),
                     icon='user')
 
-            redirect_to('/', _code=303)
+            redirect(url('/'), code=303)
 
         except NoResultFound:
             # Nope.  Give a (brief!) registration form instead
@@ -132,7 +132,7 @@ class AccountController(BaseController):
             # Not in the session or is already registered.  Neither makes
             # sense.  Bail.
             h.flash('Your session expired.  Please try logging in again.')
-            redirect_to(controller='account', action='login', _code=303)
+            redirect(url(controller='account', action='login'), code=303)
 
         # Check username
         username = request.params.get('username', None)
@@ -160,7 +160,7 @@ class AccountController(BaseController):
         session.save()
 
         # And off we go
-        redirect_to('/', _code=303)
+        redirect(url('/'), code=303)
 
     def logout(self):
         """Logs the user out."""
@@ -172,4 +172,4 @@ class AccountController(BaseController):
             h.flash(u"""Logged out.""",
                     icon='user-silhouette')
 
-        redirect_to('/', _code=303)
+        redirect(url('/'), code=303)

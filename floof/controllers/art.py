@@ -5,7 +5,7 @@ import random
 import magic
 import PIL.Image
 from pylons import config, request, response, session, tmpl_context as c, url
-from pylons.controllers.util import abort, redirect_to
+from pylons.controllers.util import abort, redirect
 from sqlalchemy.orm.exc import NoResultFound
 import wtforms.form, wtforms.fields, wtforms.validators
 
@@ -109,7 +109,7 @@ class ArtController(BaseController):
                 # XXX flash here
                 helpers.flash(u'This artwork has already been uploaded.',
                     level=u'warning', icon=u'image-import')
-                redirect_to(helpers.art_url(existing_artwork[0]))
+                redirect(helpers.art_url(existing_artwork[0]))
 
             ### By now, all error-checking should be done.
 
@@ -198,7 +198,7 @@ class ArtController(BaseController):
 
             helpers.flash(u'Uploaded!',
                 level=u'success', icon=u'image--plus')
-            redirect_to(helpers.art_url(artwork))
+            redirect(helpers.art_url(artwork))
 
         else:
             return render('/art/upload.mako')
