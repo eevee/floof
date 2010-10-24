@@ -28,10 +28,10 @@
     <% flash = h._flash.pop_messages() %>
     % if flash:
     <ul id="flash">
-        % for message, extras in flash:
-        <li class="flash-level-${extras['level']}">
-            <img src="/icons/${extras['icon']}.png" alt="">
-            ${message}
+        % for messages in flash:
+        <li class="flash-level-${messages.message[1]['level']}">
+            <img src="/icons/${messages.message[1]['icon']}.png" alt="">
+            ${messages.message[0]}
         </li>
         % endfor
     </ul>
