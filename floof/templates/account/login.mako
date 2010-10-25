@@ -1,4 +1,5 @@
 <%inherit file="base.mako" />
+<%namespace name="lib" file="/lib.mako" />
 
 <h1>Log in or register with OpenID</h1>
 
@@ -7,7 +8,7 @@
 % else:
 ${h.form(url(controller='account', action='login_begin'))}
 <p>
-    <input type="text" name="openid_identifier" value="${c.attempted_openid if c.attempted_openid else u''}">
+    ${lib.field(c.form.openid_identifier)}
     <input type="submit" value="Log in">
 </p>
 ${h.end_form()}

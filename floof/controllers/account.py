@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import logging
 import re
 
@@ -9,61 +10,61 @@ from pylons import request, response, session, tmpl_context as c, url
 from pylons.controllers.util import abort, redirect
 from routes import request_config
 from sqlalchemy.orm.exc import NoResultFound
+import wtforms.form, wtforms.fields, wtforms.validators
 
-from floof.lib import helpers as h
+from floof.lib import helpers
 from floof.lib.base import BaseController, render
 from floof.model import IdentityURL, User, meta
 
 log = logging.getLogger(__name__)
 
+class LoginForm(wtforms.form.Form):
+    openid_identifier = wtforms.fields.TextField(u'OpenID URL')
+
+class RegistrationForm(wtforms.form.Form):
+    username = wtforms.fields.TextField(u'Username', [
+        wtforms.validators.Regexp(r'^[_a-z0-9]{1,24}$',
+            message=u'Your username must be 1–24 characters and contain only '
+            u'lowercase letters, numbers, and underscores.'
+            ),
+        ])
+
+    def validate_username(form, field):
+        if meta.Session.query(User).filter_by(name=field.data).count():
+            raise wtforms.validators.ValidationError(
+                'Your username is already taken. Please try again.')
+
 class AccountController(BaseController):
 
     openid_store = FileOpenIDStore('/var/tmp')
 
-    def _username_error(self, username):
-        """Check whether the username is valid and taken.
-
-        Returns a short error string, or None if it's fine.
-        """
-
-        if not username:
-            return 'missing'
-        elif not re.match('^[_a-z0-9]{1,24}$', username):
-            return 'invalid'
-        elif meta.Session.query(User).filter_by(name=username).count():
-            return 'taken'
-        else:
-            return None
-
-    def _bail(self, reason):
-        # Used for bailing on a login attempt; reshows the login page
-        c.error = reason
-        c.attempted_openid = request.params.get('openid_identifier', '')
-        return render('/account/login.mako')
-
-
     def login(self):
-        c.error = None
-        c.attempted_openid = None
+        c.form = LoginForm()
         return render('/account/login.mako')
 
     def login_begin(self):
         """Step one of logging in with OpenID; we redirect to the provider"""
 
+        c.form = LoginForm(request.POST)
+        if not c.form.validate():
+            return render('/account/login.mako')
+
         cons = Consumer(session=session, store=self.openid_store)
 
         try:
-            openid_url = request.params['openid_identifier']
+            openid_url = c.form.openid_identifier.data
         except KeyError:
-            return self._bail("Gotta enter an OpenID to log in.")
+            c.form.openid_identifier.errors.append("Gotta enter an OpenID to log in.")
+            return render('/account/login.mako')
 
         try:
             auth_request = cons.begin(openid_url)
         except DiscoveryFailure:
-            return self._bail(
+            c.form.openid_identifier.errors.append(
                 "Can't connect to '{0}'.  You sure it's an OpenID?"
                 .format(openid_url)
-            )
+                )
+            return render('/account/login.mako')
 
         sreg_req = SRegRequest(optional=['nickname', 'email', 'dob', 'gender',
                                          'country', 'language', 'timezone'])
@@ -99,7 +100,7 @@ class AccountController(BaseController):
             session['user_id'] = user.id
             session.save()
 
-            h.flash(u"""Hello, {0}!""".format(user.display_name),
+            helpers.flash(u"""Hello, {0}!""".format(user.display_name),
                     icon='user')
 
             redirect(url('/'), code=303)
@@ -113,40 +114,33 @@ class AccountController(BaseController):
             # Try to pull a name out of the SReg response
             sreg_res = SRegResponse.fromSuccessResponse(res)
             try:
-                c.username = sreg_res['nickname'].lower()
+                username = sreg_res['nickname'].lower()
             except (KeyError, TypeError):
                 # KeyError if sreg has no nickname; TypeError if sreg is None
-                c.username = u''
+                username = u''
 
-            c.username_error = self._username_error(c.username)
-
+            c.form = RegistrationForm(username=username)
+            c.form.validate()
             return render('/account/register.mako')
 
     def register(self):
         # Check identity URL
-        identity_url = session.get('pending_identity_url', None)
+        identity_url = c.identity_url = session.get('pending_identity_url')
         if not identity_url or \
            meta.Session.query(IdentityURL) \
                 .filter_by(url=identity_url).count():
 
             # Not in the session or is already registered.  Neither makes
             # sense.  Bail.
-            h.flash('Your session expired.  Please try logging in again.')
+            helpers.flash('Your session expired.  Please try logging in again.')
             redirect(url(controller='account', action='login'), code=303)
 
-        # Check username
-        username = request.params.get('username', None)
-        c.username_error = self._username_error(username)
-        print c.username_error
-
-        if c.username_error:
-            # Somethin wrong!  Make 'em try again
-            c.username = username
-            c.identity_url = identity_url
+        c.form = RegistrationForm(request.POST)
+        if not c.form.validate():
             return render('/account/register.mako')
 
         # Create db records
-        user = User(name=username)
+        user = User(name=c.form.username.data)
         meta.Session.add(user)
 
         openid = IdentityURL(url=identity_url)
@@ -169,7 +163,7 @@ class AccountController(BaseController):
             del session['user_id']
             session.save()
 
-            h.flash(u"""Logged out.""",
+            helpers.flash(u"""Logged out.""",
                     icon='user-silhouette')
 
         redirect(url('/'), code=303)
