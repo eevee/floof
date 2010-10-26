@@ -33,9 +33,7 @@ def make_map(config):
 
     map.connect('/account/controls', controller='controls', action='index')
 
-    map.connect('/user/{id:\d+}', controller='user', action='view')
     map.connect('/user/{name}', controller='user', action='view')
-    map.connect('/user/{id:\d+}/{action}', controller='user')
     map.connect('/user/{name}/{action}', controller='user')
 
     map.connect('/', controller='main', action='index')
