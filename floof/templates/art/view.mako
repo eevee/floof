@@ -45,6 +45,8 @@
         ## XXX some of these only apply to some media types
         <dt>Filename</dt>
         <dd>${c.artwork.original_filename}</dd>
+        <dt>Uploaded at</dt>
+        <dd>${c.user.localtime(c.artwork.uploaded_time).strftime('%A, %d %B %Y at %H:%M %Z')}</dd>
         <dt>File size</dt>
         <dd>${c.artwork.file_size}</dd>
         <dt>Dimensions</dt>

@@ -1,13 +1,18 @@
 """The application's model objects"""
 import datetime
+import pytz
 import re
 
 from sqlalchemy import Column, ForeignKey, MetaData, Table
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relation
 from sqlalchemy.types import *
+from floof.model.types import *
 
 from floof.model import meta
+
+def now():
+    return datetime.datetime.now(pytz.utc)
 
 def init_model(engine):
     """Call me before using any of the tables or classes in the model"""
@@ -30,6 +35,10 @@ class AnonymousUser(object):
     def __bool__(self):
         return False
 
+    def localtime(self, dt):
+        """Anonymous users can suffer UTC."""
+        return dt
+
     def can(self, permission):
         """Anonymous users aren't allowed to do anything that needs explicit
         permission.
@@ -40,6 +49,13 @@ class User(TableBase):
     __tablename__ = 'users'
     id = Column(Integer, primary_key=True, nullable=False)
     name = Column(Unicode(24), nullable=False, index=True, unique=True)
+    timezone = Column(Timezone, nullable=True)
+
+    def localtime(self, dt):
+        """Return a datetime localized to this user's preferred timezone."""
+        if self.timezone is None:
+            return dt
+        return dt.astimezone(self.timezone)
 
     def can(self, permission):
         """Returns True iff this user has the named permission."""
@@ -70,8 +86,8 @@ class Artwork(TableBase):
     title = Column(Unicode(133), nullable=False)
     hash = Column(Unicode(256), nullable=False, unique=True, index=True)
     uploader_user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
-    uploaded_time = Column(DateTime, nullable=False, index=True, default=datetime.datetime.now)
-    created_time = Column(DateTime, nullable=False, index=True, default=datetime.datetime.now)
+    uploaded_time = Column(TZDateTime, nullable=False, index=True, default=now)
+    created_time = Column(TZDateTime, nullable=False, index=True, default=now)
     original_filename = Column(Unicode(255), nullable=False)
     mime_type = Column(Unicode(255), nullable=False)
     file_size = Column(Integer, nullable=False)
