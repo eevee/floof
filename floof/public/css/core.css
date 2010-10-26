@@ -56,12 +56,15 @@ dl.standard-form dt, dl.standard-form dd { line-height: 1.5; }
 
 
 /*** Art ***/
-ul.thumbnail-grid { ; }
-ul.thumbnail-grid li.thumbnail { display: inline-block; height: 160px; width: 160px; margin: 0.5em; }
-ul.thumbnail-grid li.thumbnail a { display: block; height: 160px; width: 160px; line-height: 160px; text-align: center; }
+ul.thumbnail-grid { position: relative; }
+ul.thumbnail-grid li.thumbnail { z-index: 0; display: inline-block; position: relative; height: 160px; width: 160px; margin: 0.5em; }
+ul.thumbnail-grid li.thumbnail a { z-index: 10; display: block; position: relative; height: 160px; width: 160px; line-height: 160px; text-align: center; }
 ul.thumbnail-grid li.thumbnail a img { vertical-align: middle; -moz-box-shadow: 1px 1px 5px black; }
-ul.thumbnail-grid li.thumbnail .thumbnail-meta { display: none; position: absolute; width: 180px; margin-top: 1em; margin-left: -15px; padding: 0.5em 4px; border: 1px solid #7e8780; background: #a6ada8; text-align: center; -moz-border-radius: 0.5em; }
+ul.thumbnail-grid li.thumbnail .thumbnail-meta { z-index: 0; display: none; position: absolute; width: 200px; top: -10px; left: -25px; padding: 180px 4px 0.5em; line-height: 1.33; border: 1px solid #7e8780; background: #a6ada8; text-align: left; -moz-border-radius: 0.5em; }
+ul.thumbnail-grid li.thumbnail .thumbnail-meta .title { font-weight: bold; }
+ul.thumbnail-grid li.thumbnail:hover { z-index: 10; }
 ul.thumbnail-grid li.thumbnail:hover .thumbnail-meta { display: block; }
+ul.thumbnail-grid li.thumbnail:hover a img { -moz-box-shadow: none; }
 
 .artwork { text-align: center; }
 .artwork img { max-width: 100%; }
