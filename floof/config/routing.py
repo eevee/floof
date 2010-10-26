@@ -25,15 +25,20 @@ def make_map(config):
     map.connect('/error/{action}/{id}', controller='error')
 
     map.connect('/account/{action}', controller='account',
-        requirements=dict(action='login|login_finish'))
+        requirements=dict(action='login|login_finish|profile'))
     map.connect('/account/{action}', controller='account',
-        requirements=dict(action='login_begin|register|logout'),
+        requirements=dict(action='login_begin|register|logout|profile'),
         **require_POST)
 
     map.connect('/art', controller='art', action='gallery')
     map.connect('/art/{id:\d+};{title}', controller='art', action='view')
     map.connect('/art/{id:\d+}', controller='art', action='view')
     map.connect('/art/upload', controller='art', action='upload')
+
+    map.connect('/user/{id:\d+}', controller='user', action='view')
+    map.connect('/user/{name}', controller='user', action='view')
+    map.connect('/user/{id:\d+}/{action}', controller='user')
+    map.connect('/user/{name}/{action}', controller='user')
 
     map.connect('/', controller='main', action='index')
 

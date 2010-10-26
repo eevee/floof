@@ -15,7 +15,7 @@ import wtforms.form, wtforms.fields, wtforms.validators
 from floof.lib import helpers
 from floof.lib.base import BaseController, render
 from floof.lib.decorators import logged_in, logged_out
-from floof.model import IdentityURL, User, Role, meta
+from floof.model import UserProfileRevision, IdentityURL, User, Role, meta
 
 log = logging.getLogger(__name__)
 
@@ -34,6 +34,9 @@ class RegistrationForm(wtforms.form.Form):
         if meta.Session.query(User).filter_by(name=field.data).count():
             raise wtforms.validators.ValidationError(
                 'Your username is already taken. Please try again.')
+
+class ProfileForm(wtforms.form.Form):
+    profile = wtforms.fields.TextField(u'Profile')
 
 class AccountController(BaseController):
 
@@ -173,3 +176,16 @@ class AccountController(BaseController):
                 icon='user-silhouette')
 
         redirect(url('/'), code=303)
+
+    @user_must('logged_in')
+    def profile(self):
+        c.form = ProfileForm(request.POST)
+
+        if request.method == 'POST' and c.form.validate():
+            profile = c.form.profile.data
+            c.user.profile = profile
+            rev = UserProfileRevision(user=c.user, updated_by=c.user, content=profile)
+            meta.Session.add(rev)
+            meta.Session.commit()
+        else:
+            return render('/account/profile.mako')

@@ -1,3 +1,5 @@
+import functools
+
 from pylons import tmpl_context as c
 from pylons.controllers.util import abort
 from decorator import decorator
@@ -27,3 +29,15 @@ def user_must(priv):
             abort(403)
         return f(*a, **kw)
     return deco
+
+def user_action(f):
+    """Decorator to transform a username into a user object."""
+    @functools.wraps(f)
+    def wrap(self, name):
+        q = meta.Session.query(model.User)
+        user = q.filter_by(name=name).first()
+        if user is None:
+            abort(404)
+        c.this_user = user
+        return f(self, user)
+    return wrap

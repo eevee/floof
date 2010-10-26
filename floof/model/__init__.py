@@ -5,7 +5,7 @@ import re
 
 from sqlalchemy import Column, ForeignKey, MetaData, Table
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relation
+from sqlalchemy.orm import relation, backref
 from sqlalchemy.types import *
 from floof.model.types import *
 
@@ -73,6 +73,23 @@ class User(TableBase):
         """
 
         return self.name
+
+    @property
+    def profile(self):
+        """Returns the user's profile, if they have one.
+
+        This would use ext.association_proxy, but that doesn't play nicely if
+        the object to proxy is None.
+        """
+        if self._profile is None:
+            return None
+        return self._profile.content
+
+    @profile.setter
+    def profile(self, value):
+        if self._profile is None:
+            self._profile = UserProfile()
+        self._profile.content = value
 
 class IdentityURL(TableBase):
     __tablename__ = 'identity_urls'
@@ -148,10 +165,35 @@ class RolePrivilege(TableBase):
     priv_id = Column(Integer, ForeignKey('privileges.id'), primary_key=True, nullable=False)
 
 
+### PROFILES
+
+class UserProfile(TableBase):
+    __tablename__ = 'user_profiles'
+    user_id = Column(Integer, ForeignKey('users.id'), primary_key=True, nullable=False)
+    content = Column(Unicode, nullable=True)
+
+class UserProfileRevision(TableBase):
+    __tablename__ = 'user_profile_revisions'
+    user_id = Column(Integer, ForeignKey('users.id'), primary_key=True, nullable=False)
+    updated_at = Column(DateTime, primary_key=True, nullable=False, default=now)
+    updated_by_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    content = Column(Unicode, nullable=True)
+
+
 ### RELATIONS
 
 # Users
 IdentityURL.user = relation(User, backref='identity_urls')
+
+
+# Profiles
+UserProfile.user = relation(User, uselist=False, backref=backref('_profile', uselist=False))
+UserProfileRevision.user = relation(User, uselist=False, backref='profile_revisions',
+    foreign_keys=[UserProfileRevision.user_id],
+    primaryjoin=UserProfileRevision.user_id == User.id)
+UserProfileRevision.updated_by = relation(User, uselist=False,
+    foreign_keys=[UserProfileRevision.updated_by_id],
+    primaryjoin=UserProfileRevision.updated_by_id == User.id)
 
 
 # Art
