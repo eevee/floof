@@ -33,6 +33,8 @@ def make_map(config):
     map.connect('/art/{id:\d+}', controller='art', action='view')
     map.connect('/art/upload', controller='art', action='upload')
 
+    map.connect('/files/{key:[\w.]+}', controller='files', action='view')
+
     map.connect('/', controller='main', action='index')
 
     return map
