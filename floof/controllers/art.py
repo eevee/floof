@@ -115,7 +115,9 @@ class ArtController(BaseController):
 
             # OK, store the file.  Reset the file object first!
             fileobj.seek(0)
-            storage.put(hash, fileobj)
+            storage.put(hash, fileobj,
+                        mimetype=mimetype,
+                        filename=uploaded_file.filename)
 
             # Open the image, determine its size, and generate a thumbnail
             fileobj.seek(0)
@@ -155,7 +157,7 @@ class ArtController(BaseController):
                 thumbnail_format = 'JPEG'
             thumbnail_image.save(buf, thumbnail_format)
             buf.seek(0)
-            storage.put(hash + '.thumbnail', buf)
+            storage.put(hash + '.thumbnail', buf, mimetype=mimetype)
 
             # Deal with user-supplied metadata
             # nb: it's perfectly valid to have no title

@@ -5,13 +5,12 @@ from __future__ import absolute_import
 import os
 import os.path
 import shutil
+from xattr import xattr
 
 from pylons import url
 
 from . import FileStorage as BaseFileStorage
 
-# XXX how on earth will this handle mimetypes correctly?!
-# do files need to actually be separate database objects?  :(
 class FileStorage(BaseFileStorage):
     def __init__(self, directory, url_prefix, **kwargs):
         if not os.path.isdir(directory):
@@ -20,9 +19,20 @@ class FileStorage(BaseFileStorage):
         self.directory = directory
         self.url_prefix = url_prefix
 
-    def put(self, key, fileobj):
+    def put(self, key, fileobj, mimetype=None, filename=None):
         dest = open(os.path.join(self.directory, key), 'wb')
         shutil.copyfileobj(fileobj, dest)
+
+        # If the filesystem does not support xattr, these will raise IOError;
+        # might want to catch that, but for now i'm letting it probagate.
+        attr = xattr(dest)
+        if mimetype is not None:
+            # see http://www.freedesktop.org/wiki/CommonExtendedAttributes
+            attr['user.mime_type'] = mimetype
+        if filename is not None:
+            attr['user.floof.filename'] = filename
+
+        dest.close()
 
     def url(self, key, maxsize=None):
         return url("{0}/{1}".format(self.url_prefix, key))
