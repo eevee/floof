@@ -10,12 +10,12 @@ from floof import model
 
 log = logging.getLogger(__name__)
 
-class UserController(BaseController):
+class UsersController(BaseController):
 
     @user_action
     def view(self, user):
-        return render('/user/view.mako')
+        return render('/users/view.mako')
 
     @user_action
     def profile(self, user):
-        return render('/user/profile.mako')
+        return render('/users/profile.mako')

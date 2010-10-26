@@ -33,8 +33,8 @@ def make_map(config):
 
     map.connect('/account/controls', controller='controls', action='index')
 
-    map.connect('/user/{name}', controller='user', action='view')
-    map.connect('/user/{name}/{action}', controller='user')
+    map.connect('/users/{name}', controller='users', action='view')
+    map.connect('/users/{name}/{action}', controller='users')
 
     map.connect('/', controller='main', action='index')
 
