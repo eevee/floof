@@ -19,13 +19,10 @@ def make_map(config):
     map.connect('/error/{action}', controller='error')
     map.connect('/error/{action}/{id}', controller='error')
 
-    map.connect('/account/login', controller='account', action='login')
-    map.connect('/account/login_begin', controller='account', action='login_begin',
-        **require_POST)
-    map.connect('/account/login_finish', controller='account', action='login_finish')
-    map.connect('/account/register', controller='account', action='register',
-        **require_POST)
-    map.connect('/account/logout', controller='account', action='logout',
+    map.connect('/account/{action}', controller='account',
+        requirements=dict(action='login|login_finish'))
+    map.connect('/account/{action}', controller='account',
+        requirements=dict(action='login_begin|register|logout'),
         **require_POST)
 
     map.connect('/art', controller='art', action='gallery')
