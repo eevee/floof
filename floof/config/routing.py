@@ -32,4 +32,8 @@ def make_map(config):
 
     map.connect('/', controller='main', action='index')
 
+    # Static routes
+    map.connect('icon', '/icons/{which}.png', _static=True)
+    map.connect('css', '/css/{which}.css', _static=True)
+
     return map

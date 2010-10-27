@@ -1,9 +1,10 @@
 <%inherit file="/base.mako" />
+<%namespace name="lib" file="/lib.mako" />
 
 <%def name="title()">${c.artwork.title or 'Untitled'} - Artwork</%def>
 
 <h1>
-    <img src="/icons/image.png" alt="">
+    ${lib.icon('image')}
     ${c.artwork.title or 'Untitled'}
 </h1>
 
@@ -19,7 +20,7 @@
         <dd>${c.artwork.title or 'Untitled'}</dd>
         <dt>Uploader</dt>
         <dd>
-            <img src="/icons/disk.png" alt="">
+            ${lib.icon('disk')}
             ${c.artwork.uploader.display_name}
         </dd>
 
@@ -27,11 +28,11 @@
         <dt>${user_artwork.relationship_type}</dt>
         <dd>
             % if user_artwork.relationship_type == u'by':
-            <img src="/icons/paint-brush.png" alt="">
+            ${lib.icon('paint-brush')}
             % elif user_artwork.relationship_type == u'for':
-            <img src="/icons/present.png" alt="">
+            ${lib.icon('present')}
             % elif user_artwork.relationship_type == u'of':
-            <img src="/icons/camera.png" alt="">
+            ${lib.icon('camera')}
             % endif
             ${user_artwork.user.display_name}
         </dd>

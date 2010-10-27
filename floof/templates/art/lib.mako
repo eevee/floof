@@ -1,3 +1,19 @@
+<%namespace name="lib" file="/lib.mako" />
+
+<%!
+def media_icon(type):
+    """Determine the icon that should be used for an artwork.
+
+    Add more elifs as necessary.
+    """
+    if type == "image":
+        return 'image'
+    elif type == "music":
+        return 'music-beam'
+    else:
+        return 'question'
+%>
+
 <%def name="thumbnail(artwork)">
 ## Spits out..  a thumbnail of this artwork.  It's an <li>, so this should be
 ## called inside a <ul>.
@@ -7,22 +23,10 @@
     </a>
     <div class="thumbnail-meta">
         <div class="title">
-            <img src="${media_icon(artwork.media_type)}">
+            ${lib.icon(media_icon(artwork.media_type))}
             ${artwork.title or 'Untitled'}
         </div>
-        <img src="/icons/disk.png" alt="Uploader:"> ${artwork.uploader.display_name}
+        ${lib.icon('disk', alt='Uploader:')} ${artwork.uploader.display_name}
     </div>
 </li>
-</%def>
-
-<%def name="media_icon(type)">
-## Spits out a URL, should be called from an img tag.
-## Add an entry for each media type here
-% if type == "image":
-    icons/image.png
-% elif type == "music":
-    icons/music-beam.png
-% else:
-    icons/question.png
-% endif
 </%def>

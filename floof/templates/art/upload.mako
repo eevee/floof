@@ -4,7 +4,7 @@
 <%def name="title()">Upload - Artwork</%def>
 
 <h1>
-    <img src="/icons/image--arrow.png" alt="">
+    ${lib.icon('image--arrow')}
     Upload
 </h1>
 
@@ -18,9 +18,9 @@ ${h.form(url.current(), multipart=True)}
     <dd>
         ${field() | n}
         % if field.data == u'by':
-        <img src="/icons/paint-brush.png" alt="">
+        ${lib.icon('paint-brush')}
         % elif field.data == u'for':
-        <img src="/icons/present.png" alt="">
+        ${lib.icon('present')}
         % endif
         ${field.label() | n}
     </dd>
@@ -30,7 +30,7 @@ ${h.form(url.current(), multipart=True)}
     % endif
     <dd>
         ${c.form.relationship_of() | n}
-        <img src="/icons/camera.png" alt="">
+        ${lib.icon('camera')}
         ${c.form.relationship_of.label() | n}
         ${lib.field_errors(c.form.relationship_of)}
     </dd>

@@ -1,9 +1,10 @@
 <!DOCTYPE html>
+<%namespace name="lib" file="/lib.mako" />
 <html>
 <head>
     <title>${self.title()} - ${config['site_title']}</title>
-    <link rel="stylesheet" type="text/css" href="/css/reset.css">
-    <link rel="stylesheet" type="text/css" href="/css/core.css">
+    <link rel="stylesheet" type="text/css" href="${url('css', which='reset')}">
+    <link rel="stylesheet" type="text/css" href="${url('css', which='core')}">
 </head>
 <body>
     <div id="header">
@@ -30,7 +31,7 @@
     <ul id="flash">
         % for messages in flash:
         <li class="flash-level-${messages.message[1]['level']}">
-            <img src="/icons/${messages.message[1]['icon']}.png" alt="">
+            ${lib.icon(messages.message[1]['icon'])}
             ${messages.message[0]}
         </li>
         % endfor
