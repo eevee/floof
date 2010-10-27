@@ -5,6 +5,11 @@ may take precedent over the more generic routes. For more information
 refer to the routes manual at http://routes.groovie.org/docs/
 """
 from routes import Mapper
+from pylons import config
+
+def filestore_filter(kw):
+    kw['url'] = config['filestore'].url(kw.pop('key'))
+    return kw
 
 def make_map(config):
     """Create, configure and return the routes Mapper"""
@@ -35,5 +40,6 @@ def make_map(config):
     # Static routes
     map.connect('icon', '/icons/{which}.png', _static=True)
     map.connect('css', '/css/{which}.css', _static=True)
+    map.connect('filestore', '{url}', _static=True, _filter=filestore_filter)
 
     return map

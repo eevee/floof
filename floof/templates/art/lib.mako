@@ -19,7 +19,7 @@ def media_icon(type):
 ## called inside a <ul>.
 <li class="thumbnail">
     <a href="${h.art_url(artwork)}">
-        <img src="${config['filestore'].url(artwork.hash + '.thumbnail')}" alt="">
+        <img src="${url('filestore', key=artwork.hash + '.thumbnail')}" alt="">
     </a>
     <div class="thumbnail-meta">
         <div class="title">

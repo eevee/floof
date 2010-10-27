@@ -216,7 +216,6 @@ class ArtController(BaseController):
         if not c.artwork:
             abort(404)
 
-        storage = config['filestore']
-        c.artwork_url = storage.url(c.artwork.hash)
+        c.artwork_url = url('filestore', key=c.artwork.hash)
 
         return render('/art/view.mako')
