@@ -8,6 +8,7 @@ from pylons.controllers.util import abort, redirect
 from sqlalchemy.sql import and_
 from sqlalchemy.orm.exc import NoResultFound
 import wtforms.form, wtforms.fields, wtforms.validators
+from floof.forms import MultiCheckboxField
 
 from floof.lib import helpers
 from floof.lib.base import BaseController, render
@@ -57,17 +58,16 @@ def get_number_of_colors(image):
 class UploadArtworkForm(wtforms.form.Form):
     file = wtforms.fields.FileField(u'')
     title = wtforms.fields.TextField(u'Title')
-    relationship_by_for = wtforms.fields.RadioField(u'',
-        [wtforms.validators.required()],
+    relationship = MultiCheckboxField(u'',
         choices=[
             (u'by',  u"by me: I'm the artist; I created this!"),
             (u'for', u"for me: I commissioned this, or it was a gift specifically for me"),
+            (u'of',  u"of me: I'm depicted in this artwork"),
         ],
     )
-    relationship_of = wtforms.fields.BooleanField(u"of me: I'm depicted in this artwork")
 
 class ArtController(BaseController):
-    HASH_BUFFER_SIZE = 524288  # half a meg
+    HASH_BUFFER_SIZE = 524288  # .5 MiB
     MAX_ASPECT_RATIO = 2
 
     @user_must('upload_art')
@@ -186,18 +186,12 @@ class ArtController(BaseController):
             )
 
             # Associate the uploader as artist or recipient
-            artwork.user_artwork.append(
-                model.UserArtwork(
-                    user_id = c.user.id,
-                    relationship_type = c.form.relationship_by_for.data,
-                )
-            )
             # Also as a participant if appropriate
-            if c.form.relationship_of.data:
+            for relationship in c.form.relationship.data:
                 artwork.user_artwork.append(
                     model.UserArtwork(
                         user_id = c.user.id,
-                        relationship_type = u'of',
+                        relationship_type = relationship,
                     )
                 )
 
