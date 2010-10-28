@@ -5,6 +5,7 @@ import random
 import magic
 from pylons import config, request, response, session, tmpl_context as c, url
 from pylons.controllers.util import abort, redirect
+from sqlalchemy.sql import and_
 from sqlalchemy.orm.exc import NoResultFound
 import wtforms.form, wtforms.fields, wtforms.validators
 
@@ -210,11 +211,33 @@ class ArtController(BaseController):
         else:
             return render('/art/upload.mako')
 
-    def gallery(self):
+    def gallery(self, tag=None):
         """Main gallery; provides browsing through absolutely everything we've
         got.
         """
-        c.artwork = meta.Session.query(model.Artwork).all()
+        q = meta.Session.query(model.Artwork)
+        c.tag = tag
+        c.relation = None
+        if tag is not None:
+            if tag.startswith(("by:", "for:", "of:")):
+                relation, _, username = tag.partition(":")
+                try:
+                    user = (meta.Session.query(model.User)
+                             .filter_by(name=username)
+                             .one())
+                except NoResultFound:
+                    abort(404)
+                q = q.join(model.UserArtwork).join(model.User)
+                q = q.filter(and_(
+                    model.UserArtwork.relationship_type == relation,
+                    model.User.id == user.id,
+                ))
+                c.relation = relation
+                c.related_user = user
+            else:
+                # XXX tags
+                abort(404)
+        c.artwork = q.all()
         return render('/art/gallery.mako')
 
     def view(self, id):
