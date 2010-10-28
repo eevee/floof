@@ -281,6 +281,19 @@ class UserProfileRevision(TableBase):
     content = Column(Unicode, nullable=True)
 
 
+### TAGS
+
+class Tag(TableBase):
+    __tablename__ = 'tags'
+    id = Column(Integer, primary_key=True)
+    name = Column(Unicode(64), unique=True)
+
+artwork_tags = Table('artwork_tags', meta.metadata,
+    Column('artwork_id', Integer, ForeignKey('artwork.id'), primary_key=True),
+    Column('tag_id', Integer, ForeignKey('tags.id'), primary_key=True),
+)
+
+
 ### RELATIONS
 
 make_resource_type(User)
@@ -302,6 +315,8 @@ UserProfileRevision.updated_by = relation(User, uselist=False,
 
 # Art
 #Artwork.discussion = relation(Discussion, backref='artwork')
+Artwork.tag_objs = relation(Tag, backref='artwork', secondary=artwork_tags)
+Artwork.tags = association_proxy('tag_objs', 'name')
 Artwork.uploader = relation(User, backref='uploaded_artwork')
 Artwork.user_artwork = relation(UserArtwork, backref='artwork')
 
