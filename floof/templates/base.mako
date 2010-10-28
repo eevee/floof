@@ -8,13 +8,12 @@
 </head>
 <body>
     <div id="header">
+        <div id="logo">floof</div>
         <div id="user">
             % if c.user:
                 ${h.form(url(controller='account', action='logout'), class_='compact')}
-                <p>
-                    Logged in as ${c.user.display_name}.
-                    <button type="submit">Log out</button>
-                </p>
+                <p>Hello, ${c.user.display_name}!</p>
+                <p><button type="submit">Log out</button></p>
                 ${h.end_form()}
             % else:
             <a href="${url(controller='account', action='login')}">Log in or register</a>
@@ -42,6 +41,7 @@
         ${next.body()}
     </div>
 
+    <div id="footer-spacer"></div>
     <div id="footer">
         Icons from the <a href="http://p.yusukekamiyamane.com/">Fugue set</a>
     </div>
