@@ -18,7 +18,7 @@ def media_icon(type):
 ## Spits out..  a thumbnail of this artwork.  It's an <li>, so this should be
 ## called inside a <ul>.
 <li class="thumbnail">
-    <a href="${h.art_url(artwork)}">
+    <a class="thumbnail" href="${h.art_url(artwork)}">
         <img src="${url('filestore', key=artwork.hash + '.thumbnail')}" alt="">
     </a>
     <div class="thumbnail-meta">
@@ -26,7 +26,7 @@ def media_icon(type):
             ${lib.icon(media_icon(artwork.media_type))}
             ${artwork.title or 'Untitled'}
         </div>
-        ${lib.icon('disk', alt='Uploader:')} ${artwork.uploader.display_name}
+        ${lib.icon('disk', alt='Uploader:')} ${lib.user(artwork.uploader)}
     </div>
 </li>
 </%def>
