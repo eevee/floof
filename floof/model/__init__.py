@@ -7,6 +7,7 @@ from sqlalchemy import Column, ForeignKey, MetaData, Table, and_
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import backref, class_mapper, relation
+from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.session import object_session
 from sqlalchemy.types import *
 from floof.model.types import *
@@ -283,10 +284,19 @@ class UserProfileRevision(TableBase):
 
 ### TAGS
 
+def get_or_create_tag(name):
+    try:
+        return meta.Session.query(Tag).filter_by(name=name).one()
+    except NoResultFound:
+        return Tag(name)
+
 class Tag(TableBase):
     __tablename__ = 'tags'
     id = Column(Integer, primary_key=True)
     name = Column(Unicode(64), unique=True)
+
+    def __init__(self, name):
+        self.name = name
 
 class Label(TableBase):
     __tablename__ = 'labels'
@@ -328,7 +338,7 @@ UserProfileRevision.updated_by = relation(User, uselist=False,
 # Art
 #Artwork.discussion = relation(Discussion, backref='artwork')
 Artwork.tag_objs = relation(Tag, backref='artwork', secondary=artwork_tags)
-Artwork.tags = association_proxy('tag_objs', 'name')
+Artwork.tags = association_proxy('tag_objs', 'name', creator=get_or_create_tag)
 Artwork.uploader = relation(User, backref='uploaded_artwork')
 Artwork.user_artwork = relation(UserArtwork, backref='artwork')
 
