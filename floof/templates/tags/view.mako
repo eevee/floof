@@ -4,6 +4,7 @@
 
 <h1>${title()}</h1>
 
+<p><a href="${url(controller='art', action='gallery', tag=c.tag.name)}">View art with this tag.</a></p>
 <p>Stat porn goes here.</p>
 
 <dl class="standard-form">
