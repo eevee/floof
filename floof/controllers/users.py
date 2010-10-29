@@ -14,6 +14,9 @@ class UsersController(BaseController):
 
     @user_action
     def view(self, user):
+        c.related_art = {}
+        for rel in meta.Session.query(model.UserArtwork).filter_by(user=user):
+            c.related_art.setdefault(rel.relationship_type, []).append(rel.artwork)
         return render('/users/view.mako')
 
     @user_action
