@@ -40,6 +40,10 @@
             ${lib.user_link(user_artwork.user)}
         </dd>
         % endfor
+        % if c.artwork.tags:
+        <dt>Tagged</dt>
+        <dd>${' '.join(sorted(c.artwork.tags))}</dd>
+        % endif
     </dl>
 </div>
 <div class="column">
