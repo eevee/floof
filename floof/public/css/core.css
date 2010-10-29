@@ -77,8 +77,8 @@ dl.standard-form dt, dl.standard-form dd { line-height: 1.5; }
 /*** Art ***/
 ul.thumbnail-grid { position: relative; }
 ul.thumbnail-grid li.thumbnail { z-index: 0; display: inline-block; position: relative; height: 160px; width: 160px; margin: 0.5em; }
-ul.thumbnail-grid li.thumbnail a { z-index: 10; display: block; position: relative; height: 160px; width: 160px; line-height: 160px; text-align: center; }
-ul.thumbnail-grid li.thumbnail a img { vertical-align: middle; -moz-box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5); -webkit-box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5); box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5); }
+ul.thumbnail-grid li.thumbnail a.thumbnail { z-index: 10; display: block; position: relative; height: 160px; width: 160px; line-height: 160px; text-align: center; }
+ul.thumbnail-grid li.thumbnail a.thumbnail img { vertical-align: middle; -moz-box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5); -webkit-box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5); box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5); }
 ul.thumbnail-grid li.thumbnail .thumbnail-meta { z-index: 0; display: none; position: absolute; width: 200px; top: -16px; left: -25px; margin-top: -2em; padding: 0 4px 0.5em; line-height: 1.33; border: 1px solid #b3c0cd; background: #d1d8df; text-align: left; -moz-border-radius: 1em; -webkit-border-radius: 1em; border-radius: 1em; }
 ul.thumbnail-grid li.thumbnail .thumbnail-meta .title { overflow: hidden; white-space: nowrap; margin: 0 -4px 180px; padding: 0.5em; background: #b3c0cd; font-weight: bold; -moz-border-radius: 1em 1em 0 0; -webkit-border-radius: 1em 1em 0 0; border-radius: 1em 1em 0 0; }
 ul.thumbnail-grid li.thumbnail .thumbnail-meta img { vertical-align: text-bottom; }

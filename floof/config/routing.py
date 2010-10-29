@@ -7,6 +7,11 @@ refer to the routes manual at http://routes.groovie.org/docs/
 from routes import Mapper
 from pylons import config
 
+def user_filter(kw):
+    if 'user' in kw:
+        kw['name'] = kw.pop('user').name
+    return kw
+
 def filestore_filter(kw):
     kw['url'] = config['filestore'].url(kw.pop('key'))
     return kw
@@ -35,7 +40,7 @@ def make_map(config):
     map.connect('/art/{id:\d+}', controller='art', action='view')
     map.connect('/art/upload', controller='art', action='upload')
 
-    map.connect('/users/{name}', controller='users', action='view')
+    map.connect('user', '/users/{name}', controller='users', action='view', _filter=user_filter)
     map.connect('/users/{name}/{action}', controller='users')
 
     map.connect('/', controller='main', action='index')

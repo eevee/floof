@@ -21,7 +21,7 @@
         <dt>Uploader</dt>
         <dd>
             ${lib.icon('disk')}
-            ${c.artwork.uploader.display_name}
+            ${lib.user(c.artwork.uploader)}
         </dd>
 
         % for user_artwork in c.artwork.user_artwork:
@@ -34,7 +34,7 @@
             % elif user_artwork.relationship_type == u'of':
             ${lib.icon('camera')}
             % endif
-            ${user_artwork.user.display_name}
+            ${lib.user(user_artwork.user)}
         </dd>
         % endfor
     </dl>
