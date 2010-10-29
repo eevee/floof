@@ -288,9 +288,21 @@ class Tag(TableBase):
     id = Column(Integer, primary_key=True)
     name = Column(Unicode(64), unique=True)
 
+class Label(TableBase):
+    __tablename__ = 'labels'
+    id = Column(Integer, primary_key=True)
+    name = Column(Unicode(64), nullable=False)
+    user_id = Column(Integer, ForeignKey('users.id'))
+    encapsulation = Column(Enum(u'public', u'private', name='label_encapsulation'), nullable=False)
+
 artwork_tags = Table('artwork_tags', meta.metadata,
     Column('artwork_id', Integer, ForeignKey('artwork.id'), primary_key=True),
     Column('tag_id', Integer, ForeignKey('tags.id'), primary_key=True),
+)
+
+artwork_labels = Table('artwork_labels', meta.metadata,
+    Column('artwork_id', Integer, ForeignKey('artwork.id'), primary_key=True),
+    Column('label_id', Integer, ForeignKey('labels.id'), primary_key=True),
 )
 
 
@@ -333,3 +345,7 @@ Resource.discussion = relation(Discussion, uselist=False, backref='resource')
 Comment.author = relation(User, backref='comments')
 
 Discussion.comments = relation(Comment, order_by=Comment.left.asc(), backref='discussion')
+
+# Tags & Labels
+Label.user = relation(User, backref='labels')
+Label.artwork = relation(Artwork, secondary=artwork_labels)
