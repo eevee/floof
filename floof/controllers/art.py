@@ -233,8 +233,12 @@ class ArtController(BaseController):
                 c.relation = relation
                 c.related_user = user
             else:
-                # XXX tags
-                abort(404)
+                q = q.join(model.artwork_tags, model.Tag)
+                q = q.filter(
+                    model.Tag.name == tag
+                )
+                #XXX throw a 404 if there are no results? if a tag
+                #    isn't used, it may as well not exist.
         c.artwork = q.all()
         return render('/art/gallery.mako')
 
