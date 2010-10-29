@@ -12,6 +12,7 @@ ${h.form(url.current(), multipart=True)}
 <dl class="standard-form">
     ${lib.field(c.form.file)}
     ${lib.field(c.form.title, size=64, maxlength=133)}
+    ${lib.field(c.form.tags, size=64)}
 
     ## Relationship stuff
     % for field in c.form.relationship:

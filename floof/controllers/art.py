@@ -8,7 +8,7 @@ from pylons.controllers.util import abort, redirect
 from sqlalchemy.sql import and_
 from sqlalchemy.orm.exc import NoResultFound
 import wtforms.form, wtforms.fields, wtforms.validators
-from floof.forms import MultiCheckboxField
+from floof.forms import MultiCheckboxField, MultiTagField
 
 from floof.lib import helpers
 from floof.lib.base import BaseController, render
@@ -65,6 +65,7 @@ class UploadArtworkForm(wtforms.form.Form):
             (u'of',  u"of me: I'm depicted in this artwork"),
         ],
     )
+    tags = MultiTagField(u'Tags')
 
 class ArtController(BaseController):
     HASH_BUFFER_SIZE = 524288  # .5 MiB
@@ -194,6 +195,9 @@ class ArtController(BaseController):
                         relationship_type = relationship,
                     )
                 )
+
+            for tag in c.form.tags.data:
+                artwork.tags.append(tag)
 
             meta.Session.add_all([artwork, discussion, resource])
             meta.Session.commit()
