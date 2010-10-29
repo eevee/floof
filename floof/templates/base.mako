@@ -8,7 +8,7 @@
 </head>
 <body>
     <div id="header">
-        <div id="logo">floof</div>
+        <div id="logo"><a href="${url('/')}">floof</a></div>
         <div id="user">
             % if c.user:
                 ${h.form(url(controller='account', action='logout'), class_='compact')}
