@@ -42,7 +42,11 @@
         % endfor
         % if c.artwork.tags:
         <dt>Tagged</dt>
-        <dd>${' '.join(sorted(c.artwork.tags))}</dd>
+        <dd>
+        % for tag in c.artwork.tags:
+        <a href="${url(controller='tags', action='view', name=tag)}">${tag}</a>\
+        % endfor
+        </dd>
         % endif
     </dl>
 </div>
