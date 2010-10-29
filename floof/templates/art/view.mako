@@ -40,15 +40,27 @@
             ${lib.user_link(user_artwork.user)}
         </dd>
         % endfor
-        % if c.artwork.tags:
-        <dt>Tagged</dt>
-        <dd>
-        % for tag in c.artwork.tags:
-        <a href="${url(controller='tags', action='view', name=tag)}">${tag}</a>\
-        % endfor
-        </dd>
-        % endif
     </dl>
+
+    <h2 id="tags">Tags</h2>
+    <p>\
+    % for tag in c.artwork.tags:
+    <a href="${url(controller='tags', action='view', name=tag)}">${tag}</a>\
+    % endfor
+    </p>
+    % for form in (c.add_tag_form, c.remove_tag_form):
+    <div>
+    <p>
+    ${h.form(url.current())}
+    ${form.tags.label()}:
+    ${form.tags()}
+    ${form.action()}
+    <button type=submit>Go</button>
+    ${h.end_form()}
+    </p>
+    ${lib.field_errors(form.tags)}
+    </div>
+    % endfor
 </div>
 <div class="column">
     <h2>Stats</h2>

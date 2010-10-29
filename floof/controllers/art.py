@@ -67,6 +67,26 @@ class UploadArtworkForm(wtforms.form.Form):
     )
     tags = MultiTagField(u'Tags')
 
+class AddTagForm(wtforms.form.Form):
+    tags = MultiTagField(u"Add a tag", id='add_tags')
+    action = wtforms.fields.HiddenField(default='add_tags')
+
+    def validate_tags(form, field):
+        if field.data is not None:
+            for tag in field.data:
+                if tag in c.artwork.tags:
+                    raise ValueError("Already tagged with \"{}\"".format(tag))
+
+class RemoveTagForm(wtforms.form.Form):
+    tags = MultiTagField(u"Remove a tag", id='remove_tags')
+    action = wtforms.fields.HiddenField(default='remove_tags')
+
+    def validate_tags(form, field):
+        if field.data is not None:
+            for tag in field.data:
+                if tag not in c.artwork.tags:
+                    raise ValueError(u"Not tagged with \"{}\"".format(tag))
+
 class ArtController(BaseController):
     HASH_BUFFER_SIZE = 524288  # .5 MiB
     MAX_ASPECT_RATIO = 2
@@ -251,5 +271,34 @@ class ArtController(BaseController):
         c.artwork_url = url('filestore', key=c.artwork.hash)
 
         c.comment_form = self.CommentForm()
+        c.add_tag_form = AddTagForm()
+        c.remove_tag_form = RemoveTagForm()
+
+        if request.method == 'POST':
+            action = request.POST.get('action')
+            if action == 'add_tags':
+                form = c.add_tag_form
+                form.process(request.POST)
+                if form.validate() and form.tags.data:
+                    for tag in form.tags.data:
+                        c.artwork.tags.append(tag)
+                    meta.Session.commit()
+                    if len(form.tags.data) == 1:
+                        helpers.flash(u"Tag \"{}\" has been added".format(tag))
+                    else:
+                        helpers.flash(u"Your tags have been added")
+                    return redirect(url.current(), code=303)
+            elif action == 'remove_tags':
+                form = c.remove_tag_form
+                form.process(request.POST)
+                if form.validate() and form.tags.data:
+                    for tag in form.tags.data:
+                        c.artwork.tags.remove(tag)
+                    meta.Session.commit()
+                    if len(form.tags.data) == 1:
+                        helpers.flash(u"Tag \"{}\" has been removed".format(tag))
+                    else:
+                        helpers.flash(u"Tags have been removed")
+                    return redirect(url.current(), code=303)
 
         return render('/art/view.mako')
