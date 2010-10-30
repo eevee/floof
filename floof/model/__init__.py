@@ -50,7 +50,7 @@ class User(TableBase):
     id = Column(Integer, primary_key=True, nullable=False)
     name = Column(Unicode(24), nullable=False, index=True, unique=True)
     timezone = Column(Timezone, nullable=True)
-    role_id = Column(Integer, ForeignKey('roles.id'), nullable=True)
+    role_id = Column(Integer, ForeignKey('roles.id'), nullable=False)
 
     def localtime(self, dt):
         """Return a datetime localized to this user's preferred timezone."""

@@ -14,7 +14,7 @@ import wtforms.form, wtforms.fields, wtforms.validators
 
 from floof.lib import helpers
 from floof.lib.base import BaseController, render
-from floof.model import IdentityURL, User, meta
+from floof.model import IdentityURL, User, Role, meta
 
 log = logging.getLogger(__name__)
 
@@ -140,7 +140,8 @@ class AccountController(BaseController):
             return render('/account/register.mako')
 
         # Create db records
-        user = User(name=c.form.username.data)
+        base_user = meta.Session.query(Role).filter_by(name=u'user').one()
+        user = User(name=c.form.username.data, role=base_user)
         meta.Session.add(user)
 
         openid = IdentityURL(url=identity_url)

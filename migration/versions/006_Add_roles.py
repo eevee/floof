@@ -1,16 +1,9 @@
 from sqlalchemy import *
 from migrate import *
-from floof.model.types import Timezone
 
+from sqlalchemy.orm import sessionmaker, relation
 from sqlalchemy.ext.declarative import declarative_base
 TableBase = declarative_base()
-
-class User(TableBase):
-    __tablename__ = 'users'
-    id = Column(Integer, primary_key=True, nullable=False)
-    name = Column(Unicode(24), nullable=False, index=True, unique=True)
-    timezone = Column(Timezone, nullable=True)
-    role_id = Column(Integer, ForeignKey('roles.id'), nullable=True)
 
 class Role(TableBase):
     __tablename__ = 'roles'
@@ -29,13 +22,25 @@ class RolePrivilege(TableBase):
     role_id = Column(Integer, ForeignKey('roles.id'), primary_key=True, nullable=False)
     priv_id = Column(Integer, ForeignKey('privileges.id'), primary_key=True, nullable=False)
 
+Role.privileges = relation(Privilege, secondary=RolePrivilege.__table__)
+
 def upgrade(migrate_engine):
     TableBase.metadata.bind = migrate_engine
 
+    # Add tables and columns
     Role.__table__.create()
     Privilege.__table__.create()
     RolePrivilege.__table__.create()
-    User.__table__.c.role_id.create()
+
+    # Add canonical privileges and roles
+    upload_art = Privilege(name=u'upload_art')
+    admin_priv = Privilege(name=u'admin')
+    base_user = Role(name=u'user', privileges=[upload_art])
+    admin_user = Role(name=u'admin', privileges=[admin_priv, upload_art])
+
+    Session = sessionmaker(bind=migrate_engine)()
+    Session.add_all([base_user, admin_user])
+    Session.commit()
 
     # Add canonical privileges and roles
     upload_art = Privilege(name=u'upload_art', description=u'Can upload art')
@@ -50,7 +55,6 @@ def upgrade(migrate_engine):
 def downgrade(migrate_engine):
     TableBase.metadata.bind = migrate_engine
 
-    User.__table__.c.role_id.drop()
     RolePrivilege.__table__.drop()
     Role.__table__.drop()
     Privilege.__table__.drop()

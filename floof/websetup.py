@@ -6,6 +6,7 @@ import pylons.test
 
 from floof.config.environment import load_environment
 from floof.model import meta
+from floof import model
 
 log = logging.getLogger(__name__)
 
