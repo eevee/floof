@@ -25,3 +25,11 @@ def setup_app(command, conf, vars):
 
     # Create the tables if they don't already exist
     meta.metadata.create_all(checkfirst=True)
+
+    # Add canonical privileges and roles
+    upload_art = model.Privilege(name=u'upload_art', description=u'Can upload art')
+    admin_priv = model.Privilege(name=u'admin', description=u'Can administrate')
+    base_user = model.Role(name=u'user', description=u'Basic user', privileges=[upload_art])
+    admin_user = model.Role(name=u'admin', description=u'Administrator', privileges=[admin_priv, upload_art])
+    meta.Session.add_all([base_user, admin_user])
+    meta.Session.commit()

@@ -50,6 +50,7 @@ class User(TableBase):
     id = Column(Integer, primary_key=True, nullable=False)
     name = Column(Unicode(24), nullable=False, index=True, unique=True)
     timezone = Column(Timezone, nullable=True)
+    role_id = Column(Integer, ForeignKey('roles.id'), nullable=True)
 
     def localtime(self, dt):
         """Return a datetime localized to this user's preferred timezone."""
@@ -58,9 +59,13 @@ class User(TableBase):
         return dt.astimezone(self.timezone)
 
     def can(self, permission):
-        """Returns True iff this user has the named permission."""
-        # TODO actually implement me!
-        return True
+        """Returns True iff this user has the named privilege."""
+        if not self.role:
+            return False
+        for priv in self.role.privileges:
+            if priv.name == permission:
+                return True
+        return False
 
     @property
     def display_name(self):
@@ -123,6 +128,26 @@ class UserArtwork(TableBase):
     relationship_type = Column(Enum(u'by', u'for', u'of', name='user_artwork_relationship_type'), primary_key=True, nullable=True)
 
 
+### PERMISSIONS
+
+class Role(TableBase):
+    __tablename__ = 'roles'
+    id = Column(Integer, primary_key=True, nullable=False)
+    name = Column(Unicode(127), nullable=False)
+    description = Column(Unicode, nullable=True)
+
+class Privilege(TableBase):
+    __tablename__ = 'privileges'
+    id = Column(Integer, primary_key=True, nullable=False)
+    name = Column(Unicode(127), nullable=False)
+    description = Column(Unicode, nullable=True)
+
+class RolePrivilege(TableBase):
+    __tablename__ = 'role_privileges'
+    role_id = Column(Integer, ForeignKey('roles.id'), primary_key=True, nullable=False)
+    priv_id = Column(Integer, ForeignKey('privileges.id'), primary_key=True, nullable=False)
+
+
 ### RELATIONS
 
 # Users
@@ -134,3 +159,7 @@ Artwork.uploader = relation(User, backref='uploaded_artwork')
 Artwork.user_artwork = relation(UserArtwork, backref='artwork')
 
 User.user_artwork = relation(UserArtwork, backref='user')
+
+# Permissions
+User.role = relation(Role, uselist=False, backref='users')
+Role.privileges = relation(Privilege, secondary=RolePrivilege.__table__)

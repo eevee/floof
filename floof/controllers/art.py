@@ -11,6 +11,7 @@ import wtforms.form, wtforms.fields, wtforms.validators
 
 from floof.lib import helpers
 from floof.lib.base import BaseController, render
+from floof.lib.decorators import user_must
 from floof.model import meta
 from floof import model
 
@@ -63,11 +64,9 @@ class ArtController(BaseController):
     HASH_BUFFER_SIZE = 524288  # half a meg
     MAX_ASPECT_RATIO = 2
 
+    @user_must('upload_art')
     def upload(self):
         """Uploads something.  Sort of important, you know."""
-        if not c.user.can('upload_art'):
-            abort(403)
-
         c.form = UploadArtworkForm(request.POST)
 
         if request.method == 'POST' and c.form.validate():
