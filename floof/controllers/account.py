@@ -14,6 +14,7 @@ import wtforms.form, wtforms.fields, wtforms.validators
 
 from floof.lib import helpers
 from floof.lib.base import BaseController, render
+from floof.lib.decorators import logged_in, logged_out
 from floof.model import IdentityURL, User, Role, meta
 
 log = logging.getLogger(__name__)
@@ -38,10 +39,12 @@ class AccountController(BaseController):
 
     openid_store = FileOpenIDStore('/var/tmp')
 
+    @logged_out
     def login(self):
         c.form = LoginForm()
         return render('/account/login.mako')
 
+    @logged_out
     def login_begin(self):
         """Step one of logging in with OpenID; we redirect to the provider"""
 
@@ -77,6 +80,7 @@ class AccountController(BaseController):
                                            realm=protocol + '://' + host)
         redirect(new_url)
 
+    @logged_out
     def login_finish(self):
         """Step two of logging in; the OpenID provider redirects back here."""
 
@@ -123,6 +127,7 @@ class AccountController(BaseController):
             c.form.validate()
             return render('/account/register.mako')
 
+    @logged_out
     def register(self):
         # Check identity URL
         identity_url = c.identity_url = session.get('pending_identity_url')
@@ -157,14 +162,14 @@ class AccountController(BaseController):
         # And off we go
         redirect(url('/'), code=303)
 
+    @logged_in
     def logout(self):
         """Logs the user out."""
 
-        if 'user_id' in session:
-            del session['user_id']
-            session.save()
+        session.pop('user_id', None)
+        session.save()
 
-            helpers.flash(u"""Logged out.""",
-                    icon='user-silhouette')
+        helpers.flash(u"""Logged out.""",
+                icon='user-silhouette')
 
         redirect(url('/'), code=303)
