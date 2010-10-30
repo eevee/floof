@@ -4,6 +4,10 @@
 <img src="${url('icon', which=which)}" alt="${alt}">
 </%def>
 
+<%def name="time(t)">
+${c.user.localtime(t).strftime('%A, %d %B %Y at %H:%M %Z')}
+</%def>
+
 <%def name="field(form_field, **kwargs)">
 % if isinstance(form_field.widget, wtforms.widgets.CheckboxInput):
 <dd>
