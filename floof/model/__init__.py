@@ -161,7 +161,7 @@ class Comment(TableBase):
     __tablename__ = 'comments'
     id = Column(Integer, primary_key=True, nullable=False)
     discussion_id = Column(Integer, ForeignKey('discussions.id'), nullable=False)
-    posted_time = Column(DateTime, nullable=False, index=True, default=datetime.datetime.now)
+    posted_time = Column(TZDateTime, nullable=False, index=True, default=datetime.datetime.now)
     author_user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
     # Nested set threading; Google it
     left = Column(Integer, index=True, nullable=False)

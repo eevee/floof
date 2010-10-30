@@ -59,5 +59,14 @@
 </div>
 
 ## Comments
-<h1>Comments</h1>
-${comments_lib.comment_tree(c.artwork.discussion.comments)}
+<% comments = c.artwork.discussion.comments %>\
+<h1>
+    ${lib.icon('balloons-white')}
+    ${len(comments)} comment${'' if len(comments) == 1 else 's'}
+</h1>
+${comments_lib.comment_tree(comments)}
+
+<h2>
+    ${lib.icon('balloon-white')}
+    Write your own
+</h2>

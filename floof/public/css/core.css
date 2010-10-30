@@ -39,6 +39,7 @@ p { margin: 0.5em 0; }
 
 /* Headers */
 h1 { font-size: 2em; margin: 1em 0 0.5em; padding: 0.5em 1em; border-bottom: 1px solid #5a7086; background: url(/images/h1-background.png) #bcc3cb left center repeat-x; font-family: serif; text-shadow: 1px 1px 1px #5a7086; }
+#content > h1 { margin: 1em -0.5em 0.5em; }
 #content > h1:first-child { margin: -0.5em -0.5em 0.5em; }
 h1 img:first-child { margin-left: -16px; }
 
@@ -88,3 +89,11 @@ ul.thumbnail-grid li.thumbnail:hover a img { -moz-box-shadow: none; -webkit-box-
 
 .artwork { margin: 2em 0; text-align: center; }
 .artwork img { max-width: 100%; }
+
+
+/*** Comments ***/
+.comment { overflow: hidden; }
+.comment + .comment { margin-top: 1em; }
+.comment .avatar { float: left; height: 100px; width: 100px; padding: 6px; background: #d1d8df; -moz-border-radius: 6px 0 6px 6px; -webkit-border-radius: 6px 0 6px 6px; border-radius: 6px 0 6px 6px; }
+.comment .header { margin-left: 112px; padding: 0.25em; line-height: 1.5; border-bottom: 1px solid #b3c0cd; background: #d1d8df; }
+.comment .content { margin-left: 112px; padding: 0.5em; line-height: 1.5; }

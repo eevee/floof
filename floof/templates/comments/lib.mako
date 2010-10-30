@@ -1,8 +1,13 @@
+<%namespace name="lib" file="/lib.mako" />
+
 ## Render a single comment object
 <%def name="single_comment(comment, indent=0)">
-<div class="comment" style="margin-left: ${indent}em;">
-    <div class="author">${comment.author.display_name}</div>
-    <div class="time">${comment.posted_time}</div>
+<div class="comment" style="margin-left: ${indent * 2}em;">
+    <div class="avatar">(avatar)</div>
+    <div class="header">
+        ${lib.user_link(comment.author)}
+        at ${lib.time(comment.posted_time)}
+    </div>
     <div class="content">${comment.content}</div>
 </div>
 </%def>

@@ -8,6 +8,11 @@
 ${c.user.localtime(t).strftime('%A, %d %B %Y at %H:%M %Z')}
 </%def>
 
+<%def name="user_link(user)">
+## no userpages yet...
+${user.display_name}
+</%def>
+
 <%def name="field(form_field, **kwargs)">
 % if isinstance(form_field.widget, wtforms.widgets.CheckboxInput):
 <dd>
