@@ -17,6 +17,7 @@ def make_map(config):
                  always_scan=config['debug'])
     map.minimization = False
 
+    require_GET = dict(conditions=dict(method=['GET']))
     require_POST = dict(conditions=dict(method=['POST']))
 
     # The ErrorController route (handles 404/500 error pages); it should
@@ -30,12 +31,19 @@ def make_map(config):
         requirements=dict(action='login_begin|register|logout'),
         **require_POST)
 
+    map.connect('/', controller='main', action='index')
+
     map.connect('/art', controller='art', action='gallery')
-    map.connect('/art/{id:\d+};{title}', controller='art', action='view')
-    map.connect('/art/{id:\d+}', controller='art', action='view')
+    map.connect(r'/art/{id:\d+};{title}', controller='art', action='view')
+    map.connect(r'/art/{id:\d+}', controller='art', action='view')
     map.connect('/art/upload', controller='art', action='upload')
 
-    map.connect('/', controller='main', action='index')
+    # XXX use filters here yo
+    # Comments, which can be attached to various things
+    with map.submapper(controller='comments', subcontroller='art',
+            path_prefix=r'/{subcontroller}/{id:\d+};{title}') as m:
+        m.connect('/comments', action='view')
+        m.connect('/comments/write', action='write_commit', **require_POST)
 
     # Static routes
     map.connect('icon', '/icons/{which}.png', _static=True)

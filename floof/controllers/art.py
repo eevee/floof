@@ -217,4 +217,6 @@ class ArtController(BaseController):
 
         c.artwork_url = url('filestore', key=c.artwork.hash)
 
+        c.comment_form = self.CommentForm()
+
         return render('/art/view.mako')

@@ -6,10 +6,14 @@ from pylons import session, tmpl_context as c
 from pylons.controllers import WSGIController
 from pylons.templating import render_mako as render
 from sqlalchemy.orm.exc import NoResultFound
+import wtforms.fields, wtforms.form
 
 from floof.model import AnonymousUser, User, meta
 
 class BaseController(WSGIController):
+    class CommentForm(wtforms.form.Form):
+        message = wtforms.fields.TextAreaField(label=u'')
+
 
     def __before__(self, action, environ, **params):
         # Check user state

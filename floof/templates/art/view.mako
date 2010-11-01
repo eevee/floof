@@ -66,7 +66,12 @@
 </h1>
 ${comments_lib.comment_tree(comments)}
 
+## TODO move me to comments_lib
 <h2>
     ${lib.icon('balloon-white')}
     Write your own
 </h2>
+${h.form(url(controller='comments', action='write_commit', subcontroller='art', id=c.artwork.id, title='foo'), method='POST')}
+<p>${c.comment_form.message(rows=25, cols=80)}</p>
+<p><button type="submit">POST TO INTERNET</button></p>
+${h.end_form()}

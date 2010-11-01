@@ -2,7 +2,7 @@
 
 ## Render a single comment object
 <%def name="single_comment(comment, indent=0)">
-<div class="comment" style="margin-left: ${indent * 2}em;">
+<div class="comment" style="margin-left: ${indent * 2}em;" id="comment-${comment.id}">
     <div class="avatar">(avatar)</div>
     <div class="header">
         ${lib.user_link(comment.author)}
