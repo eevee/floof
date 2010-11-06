@@ -96,4 +96,8 @@ ul.thumbnail-grid li.thumbnail:hover a img { -moz-box-shadow: none; -webkit-box-
 .comment + .comment { margin-top: 1em; }
 .comment .avatar { float: left; height: 100px; width: 100px; padding: 6px; background: #d1d8df; -moz-border-radius: 6px 0 6px 6px; -webkit-border-radius: 6px 0 6px 6px; border-radius: 6px 0 6px 6px; }
 .comment .header { margin-left: 112px; padding: 0.25em; line-height: 1.5; border-bottom: 1px solid #b3c0cd; background: #d1d8df; }
+.comment .header ul.links { float: right; margin: -0.25em; }
+.comment .header ul.links li { display: inline-block; text-transform: lowercase; }
+.comment .header ul.links li a { display: block; padding: 0.25em 0.5em; background: #b3c0cd; font-weight: normal; color: black; }
+.comment .header ul.links li a:hover { background: #62707e; }
 .comment .content { margin-left: 112px; padding: 0.5em; line-height: 1.5; }

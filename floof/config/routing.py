@@ -43,6 +43,7 @@ def make_map(config):
     with map.submapper(controller='comments', subcontroller='art',
             path_prefix=r'/{subcontroller}/{id:\d+};{title}') as m:
         m.connect('/comments', action='view')
+        m.connect('/comments/{comment_id}', action='view')
         m.connect('/comments/write', action='write_commit', **require_POST)
 
     # Static routes

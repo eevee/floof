@@ -5,6 +5,10 @@
 <div class="comment" style="margin-left: ${indent * 2}em;" id="comment-${comment.id}">
     <div class="avatar">(avatar)</div>
     <div class="header">
+        <ul class="links">
+            <li>Reply</li>
+            <li><a href="${url(controller='comments', action='view', subcontroller='art', comment_id=comment.id, id=c.artwork.id, title='foo')}">Link</a></li>
+        </ul>
         ${lib.user_link(comment.author)}
         at ${lib.time(comment.posted_time)}
     </div>
