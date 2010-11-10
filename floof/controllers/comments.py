@@ -130,6 +130,10 @@ class CommentsController(BaseController):
                 .with_parent(discussion) \
                 .one()
 
+            if max_right is None:
+                # FIRST POST LOLOL no seriously default to 1 and 2.
+                max_right = 0
+
             new_comment_left = max_right + 1
             new_comment_right = max_right + 2
 
