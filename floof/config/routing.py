@@ -43,8 +43,11 @@ def make_map(config):
     with map.submapper(controller='comments', subcontroller='art',
             path_prefix=r'/{subcontroller}/{id:\d+};{title}') as m:
         m.connect('/comments', action='view')
-        m.connect('/comments/{comment_id}', action='view')
+        m.connect('/comments/{comment_id:\d+}', action='view')
+        m.connect('/comments/write', action='write', **require_GET)
         m.connect('/comments/write', action='write_commit', **require_POST)
+        m.connect(r'/comments/{comment_id:\d+}/write', action='write', **require_GET)
+        m.connect(r'/comments/{comment_id:\d+}/write', action='write_commit', **require_POST)
 
     # Static routes
     map.connect('icon', '/icons/{which}.png', _static=True)

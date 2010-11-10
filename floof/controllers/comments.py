@@ -46,32 +46,53 @@ class CommentsController(BaseController):
 
     def view(self, subcontroller, id, title=None, comment_id=None):
         """Show an entire comment thread."""
-        discussee, discussion, comment = self._get_discussion(
+        discussee, c.discussion, c.comment = self._get_discussion(
             subcontroller, id, comment_id)
 
-        # Grab all parents, to provide context.  Ancestors are any comments
-        # whose left and right contain this comment's left.
-        c.comment_ancestry = meta.Session.query(model.Comment) \
-            .with_parent(discussion) \
-            .filter(model.Comment.left < comment.left) \
-            .filter(model.Comment.right > comment.left) \
-            .order_by(model.Comment.left.asc()) \
-            .all()
+        if c.comment:
+            # Grab all parents, to provide context
+            c.comment_ancestors = c.comment.ancestors_query.all()
 
-        # Pull the comment subtree.  Descendants are any comments with a left
-        # (or right) between comment.left and comment.right.
-        c.comment_subtree = meta.Session.query(model.Comment) \
-            .with_parent(discussion) \
-            .filter(model.Comment.left.between(comment.left, comment.right)) \
-            .order_by(model.Comment.left.asc()) \
-            .all()
+            # Pull the subtree below this comment
+            c.comment_descendants = c.comment.descendants_query.all()
+        else:
+            c.comment_ancestors = None
+
+            # No comment selected; show everything
+            c.comment_descendants = c.discussion.comments
 
         c.artwork = discussee  # XXX AUGH; used in comments_lib
+        c.comment_form = self.CommentForm()
         # TODO show all ancestors + entire tree + discussee somehow
         return render('/comments/view.mako')
 
-    def write_commit(self, subcontroller, id, title=None):
-        discussee, discussion, comment = self._get_discussion(subcontroller, id)
+    # XXX need perm
+    def write(self, subcontroller, id, title=None, comment_id=None):
+        """Show a form for writing a comment.  Either top-level or a reply to
+        another comment.
+        """
+        discussee, c.discussion, c.comment = self._get_discussion(subcontroller, id, comment_id)
+
+        if c.comment:
+            # Grab all parents, to provide context
+            c.comment_ancestors = c.comment.ancestors_query.all()
+
+            # Pull the subtree below this comment
+            c.comment_descendants = c.comment.descendants_query.all()
+        else:
+            c.comment_ancestors = None
+
+            # No comment selected; show everything
+            c.comment_descendants = c.discussion.comments
+
+        c.artwork = discussee  # XXX AUGH; used in comments_lib
+        c.comment_form = self.CommentForm()
+        return render('/comments/write.mako')
+
+    # XXX need perm
+    def write_commit(self, subcontroller, id, title=None, comment_id=None):
+        """Add a comment"""
+        discussee, discussion, comment = self._get_discussion(subcontroller, id, comment_id)
 
         c.comment_form = self.CommentForm(request.params)
         if not c.comment_form.validate():
@@ -83,20 +104,45 @@ class CommentsController(BaseController):
             .with_lockmode('update') \
             .get(discussion.id)
 
-        # TODO put this in the Comment constructor?
-        max_right, = meta.Session.query(func.max(model.Comment.right)) \
-            .with_parent(discussion) \
-            .one()
+        # XXX put this all in the Comment constructor?
+        if comment_id:
+            parent_comment = meta.Session.query(model.Comment).get(comment_id)
+            if not parent_comment:
+                abort(404)
+
+            righter_comments = meta.Session.query(model.Comment) \
+                .with_parent(discussion)
+            righter_comments \
+                .filter(model.Comment.left > parent_comment.right) \
+                .update({ 'left': model.Comment.left + 2 })
+            righter_comments \
+                .filter(model.Comment.right > parent_comment.right) \
+                .update({ 'right': model.Comment.right + 2 })
+
+            new_comment_left = parent_comment.right
+            new_comment_right = parent_comment.right + 1
+
+            parent_comment.right += 2
+            meta.Session.add(parent_comment)
+
+        else:
+            max_right, = meta.Session.query(func.max(model.Comment.right)) \
+                .with_parent(discussion) \
+                .one()
+
+            new_comment_left = max_right + 1
+            new_comment_right = max_right + 2
 
         new_comment = model.Comment(
             discussion=discussion,
             author=c.user,
             content=c.comment_form.message.data,
-            left=max_right + 1,
-            right=max_right + 2,
+            left=new_comment_left,
+            right=new_comment_right,
         )
 
         discussion.comment_count += 1
+        meta.Session.add(new_comment)
         meta.Session.add(discussion)
         meta.Session.commit()
 

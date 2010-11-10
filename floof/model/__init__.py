@@ -3,9 +3,10 @@ import datetime
 import pytz
 import re
 
-from sqlalchemy import Column, ForeignKey, MetaData, Table
+from sqlalchemy import Column, ForeignKey, MetaData, Table, and_
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relation
+from sqlalchemy.orm.session import object_session
 from sqlalchemy.types import *
 from floof.model.types import *
 
@@ -167,6 +168,31 @@ class Comment(TableBase):
     left = Column(Integer, index=True, nullable=False)
     right = Column(Integer, index=True, nullable=False)
     content = Column(UnicodeText(4096), nullable=False)
+
+    @property
+    def ancestors_query(self):
+        """Returns a query that will fetch all comments somewhere above this
+        one, in correct linear order.
+        """
+        # Ancestors are any comments whose left and right contain this
+        # comment's left
+        return object_session(self).query(Comment) \
+            .with_parent(self.discussion) \
+            .filter(Comment.left < self.left) \
+            .filter(Comment.right > self.right) \
+            .order_by(Comment.left.asc())
+
+    @property
+    def descendants_query(self):
+        """Returns a query that will fetch all comments nested below this one,
+        including this one itself, in correct linear order.
+        """
+        # Descendants are any comments with a left (or right) between
+        # comment.left and comment.right
+        return object_session(self).query(Comment) \
+            .with_parent(self.discussion) \
+            .filter(Comment.left.between(self.left, self.right)) \
+            .order_by(Comment.left.asc())
 
 
 ### RELATIONS

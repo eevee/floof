@@ -92,12 +92,13 @@ ul.thumbnail-grid li.thumbnail:hover a img { -moz-box-shadow: none; -webkit-box-
 
 
 /*** Comments ***/
-.comment { overflow: hidden; }
-.comment + .comment { margin-top: 1em; }
+.comment { overflow: hidden; margin-top: 1em; }
 .comment .avatar { float: left; height: 100px; width: 100px; padding: 6px; background: #d1d8df; -moz-border-radius: 6px 0 6px 6px; -webkit-border-radius: 6px 0 6px 6px; border-radius: 6px 0 6px 6px; }
 .comment .header { margin-left: 112px; padding: 0.25em; line-height: 1.5; border-bottom: 1px solid #b3c0cd; background: #d1d8df; }
 .comment .header ul.links { float: right; margin: -0.25em; }
 .comment .header ul.links li { display: inline-block; text-transform: lowercase; }
 .comment .header ul.links li a { display: block; padding: 0.25em 0.5em; background: #b3c0cd; font-weight: normal; color: black; }
-.comment .header ul.links li a:hover { background: #62707e; }
+.comment .header ul.links li a:hover { background: #94a6b9; }
 .comment .content { margin-left: 112px; padding: 0.5em; line-height: 1.5; }
+.comment:hover { outline: 2px solid #b3c0cd; -moz-outline-radius: 8px 0 8px 8px; -webkit-outline-radius: 8px 0 8px 8px; outline-radius: 8px 0 8px 8px; }
+.comment-child { margin-left: 2em; }
