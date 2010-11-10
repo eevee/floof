@@ -33,16 +33,6 @@ def upgrade(migrate_engine):
     RolePrivilege.__table__.create()
 
     # Add canonical privileges and roles
-    upload_art = Privilege(name=u'upload_art')
-    admin_priv = Privilege(name=u'admin')
-    base_user = Role(name=u'user', privileges=[upload_art])
-    admin_user = Role(name=u'admin', privileges=[admin_priv, upload_art])
-
-    Session = sessionmaker(bind=migrate_engine)()
-    Session.add_all([base_user, admin_user])
-    Session.commit()
-
-    # Add canonical privileges and roles
     upload_art = Privilege(name=u'upload_art', description=u'Can upload art')
     admin_priv = Privilege(name=u'admin', description=u'Can administrate')
     base_user = Role(name=u'user', description=u'Basic user', privileges=[upload_art])
