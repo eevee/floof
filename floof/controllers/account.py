@@ -15,7 +15,7 @@ import wtforms.form, wtforms.fields, wtforms.validators
 from floof.lib import helpers
 from floof.lib.base import BaseController, render
 from floof.lib.decorators import logged_in, logged_out
-from floof.model import IdentityURL, User, Role, meta
+from floof.model import Discussion, IdentityURL, User, Role, meta
 
 log = logging.getLogger(__name__)
 
@@ -146,7 +146,11 @@ class AccountController(BaseController):
 
         # Create db records
         base_user = meta.Session.query(Role).filter_by(name=u'user').one()
-        user = User(name=c.form.username.data, role=base_user)
+        user = User(
+            name=c.form.username.data,
+            role=base_user,
+            discussion=Discussion(),
+        )
         meta.Session.add(user)
 
         openid = IdentityURL(url=identity_url)

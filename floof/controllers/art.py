@@ -168,6 +168,7 @@ class ArtController(BaseController):
                 original_filename = uploaded_file.filename,
                 mime_type = mimetype,
                 file_size = file_size,
+                discussion = model.Discussion(),
             )
             artwork = model.MediaImage(
                 height = height,
