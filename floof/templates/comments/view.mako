@@ -24,7 +24,7 @@ ${comments_lib.comment_tree(c.comment_descendants)}
 
 ## Only show this form if we're displaying ALL comments; otherwise it's not
 ## obviously attached to the current comment
-% if not c.comment:
+% if not c.comment and c.user.can('write_comment'):
 <h2>
     ${lib.icon('balloon-white')}
     Write your own

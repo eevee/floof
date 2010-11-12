@@ -66,9 +66,10 @@
 </h1>
 ${comments_lib.comment_tree(comments)}
 
-## TODO move me to comments_lib
+% if c.user.can('write_comment'):
 <h2>
     ${lib.icon('balloon-white')}
     Write your own
 </h2>
 ${comments_lib.write_form(c.comment_form)}
+% endif

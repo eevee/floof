@@ -6,6 +6,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 
 from floof.lib.base import BaseController, render
+from floof.lib.decorators import user_must
 from floof import model
 from floof.model import meta
 
@@ -66,7 +67,7 @@ class CommentsController(BaseController):
         # TODO show all ancestors + entire tree + discussee somehow
         return render('/comments/view.mako')
 
-    # XXX need perm
+    @user_must('write_comment')
     def write(self, subcontroller, id, title=None, comment_id=None):
         """Show a form for writing a comment.  Either top-level or a reply to
         another comment.
@@ -89,7 +90,7 @@ class CommentsController(BaseController):
         c.comment_form = self.CommentForm()
         return render('/comments/write.mako')
 
-    # XXX need perm
+    @user_must('write_comment')
     def write_commit(self, subcontroller, id, title=None, comment_id=None):
         """Add a comment"""
         discussee, discussion, comment = self._get_discussion(subcontroller, id, comment_id)
