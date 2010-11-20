@@ -150,6 +150,10 @@ class Artwork(TableBase):
     file_size = Column(Integer, nullable=False)
     __mapper_args__ = {'polymorphic_on': media_type}
 
+    @property
+    def resource_title(self):
+        return self.title or 'Untitled'
+
 # Dynamic subclasses of the 'artwork' table for storing metadata for different
 # types of media
 class MediaImage(Artwork):

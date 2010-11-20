@@ -2,6 +2,18 @@
 <%namespace name="lib" file="/lib.mako" />
 <%namespace name="comments_lib" file="/comments/lib.mako" />
 
+<%def name="title()">\
+Commenting on: ${c.discussion.resource.member.resource_title}\
+</%def>
+
+
+<h1>
+    ${lib.icon('balloon-ellipsis')}
+    Commenting on: ${c.discussion.resource.member.resource_title}
+</h1>
+${lib.resource_summary(c.discussion.resource)}
+
+
 % if c.comment:
 <h1>
     ${lib.icon('balloons')}
@@ -17,6 +29,7 @@ ${comments_lib.single_comment(ancestor)}
 </h1>
 ${comments_lib.single_comment(c.comment)}
 % endif
+
 
 % if c.user.can('write_comment'):
 <% hlevel = 'h2' if c.comment else 'h1' %>\

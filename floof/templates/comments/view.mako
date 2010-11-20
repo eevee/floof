@@ -2,6 +2,17 @@
 <%namespace name="lib" file="/lib.mako" />
 <%namespace name="comments_lib" file="/comments/lib.mako" />
 
+<%def name="title()">\
+Comments for: ${c.discussion.resource.member.resource_title}\
+</%def>
+
+
+<h1>
+    ${lib.icon('balloon-ellipsis')}
+    Comments for: ${c.discussion.resource.member.resource_title}
+</h1>
+${lib.resource_summary(c.discussion.resource)}
+
 % if c.comment:
 <h1>
     ${lib.icon('balloons')}
