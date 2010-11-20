@@ -29,5 +29,5 @@ ${comments_lib.comment_tree(c.comment_descendants)}
     ${lib.icon('balloon-white')}
     Write your own
 </h2>
-${comments_lib.write_form(c.comment_form)}
+${comments_lib.write_form(c.comment_form, c.discussion.resource)}
 % endif

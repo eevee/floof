@@ -71,5 +71,5 @@ ${comments_lib.comment_tree(comments)}
     ${lib.icon('balloon-white')}
     Write your own
 </h2>
-${comments_lib.write_form(c.comment_form)}
+${comments_lib.write_form(c.comment_form, c.artwork.resource)}
 % endif

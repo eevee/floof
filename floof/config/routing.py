@@ -38,16 +38,22 @@ def make_map(config):
     map.connect(r'/art/{id:\d+}', controller='art', action='view')
     map.connect('/art/upload', controller='art', action='upload')
 
-    # XXX use filters here yo
     # Comments, which can be attached to various things
-    with map.submapper(controller='comments', subcontroller='art',
-            path_prefix=r'/{subcontroller}/{id:\d+};{title}') as m:
-        m.connect('/comments', action='view')
-        m.connect('/comments/{comment_id:\d+}', action='view')
-        m.connect('/comments/write', action='write', **require_GET)
-        m.connect('/comments/write', action='write_commit', **require_POST)
-        m.connect(r'/comments/{comment_id:\d+}/write', action='write', **require_GET)
-        m.connect(r'/comments/{comment_id:\d+}/write', action='write_commit', **require_POST)
+    comment_submappings = [
+        # Art
+        dict(controller='comments', subcontroller='art',
+            path_prefix=r'/{subcontroller}/{id:\d+};{title}'),
+        dict(controller='comments', subcontroller='art',
+            path_prefix=r'/{subcontroller}/{id:\d+}'),
+    ]
+    for submapping in comment_submappings:
+        with map.submapper(**submapping) as m:
+            m.connect('/comments', action='view')
+            m.connect('/comments/{comment_id:\d+}', action='view')
+            m.connect('/comments/write', action='write', **require_GET)
+            m.connect('/comments/write', action='write_commit', **require_POST)
+            m.connect(r'/comments/{comment_id:\d+}/write', action='write', **require_GET)
+            m.connect(r'/comments/{comment_id:\d+}/write', action='write_commit', **require_POST)
 
     # Static routes
     map.connect('icon', '/icons/{which}.png', _static=True)

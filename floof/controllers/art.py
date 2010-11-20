@@ -161,6 +161,8 @@ class ArtController(BaseController):
             title = c.form.title.data.strip()
 
             # Stuff it all in the db
+            resource = model.Resource(type=u'artwork')
+            discussion = model.Discussion(resource=resource)
             general_data = dict(
                 title = title,
                 hash = hash,
@@ -168,7 +170,7 @@ class ArtController(BaseController):
                 original_filename = uploaded_file.filename,
                 mime_type = mimetype,
                 file_size = file_size,
-                discussion = model.Discussion(),
+                resource = resource,
             )
             artwork = model.MediaImage(
                 height = height,
@@ -193,7 +195,7 @@ class ArtController(BaseController):
                     )
                 )
 
-            meta.Session.add(artwork)
+            meta.Session.add_all([artwork, discussion, resource])
             meta.Session.commit()
 
             helpers.flash(u'Uploaded!',

@@ -6,8 +6,8 @@
     <div class="avatar">(avatar)</div>
     <div class="header">
         <ul class="links">
-            <li><a href="${url(controller='comments', action='write', subcontroller='art', comment_id=comment.id, id=c.artwork.id, title='foo', anchor="comment")}">Reply</a></li>
-            <li><a href="${url(controller='comments', action='view', subcontroller='art', comment_id=comment.id, id=c.artwork.id, title='foo', anchor="comment")}">Link</a></li>
+            <li><a href="${h.comment_url(comment.discussion.resource, 'write', comment.id, anchor="comment")}">Reply</a></li>
+            <li><a href="${h.comment_url(comment.discussion.resource, 'view', comment.id, anchor="comment")}">Link</a></li>
         </ul>
         ${lib.user_link(comment.author)}
         at ${lib.time(comment.posted_time)}
@@ -54,13 +54,13 @@
 </div>
 </%def>
 
-<%def name="write_form(form, parent_comment=None)">
+<%def name="write_form(form, resource, parent_comment=None)">
 <%
-    comment_kwarg = dict()
+    parent_comment_id = None
     if parent_comment:
-        comment_kwarg['comment_id'] = parent_comment.id
+        parent_comment_id = parent_comment.id
 %>\
-${h.form(url(controller='comments', action='write_commit', subcontroller='art', id=c.artwork.id, title='foo', **comment_kwarg), method='POST')}
+${h.form(h.comment_url(resource, 'write_commit', comment_id=parent_comment_id), method='POST')}
 <p>${form.message(rows=25, cols=80)}</p>
 <p>
     <button type="submit">POST TO INTERNET</button>

@@ -24,5 +24,5 @@ ${comments_lib.single_comment(c.comment)}
     ${lib.icon('balloon-white')}
     Reply
 </${hlevel}>
-${comments_lib.write_form(c.comment_form, parent_comment=c.comment)}
+${comments_lib.write_form(c.comment_form, c.discussion.resource, parent_comment=c.comment)}
 % endif

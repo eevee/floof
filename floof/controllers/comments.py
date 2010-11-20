@@ -15,10 +15,7 @@ log = logging.getLogger(__name__)
 class CommentsController(BaseController):
 
     def _get_discussion(self, subcontroller, id, comment_id=None):
-        """Returns `discussee`, `discussion`, `comment`.
-
-        `discussee` is the object to which the discussion is attached: e.g., an
-        artwork.
+        """Returns `discussion`, `comment`.
 
         `comment` may be None.
         """
@@ -43,18 +40,16 @@ class CommentsController(BaseController):
         else:
             comment = None
 
-        return discussee, discussion, comment
+        return discussion, comment
 
     def view(self, subcontroller, id, title=None, comment_id=None):
         """Show an entire comment thread."""
-        discussee, c.discussion, c.comment = self._get_discussion(
+        c.discussion, c.comment = self._get_discussion(
             subcontroller, id, comment_id)
 
+        # Fetch the parent hierarchy, for context, and the entire subtree
         if c.comment:
-            # Grab all parents, to provide context
             c.comment_ancestors = c.comment.ancestors_query.all()
-
-            # Pull the subtree below this comment
             c.comment_descendants = c.comment.descendants_query.all()
         else:
             c.comment_ancestors = None
@@ -62,7 +57,6 @@ class CommentsController(BaseController):
             # No comment selected; show everything
             c.comment_descendants = c.discussion.comments
 
-        c.artwork = discussee  # XXX AUGH; used in comments_lib
         c.comment_form = self.CommentForm()
         # TODO show all ancestors + entire tree + discussee somehow
         return render('/comments/view.mako')
@@ -72,13 +66,12 @@ class CommentsController(BaseController):
         """Show a form for writing a comment.  Either top-level or a reply to
         another comment.
         """
-        discussee, c.discussion, c.comment = self._get_discussion(subcontroller, id, comment_id)
+        c.discussion, c.comment = self._get_discussion(
+            subcontroller, id, comment_id)
 
+        # Fetch the parent hierarchy, for context, and the entire subtree
         if c.comment:
-            # Grab all parents, to provide context
             c.comment_ancestors = c.comment.ancestors_query.all()
-
-            # Pull the subtree below this comment
             c.comment_descendants = c.comment.descendants_query.all()
         else:
             c.comment_ancestors = None
@@ -86,14 +79,13 @@ class CommentsController(BaseController):
             # No comment selected; show everything
             c.comment_descendants = c.discussion.comments
 
-        c.artwork = discussee  # XXX AUGH; used in comments_lib
         c.comment_form = self.CommentForm()
         return render('/comments/write.mako')
 
     @user_must('write_comment')
     def write_commit(self, subcontroller, id, title=None, comment_id=None):
         """Add a comment"""
-        discussee, discussion, comment = self._get_discussion(subcontroller, id, comment_id)
+        discussion, comment = self._get_discussion(subcontroller, id, comment_id)
 
         c.comment_form = self.CommentForm(request.params)
         if not c.comment_form.validate():
