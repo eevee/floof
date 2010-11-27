@@ -4,6 +4,15 @@
 <img src="${url('icon', which=which)}" alt="${alt}">
 </%def>
 
+<%def name="time(t)">
+${c.user.localtime(t).strftime('%A, %d %B %Y at %H:%M %Z')}
+</%def>
+
+<%def name="user_link(user)">
+## no userpages yet...
+${user.display_name}
+</%def>
+
 <%def name="field(form_field, **kwargs)">
 % if isinstance(form_field.widget, wtforms.widgets.CheckboxInput):
 <dd>
@@ -23,4 +32,12 @@
 % for error in form_field.errors:
 <p class="form-error">${error | n}</p>
 % endfor
+</%def>
+
+
+## Prints a short summary of a resource; used as the header in commenting
+<%def name="resource_summary(resource)">
+% if resource.type == u'artwork':
+<p><a href="${h.art_url(c.discussion.resource.member)}">Return</a></p>
+% endif
 </%def>

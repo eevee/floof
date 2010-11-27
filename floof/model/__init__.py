@@ -3,9 +3,11 @@ import datetime
 import pytz
 import re
 
-from sqlalchemy import Column, ForeignKey, MetaData, Table
+from sqlalchemy import Column, ForeignKey, MetaData, Table, and_
+from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relation
+from sqlalchemy.orm import backref, class_mapper, relation
+from sqlalchemy.orm.session import object_session
 from sqlalchemy.types import *
 from floof.model.types import *
 
@@ -21,6 +23,54 @@ def init_model(engine):
 
 
 TableBase = declarative_base(metadata=meta.metadata)
+
+### CORE
+
+class Resource(TableBase):
+    """Art and users and perhaps other things have-a discussion, which is fine
+    and dandy, but it means the discussion can't easily find its way back to
+    the "discussee": there are multiple backrefs to check.
+
+    The solution is this semi-hacky middle table that remembers the discussee's
+    table name, and a dose of SQLA magic to make it all invisible.
+    Art/User/etc. can still get directly to the discussion and doesn't need
+    this table, but going backwards is much easier.
+
+    The table is named "Resource" with the intention that it may later perform
+    other duties, such as allowing joins from tags to anything, or facilitating
+    global full-text search, or whatever.
+
+    Kudos to zzzeek for the idea and example implementation:
+    http://techspot.zzzeek.org/?p=13
+    """
+    __tablename__ = 'resources'
+    id = Column(Integer, primary_key=True, nullable=False)
+    type = Column(Enum(u'artwork', u'users', name='resources_type'), nullable=False)
+
+    @property
+    def member(self):
+        return getattr(self, '_backref_%s' % self.type)
+
+def make_resource_type(cls):
+    """For table-classes that are resources.  Installs a backref on Resource
+    that finds the original class.
+
+    Also adds a 'discussion' association-proxy shortcut.
+    """
+
+    mapper = class_mapper(cls)
+    table = mapper.local_table
+    mapper.add_property('resource', relation(
+        Resource, backref=backref('_backref_%s' % table.name, uselist=False)
+    ))
+
+    # Attach a 'discussion' shortcut
+    for resource_property in ('discussion',):
+        setattr(cls, resource_property,
+            association_proxy('resource', resource_property))
+
+    return cls
+
 
 ### USERS
 
@@ -48,6 +98,7 @@ class AnonymousUser(object):
 class User(TableBase):
     __tablename__ = 'users'
     id = Column(Integer, primary_key=True, nullable=False)
+    resource_id = Column(Integer, ForeignKey('resources.id'), nullable=False)
     name = Column(Unicode(24), nullable=False, index=True, unique=True)
     timezone = Column(Timezone, nullable=True)
     role_id = Column(Integer, ForeignKey('roles.id'), nullable=False)
@@ -87,6 +138,7 @@ class IdentityURL(TableBase):
 class Artwork(TableBase):
     __tablename__ = 'artwork'
     id = Column(Integer, primary_key=True, nullable=False)
+    resource_id = Column(Integer, ForeignKey('resources.id'), nullable=False)
     media_type = Column(Enum(u'image', u'text', u'audio', u'video', name='artwork_media_type'), nullable=False)
     title = Column(Unicode(133), nullable=False)
     hash = Column(Unicode(256), nullable=False, unique=True, index=True)
@@ -97,6 +149,10 @@ class Artwork(TableBase):
     mime_type = Column(Unicode(255), nullable=False)
     file_size = Column(Integer, nullable=False)
     __mapper_args__ = {'polymorphic_on': media_type}
+
+    @property
+    def resource_title(self):
+        return self.title or 'Untitled'
 
 # Dynamic subclasses of the 'artwork' table for storing metadata for different
 # types of media
@@ -148,18 +204,75 @@ class RolePrivilege(TableBase):
     priv_id = Column(Integer, ForeignKey('privileges.id'), primary_key=True, nullable=False)
 
 
+### COMMENTS
+
+class Discussion(TableBase):
+    __tablename__ = 'discussions'
+    id = Column(Integer, primary_key=True, nullable=False)
+    resource_id = Column(Integer, ForeignKey('resources.id'), nullable=False)
+    comment_count = Column(Integer, nullable=False, default=0)
+
+class Comment(TableBase):
+    __tablename__ = 'comments'
+    id = Column(Integer, primary_key=True, nullable=False)
+    discussion_id = Column(Integer, ForeignKey('discussions.id'), nullable=False)
+    posted_time = Column(TZDateTime, nullable=False, index=True, default=now)
+    author_user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    # Nested set threading; Google it
+    left = Column(Integer, index=True, nullable=False)
+    right = Column(Integer, index=True, nullable=False)
+    content = Column(UnicodeText(4096), nullable=False)
+
+    @property
+    def ancestors_query(self):
+        """Returns a query that will fetch all comments somewhere above this
+        one, in correct linear order.
+        """
+        # Ancestors are any comments whose left and right contain this
+        # comment's left
+        return object_session(self).query(Comment) \
+            .with_parent(self.discussion) \
+            .filter(Comment.left < self.left) \
+            .filter(Comment.right > self.right) \
+            .order_by(Comment.left.asc())
+
+    @property
+    def descendants_query(self):
+        """Returns a query that will fetch all comments nested below this one,
+        including this one itself, in correct linear order.
+        """
+        # Descendants are any comments with a left (or right) between
+        # comment.left and comment.right
+        return object_session(self).query(Comment) \
+            .with_parent(self.discussion) \
+            .filter(Comment.left.between(self.left, self.right)) \
+            .order_by(Comment.left.asc())
+
+
 ### RELATIONS
+
+make_resource_type(User)
+make_resource_type(Artwork)
 
 # Users
 IdentityURL.user = relation(User, backref='identity_urls')
 
 
 # Art
+#Artwork.discussion = relation(Discussion, backref='artwork')
 Artwork.uploader = relation(User, backref='uploaded_artwork')
 Artwork.user_artwork = relation(UserArtwork, backref='artwork')
 
+#User.discussion = relation(Discussion, backref='user')
 User.user_artwork = relation(UserArtwork, backref='user')
 
 # Permissions
 User.role = relation(Role, uselist=False, backref='users')
 Role.privileges = relation(Privilege, secondary=RolePrivilege.__table__)
+
+# Comments
+Resource.discussion = relation(Discussion, uselist=False, backref='resource')
+
+Comment.author = relation(User, backref='comments')
+
+Discussion.comments = relation(Comment, order_by=Comment.left.asc(), backref='discussion')

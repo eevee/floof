@@ -29,8 +29,9 @@ def setup_app(command, conf, vars):
 
     # Add canonical privileges and roles
     upload_art = model.Privilege(name=u'upload_art', description=u'Can upload art')
+    write_comment = model.Privilege(name=u'write_comment', description=u'Can post comments')
     admin_priv = model.Privilege(name=u'admin', description=u'Can administrate')
-    base_user = model.Role(name=u'user', description=u'Basic user', privileges=[upload_art])
-    admin_user = model.Role(name=u'admin', description=u'Administrator', privileges=[admin_priv, upload_art])
+    base_user = model.Role(name=u'user', description=u'Basic user', privileges=[upload_art, write_comment])
+    admin_user = model.Role(name=u'admin', description=u'Administrator', privileges=[admin_priv, upload_art, write_comment])
     meta.Session.add_all([base_user, admin_user])
     meta.Session.commit()
