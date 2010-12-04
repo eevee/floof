@@ -3,7 +3,6 @@ import logging
 import random
 
 import magic
-import PIL.Image
 from pylons import config, request, response, session, tmpl_context as c, url
 from pylons.controllers.util import abort, redirect
 from sqlalchemy.orm.exc import NoResultFound
@@ -14,6 +13,12 @@ from floof.lib.base import BaseController, render
 from floof.lib.decorators import user_must
 from floof.model import meta
 from floof import model
+
+# PIL is an unholy fucking abomination that can't even be imported right
+try:
+    import Image
+except ImportError:
+    from PIL import Image
 
 log = logging.getLogger(__name__)
 
@@ -118,7 +123,7 @@ class ArtController(BaseController):
 
             # Open the image, determine its size, and generate a thumbnail
             fileobj.seek(0)
-            image = PIL.Image.open(fileobj)
+            image = Image.open(fileobj)
             width, height = image.size
 
             # Thumbnailin'
@@ -137,7 +142,7 @@ class ArtController(BaseController):
                     new_size = (width * thumbnail_size // height, thumbnail_size)
 
                 thumbnail_image = cropped_image.resize(
-                    new_size, PIL.Image.ANTIALIAS)
+                    new_size, Image.ANTIALIAS)
 
             else:
                 thumbnail_image = cropped_image
