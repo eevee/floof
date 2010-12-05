@@ -31,6 +31,8 @@ def make_map(config):
         requirements=dict(action='login_begin|register|logout'),
         **require_POST)
 
+    map.connect('/account/controls', controller='controls', action='index')
+
     map.connect('/', controller='main', action='index')
 
     map.connect('/art', controller='art', action='gallery')
