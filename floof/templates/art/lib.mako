@@ -26,7 +26,7 @@ def media_icon(type):
             ${lib.icon(media_icon(artwork.media_type))}
             ${artwork.title or 'Untitled'}
         </div>
-        ${lib.icon('disk', alt='Uploader:')} ${lib.user(artwork.uploader)}
+        ${lib.icon('disk', alt='Uploader:')} ${lib.user_link(artwork.uploader)}
     </div>
 </li>
 </%def>
