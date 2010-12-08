@@ -7,6 +7,11 @@ refer to the routes manual at http://routes.groovie.org/docs/
 from routes import Mapper
 from pylons import config
 
+def user_filter(kw):
+    if 'user' in kw:
+        kw['name'] = kw.pop('user').name
+    return kw
+
 def filestore_filter(kw):
     kw['url'] = config['filestore'].url(kw.pop('key'))
     return kw
@@ -26,12 +31,15 @@ def make_map(config):
     map.connect('/error/{action}/{id}', controller='error')
 
     map.connect('/account/{action}', controller='account',
-        requirements=dict(action='login|login_finish'))
+        requirements=dict(action='login|login_finish|profile'))
     map.connect('/account/{action}', controller='account',
-        requirements=dict(action='login_begin|register|logout'),
+        requirements=dict(action='login_begin|register|logout|profile'),
         **require_POST)
 
     map.connect('/account/controls', controller='controls', action='index')
+
+    map.connect('user', '/users/{name}', controller='users', action='view', _filter=user_filter)
+    map.connect('/users/{name}/{action}', controller='users')
 
     map.connect('/', controller='main', action='index')
 

@@ -12,7 +12,7 @@
         <div id="user">
             % if c.user:
                 ${h.form(url(controller='account', action='logout'), class_='compact')}
-                <p>Hello, ${c.user.display_name}!</p>
+                <p>Hello, ${lib.user_link(c.user)}!</p>
                 <p><button type="submit">Log out</button></p>
                 ${h.end_form()}
             % else:

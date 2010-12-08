@@ -9,8 +9,7 @@ ${c.user.localtime(t).strftime('%A, %d %B %Y at %H:%M %Z')}
 </%def>
 
 <%def name="user_link(user)">
-## no userpages yet...
-${user.display_name}
+<a href="${url('user', user=user)}">${user.display_name}</a>
 </%def>
 
 <%def name="field(form_field, **kwargs)">
