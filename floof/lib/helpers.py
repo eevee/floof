@@ -67,7 +67,7 @@ def comment_url(resource, action, comment_id=None, **kwargs):
         raise NotImplementedError
 
     else:
-        raise TypeError("Unknown resource type {}".format(resource.type))
+        raise TypeError("Unknown resource type {0}".format(resource.type))
 
     urldict.update(kwargs)
     return url(**urldict)

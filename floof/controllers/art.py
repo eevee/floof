@@ -75,7 +75,7 @@ class AddTagForm(wtforms.form.Form):
         if field.data is not None:
             for tag in field.data:
                 if tag in c.artwork.tags:
-                    raise ValueError("Already tagged with \"{}\"".format(tag))
+                    raise ValueError("Already tagged with \"{0}\"".format(tag))
 
 class RemoveTagForm(wtforms.form.Form):
     tags = MultiTagField(u"Remove a tag", id='remove_tags')
@@ -85,7 +85,7 @@ class RemoveTagForm(wtforms.form.Form):
         if field.data is not None:
             for tag in field.data:
                 if tag not in c.artwork.tags:
-                    raise ValueError(u"Not tagged with \"{}\"".format(tag))
+                    raise ValueError(u"Not tagged with \"{0}\"".format(tag))
 
 class ArtController(BaseController):
     HASH_BUFFER_SIZE = 524288  # .5 MiB
@@ -284,7 +284,7 @@ class ArtController(BaseController):
                         c.artwork.tags.append(tag)
                     meta.Session.commit()
                     if len(form.tags.data) == 1:
-                        helpers.flash(u"Tag \"{}\" has been added".format(tag))
+                        helpers.flash(u"Tag \"{0}\" has been added".format(tag))
                     else:
                         helpers.flash(u"Your tags have been added")
                     return redirect(url.current(), code=303)
@@ -296,7 +296,7 @@ class ArtController(BaseController):
                         c.artwork.tags.remove(tag)
                     meta.Session.commit()
                     if len(form.tags.data) == 1:
-                        helpers.flash(u"Tag \"{}\" has been removed".format(tag))
+                        helpers.flash(u"Tag \"{0}\" has been removed".format(tag))
                     else:
                         helpers.flash(u"Tags have been removed")
                     return redirect(url.current(), code=303)
