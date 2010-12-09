@@ -303,7 +303,7 @@ class Label(TableBase):
     id = Column(Integer, primary_key=True)
     name = Column(Unicode(64), nullable=False)
     user_id = Column(Integer, ForeignKey('users.id'))
-    encapsulation = Column(Enum(u'public', u'private', name='label_encapsulation'), nullable=False)
+    encapsulation = Column(Enum(u'public', u'private', name='labels_encapsulation'), nullable=False)
 
 artwork_tags = Table('artwork_tags', meta.metadata,
     Column('artwork_id', Integer, ForeignKey('artwork.id'), primary_key=True),
