@@ -13,6 +13,7 @@ from floof.forms import MultiCheckboxField, MultiTagField
 from floof.lib import helpers
 from floof.lib.base import BaseController, render
 from floof.lib.decorators import user_must
+from floof.lib.gallery import GalleryView
 from floof.model import meta
 from floof import model
 
@@ -229,37 +230,11 @@ class ArtController(BaseController):
         else:
             return render('/art/upload.mako')
 
-    def gallery(self, tag=None):
+    def gallery(self):
         """Main gallery; provides browsing through absolutely everything we've
         got.
         """
-        q = meta.Session.query(model.Artwork)
-        c.tag = tag
-        c.relation = None
-        if tag is not None:
-            if tag.startswith(("by:", "for:", "of:")):
-                relation, _, username = tag.partition(":")
-                try:
-                    user = (meta.Session.query(model.User)
-                             .filter_by(name=username)
-                             .one())
-                except NoResultFound:
-                    abort(404)
-                q = q.join(model.UserArtwork).join(model.User)
-                q = q.filter(and_(
-                    model.UserArtwork.relationship_type == relation,
-                    model.User.id == user.id,
-                ))
-                c.relation = relation
-                c.related_user = user
-            else:
-                q = q.join(model.artwork_tags, model.Tag)
-                q = q.filter(
-                    model.Tag.name == tag
-                )
-                #XXX throw a 404 if there are no results? if a tag
-                #    isn't used, it may as well not exist.
-        c.artwork = q.all()
+        c.gallery_view = GalleryView()
         return render('/art/gallery.mako')
 
     def view(self, id):
