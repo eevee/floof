@@ -25,6 +25,7 @@ class GalleryView(object):
 
 
     ### Methods for building the query
+
     def filter_by_tag(self, tag):
         """Filter the gallery by a named tag.  It may be a regular tag 'foo',
         or a special tag like 'by:foo'.
@@ -62,3 +63,9 @@ class GalleryView(object):
 
 
     ### Methods for examining the result
+
+    def get_query(self):
+        """Get the constructed query, sorted in the usual way: by uploaded
+        time, most recent first.
+        """
+        return self.query.order_by(model.Artwork.uploaded_time.desc())
