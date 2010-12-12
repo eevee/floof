@@ -26,6 +26,16 @@ class GalleryView(object):
 
     ### Methods for building the query
 
+    def filter_by_user(self, rel, user):
+        """Filter the gallery by a user relationship: by/for/of.
+        """
+        self.query = self.query.filter(
+            model.Artwork.user_artwork.any(
+                relationship_type=rel,
+                user_id=user.id,
+            )
+        )
+
     def filter_by_tag(self, tag):
         """Filter the gallery by a named tag.  It may be a regular tag 'foo',
         or a special tag like 'by:foo'.
@@ -42,12 +52,7 @@ class GalleryView(object):
                 # XXX Do something better??
                 raise
 
-            self.query = self.query.filter(
-                model.Artwork.user_artwork.any(
-                    relationship_type=relation,
-                    user_id=user.id,
-                )
-            )
+            self.filter_by_user(relation, user)
 
         else:
             # Regular tag

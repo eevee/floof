@@ -195,11 +195,12 @@ class MediaText(Artwork):
     paragraphs = Column(Integer, nullable=False)
 
 
+user_artwork_types = (u'by', u'for', u'of')
 class UserArtwork(TableBase):
     __tablename__ = 'user_artwork'
     user_id = Column(Integer, ForeignKey('users.id'), primary_key=True, nullable=True)
     artwork_id = Column(Integer, ForeignKey('artwork.id'), primary_key=True, nullable=True)
-    relationship_type = Column(Enum(u'by', u'for', u'of', name='user_artwork_relationship_type'), primary_key=True, nullable=True)
+    relationship_type = Column(Enum(*user_artwork_types, name='user_artwork_relationship_type'), primary_key=True, nullable=True)
 
 
 ### PERMISSIONS
