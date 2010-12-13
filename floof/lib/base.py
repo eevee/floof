@@ -35,4 +35,7 @@ class BaseController(WSGIController):
         try:
             return WSGIController.__call__(self, environ, start_response)
         finally:
-            meta.Session.remove()
+            if not 'paste.testing' in environ:
+                # Tests take care of the session removal on their own;
+                # otherwise object identity isn't the same between app and test
+                meta.Session.remove()
