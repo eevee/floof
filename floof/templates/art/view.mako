@@ -49,8 +49,12 @@
     % endfor
     </p>
 
-    % for action, form in [('add_tags', c.add_tag_form), ('remove_tags', c.remove_tag_form)]:
-    ${h.form(url.current(action=action))}
+    % for perm, action, form in [ \
+        ('add_tags', 'add_tags', c.add_tag_form), \
+        ('remove_tags', 'remove_tags', c.remove_tag_form), \
+    ]:
+    % if c.user.can(perm):
+    ${h.form(url(controller='art', action=action, id=c.artwork.id))}
     <p>
         ${form.tags.label()}:
         ${form.tags()}
@@ -58,6 +62,7 @@
     </p>
     ${h.end_form()}
     ${lib.field_errors(form.tags)}
+    % endif
     % endfor
 </div>
 <div class="column">

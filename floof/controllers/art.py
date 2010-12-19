@@ -265,7 +265,7 @@ class ArtController(BaseController):
 
         return render('/art/view.mako')
 
-    #@user_must('add_tags')
+    @user_must('add_tags')
     def add_tags(self, id):
         artwork = meta.Session.query(model.Artwork).get(id)
         if not artwork:
@@ -287,7 +287,7 @@ class ArtController(BaseController):
 
         redirect(helpers.art_url(artwork))
 
-    #@user_must('remove_tags')
+    @user_must('remove_tags')
     def remove_tags(self, id):
         artwork = meta.Session.query(model.Artwork).get(id)
         if not artwork:

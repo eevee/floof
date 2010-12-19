@@ -28,10 +28,32 @@ def setup_app(command, conf, vars):
     meta.metadata.create_all(checkfirst=True)
 
     # Add canonical privileges and roles
+    privileges = dict(
+        (name, model.Privilege(name=name, description=description))
+        for name, description in [
+            (u'admin',              u'Can administrate'),
+            (u'upload_art',         u'Can upload art'),
+            (u'write_comment',      u'Can post comments'),
+            (u'add_tags',           u'Can add tags with no restrictions'),
+            (u'remove_tags',        u'Can remove tags with no restrictions'),
+        ]
+    )
     upload_art = model.Privilege(name=u'upload_art', description=u'Can upload art')
     write_comment = model.Privilege(name=u'write_comment', description=u'Can post comments')
     admin_priv = model.Privilege(name=u'admin', description=u'Can administrate')
-    base_user = model.Role(name=u'user', description=u'Basic user', privileges=[upload_art, write_comment])
-    admin_user = model.Role(name=u'admin', description=u'Administrator', privileges=[admin_priv, upload_art, write_comment])
+
+    base_user = model.Role(
+        name=u'user',
+        description=u'Basic user',
+        privileges=[privileges[priv] for priv in [
+            u'upload_art', u'write_comment', u'add_tags', u'remove_tags',
+        ]],
+    )
+    admin_user = model.Role(
+        name=u'admin',
+        description=u'Administrator',
+        privileges=privileges.values()
+    )
+
     meta.Session.add_all([base_user, admin_user])
     meta.Session.commit()
