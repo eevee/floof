@@ -69,23 +69,37 @@ class UploadArtworkForm(wtforms.form.Form):
     tags = MultiTagField(u'Tags')
 
 class AddTagForm(wtforms.form.Form):
-    tags = MultiTagField(u"Add a tag", id='add_tags')
-    action = wtforms.fields.HiddenField(default='add_tags')
+    tags = MultiTagField(
+        u"Add a tag",
+        [wtforms.validators.Required()],
+        id='add_tags',
+    )
+
+    def __init__(self, *args, **kwargs):
+        self._artwork = kwargs.get('artwork', None)
+        super(AddTagForm, self).__init__(*args, **kwargs)
 
     def validate_tags(form, field):
         if field.data is not None:
             for tag in field.data:
-                if tag in c.artwork.tags:
+                if tag in form._artwork.tags:
                     raise ValueError("Already tagged with \"{0}\"".format(tag))
 
 class RemoveTagForm(wtforms.form.Form):
-    tags = MultiTagField(u"Remove a tag", id='remove_tags')
-    action = wtforms.fields.HiddenField(default='remove_tags')
+    tags = MultiTagField(
+        u"Remove a tag",
+        [wtforms.validators.Required()],
+        id='remove_tags',
+    )
+
+    def __init__(self, *args, **kwargs):
+        self._artwork = kwargs.get('artwork', None)
+        super(RemoveTagForm, self).__init__(*args, **kwargs)
 
     def validate_tags(form, field):
         if field.data is not None:
             for tag in field.data:
-                if tag not in c.artwork.tags:
+                if tag not in form._artwork.tags:
                     raise ValueError(u"Not tagged with \"{0}\"".format(tag))
 
 class ArtController(BaseController):
@@ -249,31 +263,48 @@ class ArtController(BaseController):
         c.add_tag_form = AddTagForm()
         c.remove_tag_form = RemoveTagForm()
 
-        if request.method == 'POST':
-            action = request.POST.get('action')
-            if action == 'add_tags':
-                form = c.add_tag_form
-                form.process(request.POST)
-                if form.validate() and form.tags.data:
-                    for tag in form.tags.data:
-                        c.artwork.tags.append(tag)
-                    meta.Session.commit()
-                    if len(form.tags.data) == 1:
-                        helpers.flash(u"Tag \"{0}\" has been added".format(tag))
-                    else:
-                        helpers.flash(u"Your tags have been added")
-                    return redirect(url.current(), code=303)
-            elif action == 'remove_tags':
-                form = c.remove_tag_form
-                form.process(request.POST)
-                if form.validate() and form.tags.data:
-                    for tag in form.tags.data:
-                        c.artwork.tags.remove(tag)
-                    meta.Session.commit()
-                    if len(form.tags.data) == 1:
-                        helpers.flash(u"Tag \"{0}\" has been removed".format(tag))
-                    else:
-                        helpers.flash(u"Tags have been removed")
-                    return redirect(url.current(), code=303)
-
         return render('/art/view.mako')
+
+    #@user_must('add_tags')
+    def add_tags(self, id):
+        artwork = meta.Session.query(model.Artwork).get(id)
+        if not artwork:
+            abort(404)
+
+        form = c.add_tag_form = AddTagForm(request.POST, artwork=artwork)
+        if not form.validate():
+            # FIXME when the final UI is figured out
+            abort(401)
+
+        for tag in form.tags.data:
+            artwork.tags.append(tag)
+        meta.Session.commit()
+
+        if len(form.tags.data) == 1:
+            helpers.flash(u"Tag \"{0}\" has been added".format(tag))
+        else:
+            helpers.flash(u"Your tags have been added")
+
+        redirect(helpers.art_url(artwork))
+
+    #@user_must('remove_tags')
+    def remove_tags(self, id):
+        artwork = meta.Session.query(model.Artwork).get(id)
+        if not artwork:
+            abort(404)
+
+        form = c.remove_tag_form = RemoveTagForm(request.POST, artwork=artwork)
+        if not form.validate():
+            # FIXME when the final UI is figured out
+            abort(401)
+
+        for tag in form.tags.data:
+            artwork.tags.remove(tag)
+        meta.Session.commit()
+
+        if len(form.tags.data) == 1:
+            helpers.flash(u"Tag \"{0}\" has been removed".format(tag))
+        else:
+            helpers.flash(u"Tags have been removed")
+
+        redirect(helpers.art_url(artwork))

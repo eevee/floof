@@ -48,18 +48,16 @@
     <a href="${url(controller='tags', action='view', name=tag)}">${tag}</a>\
     % endfor
     </p>
-    % for form in (c.add_tag_form, c.remove_tag_form):
-    <div>
+
+    % for action, form in [('add_tags', c.add_tag_form), ('remove_tags', c.remove_tag_form)]:
+    ${h.form(url.current(action=action))}
     <p>
-    ${h.form(url.current())}
-    ${form.tags.label()}:
-    ${form.tags()}
-    ${form.action()}
-    <button type=submit>Go</button>
-    ${h.end_form()}
+        ${form.tags.label()}:
+        ${form.tags()}
+        <button type="submit">Go</button>
     </p>
+    ${h.end_form()}
     ${lib.field_errors(form.tags)}
-    </div>
     % endfor
 </div>
 <div class="column">
