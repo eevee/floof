@@ -22,6 +22,7 @@
         <ul id="navigation">
             <li><a href="${url(controller='art', action='gallery')}">Art</a></li>
             <li><a href="${url(controller='art', action='upload')}">Upload</a></li>
+            <li><a href="${url(controller='tags', action='index')}">Tags</a></li>
         </ul>
     </div>
 

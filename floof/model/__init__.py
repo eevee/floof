@@ -7,6 +7,7 @@ from sqlalchemy import Column, ForeignKey, MetaData, Table, and_
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import backref, class_mapper, relation
+from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.session import object_session
 from sqlalchemy.types import *
 from floof.model.types import *
@@ -194,11 +195,12 @@ class MediaText(Artwork):
     paragraphs = Column(Integer, nullable=False)
 
 
+user_artwork_types = (u'by', u'for', u'of')
 class UserArtwork(TableBase):
     __tablename__ = 'user_artwork'
     user_id = Column(Integer, ForeignKey('users.id'), primary_key=True, nullable=True)
     artwork_id = Column(Integer, ForeignKey('artwork.id'), primary_key=True, nullable=True)
-    relationship_type = Column(Enum(u'by', u'for', u'of', name='user_artwork_relationship_type'), primary_key=True, nullable=True)
+    relationship_type = Column(Enum(*user_artwork_types, name='user_artwork_relationship_type'), primary_key=True, nullable=True)
 
 
 ### PERMISSIONS
@@ -281,6 +283,40 @@ class UserProfileRevision(TableBase):
     content = Column(Unicode, nullable=True)
 
 
+### TAGS
+
+def get_or_create_tag(name):
+    try:
+        return meta.Session.query(Tag).filter_by(name=name).one()
+    except NoResultFound:
+        return Tag(name)
+
+class Tag(TableBase):
+    __tablename__ = 'tags'
+    id = Column(Integer, primary_key=True)
+    name = Column(Unicode(64), unique=True)
+
+    def __init__(self, name):
+        self.name = name
+
+class Label(TableBase):
+    __tablename__ = 'labels'
+    id = Column(Integer, primary_key=True)
+    name = Column(Unicode(64), nullable=False)
+    user_id = Column(Integer, ForeignKey('users.id'))
+    encapsulation = Column(Enum(u'public', u'private', name='labels_encapsulation'), nullable=False)
+
+artwork_tags = Table('artwork_tags', meta.metadata,
+    Column('artwork_id', Integer, ForeignKey('artwork.id'), primary_key=True),
+    Column('tag_id', Integer, ForeignKey('tags.id'), primary_key=True),
+)
+
+artwork_labels = Table('artwork_labels', meta.metadata,
+    Column('artwork_id', Integer, ForeignKey('artwork.id'), primary_key=True),
+    Column('label_id', Integer, ForeignKey('labels.id'), primary_key=True),
+)
+
+
 ### RELATIONS
 
 make_resource_type(User)
@@ -302,6 +338,8 @@ UserProfileRevision.updated_by = relation(User, uselist=False,
 
 # Art
 #Artwork.discussion = relation(Discussion, backref='artwork')
+Artwork.tag_objs = relation(Tag, backref='artwork', secondary=artwork_tags)
+Artwork.tags = association_proxy('tag_objs', 'name', creator=get_or_create_tag)
 Artwork.uploader = relation(User, backref='uploaded_artwork')
 Artwork.user_artwork = relation(UserArtwork, backref='artwork')
 
@@ -318,3 +356,7 @@ Resource.discussion = relation(Discussion, uselist=False, backref='resource')
 Comment.author = relation(User, backref='comments')
 
 Discussion.comments = relation(Comment, order_by=Comment.left.asc(), backref='discussion')
+
+# Tags & Labels
+Label.user = relation(User, backref='labels')
+Label.artwork = relation(Artwork, secondary=artwork_labels)

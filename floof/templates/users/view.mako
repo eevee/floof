@@ -5,16 +5,12 @@
 <%def name="title()">${c.this_user.display_name}</%def>
 
 <h1>${lib.icon('user-nude')} <a href="${url.current(action='profile')}">${c.this_user.name}</a></h1>
-% for rel in ['by', 'for', 'of']:
+% for rel in c.user_artwork_types:
 <%
-    arts = c.related_art.get(rel)
+    arts = c.related_art[rel].get_query().all()
     if not arts:
         continue
 %>
 <h2>Art ${rel} ${c.this_user.name}</h2>
-<ul class="thumbnail-grid">
-  % for art in arts:
-  ${artlib.thumbnail(art)}
-  % endfor
-</ul>
+${artlib.thumbnail_grid(arts)}
 % endfor

@@ -1,7 +1,7 @@
 <%inherit file="/base.mako" />
 <%namespace name="artlib" file="/art/lib.mako" />
 
-<%def name="title()">Artwork</%def>
+<%def name="title()">Artwork tagged "${c.tag}"</%def>
 
 <h1>${title()}</h1>
 

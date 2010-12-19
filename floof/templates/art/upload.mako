@@ -12,28 +12,25 @@ ${h.form(url.current(), multipart=True)}
 <dl class="standard-form">
     ${lib.field(c.form.file)}
     ${lib.field(c.form.title, size=64, maxlength=133)}
+    ${lib.field(c.form.tags, size=64)}
 
     ## Relationship stuff
-    % for field in c.form.relationship_by_for:
+    % for field in c.form.relationship:
     <dd>
         ${field() | n}
         % if field.data == u'by':
         ${lib.icon('paint-brush')}
         % elif field.data == u'for':
         ${lib.icon('present')}
+        % elif field.data == b'of':
+        ${lib.icon('camera')}
         % endif
         ${field.label() | n}
     </dd>
     % endfor
-    % if c.form.relationship_by_for.errors:
-    <dd>${lib.field_errors(c.form.relationship_by_for)}</dd>
+    % if c.form.relationship.errors:
+    <dd>${lib.field_errors(c.form.relationship)}</dd>
     % endif
-    <dd>
-        ${c.form.relationship_of() | n}
-        ${lib.icon('camera')}
-        ${c.form.relationship_of.label() | n}
-        ${lib.field_errors(c.form.relationship_of)}
-    </dd>
 
     <dd><button type="submit">Upload!</button></dd>
 </dl>

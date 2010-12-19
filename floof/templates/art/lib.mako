@@ -30,3 +30,12 @@ def media_icon(type):
     </div>
 </li>
 </%def>
+
+<%def name="thumbnail_grid(artworks)">
+## Creates a grid of the above automatically
+<ul class="thumbnail-grid">
+    % for artwork in artworks:
+    ${thumbnail(artwork)}
+    % endfor
+</ul>
+</%def>

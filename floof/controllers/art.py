@@ -5,12 +5,15 @@ import random
 import magic
 from pylons import config, request, response, session, tmpl_context as c, url
 from pylons.controllers.util import abort, redirect
+from sqlalchemy.sql import and_
 from sqlalchemy.orm.exc import NoResultFound
 import wtforms.form, wtforms.fields, wtforms.validators
+from floof.forms import MultiCheckboxField, MultiTagField
 
 from floof.lib import helpers
 from floof.lib.base import BaseController, render
 from floof.lib.decorators import user_must
+from floof.lib.gallery import GalleryView
 from floof.model import meta
 from floof import model
 
@@ -56,17 +59,51 @@ def get_number_of_colors(image):
 class UploadArtworkForm(wtforms.form.Form):
     file = wtforms.fields.FileField(u'')
     title = wtforms.fields.TextField(u'Title')
-    relationship_by_for = wtforms.fields.RadioField(u'',
-        [wtforms.validators.required()],
+    relationship = MultiCheckboxField(u'',
         choices=[
             (u'by',  u"by me: I'm the artist; I created this!"),
             (u'for', u"for me: I commissioned this, or it was a gift specifically for me"),
+            (u'of',  u"of me: I'm depicted in this artwork"),
         ],
     )
-    relationship_of = wtforms.fields.BooleanField(u"of me: I'm depicted in this artwork")
+    tags = MultiTagField(u'Tags')
+
+class AddTagForm(wtforms.form.Form):
+    tags = MultiTagField(
+        u"Add a tag",
+        [wtforms.validators.Required()],
+        id='add_tags',
+    )
+
+    def __init__(self, *args, **kwargs):
+        self._artwork = kwargs.get('artwork', None)
+        super(AddTagForm, self).__init__(*args, **kwargs)
+
+    def validate_tags(form, field):
+        if field.data is not None:
+            for tag in field.data:
+                if tag in form._artwork.tags:
+                    raise ValueError("Already tagged with \"{0}\"".format(tag))
+
+class RemoveTagForm(wtforms.form.Form):
+    tags = MultiTagField(
+        u"Remove a tag",
+        [wtforms.validators.Required()],
+        id='remove_tags',
+    )
+
+    def __init__(self, *args, **kwargs):
+        self._artwork = kwargs.get('artwork', None)
+        super(RemoveTagForm, self).__init__(*args, **kwargs)
+
+    def validate_tags(form, field):
+        if field.data is not None:
+            for tag in field.data:
+                if tag not in form._artwork.tags:
+                    raise ValueError(u"Not tagged with \"{0}\"".format(tag))
 
 class ArtController(BaseController):
-    HASH_BUFFER_SIZE = 524288  # half a meg
+    HASH_BUFFER_SIZE = 524288  # .5 MiB
     MAX_ASPECT_RATIO = 2
 
     @user_must('upload_art')
@@ -185,20 +222,17 @@ class ArtController(BaseController):
             )
 
             # Associate the uploader as artist or recipient
-            artwork.user_artwork.append(
-                model.UserArtwork(
-                    user_id = c.user.id,
-                    relationship_type = c.form.relationship_by_for.data,
-                )
-            )
             # Also as a participant if appropriate
-            if c.form.relationship_of.data:
+            for relationship in c.form.relationship.data:
                 artwork.user_artwork.append(
                     model.UserArtwork(
                         user_id = c.user.id,
-                        relationship_type = u'of',
+                        relationship_type = relationship,
                     )
                 )
+
+            for tag in c.form.tags.data:
+                artwork.tags.append(tag)
 
             meta.Session.add_all([artwork, discussion, resource])
             meta.Session.commit()
@@ -214,7 +248,7 @@ class ArtController(BaseController):
         """Main gallery; provides browsing through absolutely everything we've
         got.
         """
-        c.artwork = meta.Session.query(model.Artwork).all()
+        c.gallery_view = GalleryView()
         return render('/art/gallery.mako')
 
     def view(self, id):
@@ -226,5 +260,51 @@ class ArtController(BaseController):
         c.artwork_url = url('filestore', key=c.artwork.hash)
 
         c.comment_form = self.CommentForm()
+        c.add_tag_form = AddTagForm()
+        c.remove_tag_form = RemoveTagForm()
 
         return render('/art/view.mako')
+
+    @user_must('add_tags')
+    def add_tags(self, id):
+        artwork = meta.Session.query(model.Artwork).get(id)
+        if not artwork:
+            abort(404)
+
+        form = c.add_tag_form = AddTagForm(request.POST, artwork=artwork)
+        if not form.validate():
+            # FIXME when the final UI is figured out
+            abort(401)
+
+        for tag in form.tags.data:
+            artwork.tags.append(tag)
+        meta.Session.commit()
+
+        if len(form.tags.data) == 1:
+            helpers.flash(u"Tag \"{0}\" has been added".format(tag))
+        else:
+            helpers.flash(u"Your tags have been added")
+
+        redirect(helpers.art_url(artwork))
+
+    @user_must('remove_tags')
+    def remove_tags(self, id):
+        artwork = meta.Session.query(model.Artwork).get(id)
+        if not artwork:
+            abort(404)
+
+        form = c.remove_tag_form = RemoveTagForm(request.POST, artwork=artwork)
+        if not form.validate():
+            # FIXME when the final UI is figured out
+            abort(401)
+
+        for tag in form.tags.data:
+            artwork.tags.remove(tag)
+        meta.Session.commit()
+
+        if len(form.tags.data) == 1:
+            helpers.flash(u"Tag \"{0}\" has been removed".format(tag))
+        else:
+            helpers.flash(u"Tags have been removed")
+
+        redirect(helpers.art_url(artwork))

@@ -44,9 +44,16 @@ def make_map(config):
     map.connect('/', controller='main', action='index')
 
     map.connect('/art', controller='art', action='gallery')
+    map.connect('/art/upload', controller='art', action='upload')
+
     map.connect(r'/art/{id:\d+};{title}', controller='art', action='view')
     map.connect(r'/art/{id:\d+}', controller='art', action='view')
-    map.connect('/art/upload', controller='art', action='upload')
+    map.connect(r'/art/{id:\d+}/add_tags', controller='art', action='add_tags', **require_POST)
+    map.connect(r'/art/{id:\d+}/remove_tags', controller='art', action='remove_tags', **require_POST)
+
+    map.connect('/tags', controller='tags', action='index')
+    map.connect('/tags/{name}', controller='tags', action='view')
+    map.connect('/tags/{name}/artwork', controller='tags', action='artwork')
 
     # Comments, which can be attached to various things
     comment_submappings = [

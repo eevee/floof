@@ -184,7 +184,7 @@ class AccountController(BaseController):
 
         redirect(url('/'), code=303)
 
-    @user_must('logged_in')
+    @logged_in
     def profile(self):
         c.form = ProfileForm(request.POST)
 

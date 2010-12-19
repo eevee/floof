@@ -17,6 +17,8 @@ from webtest import TestApp
 
 import pylons.test
 
+from floof.model import meta
+
 __all__ = ['environ', 'url', 'TestController']
 
 # Invoke websetup with the current config file
@@ -25,6 +27,24 @@ SetupCommand('setup-app').run([pylons.test.pylonsapp.config['__file__']])
 environ = {}
 
 class TestController(TestCase):
+
+    def setUp(self):
+        # See: http://www.sqlalchemy.org/docs/orm/session.html#joining-a-session-into-an-external-transaction
+        # This will allow app code to commit() and otherwise use the session as
+        # normal, but undoes everything between individual tests
+        # Ditch any existing session first
+        meta.Session.remove()
+        # Create a non-ORM transaction, which tricks ORM .commit() into not
+        # actually committing
+        conn = meta.engine.connect()
+        self._transaction = conn.begin()
+        meta.Session.configure(bind=conn)
+
+    def tearDown(self):
+        # Roll back everything, discard the session, and un-reconfigure it
+        self._transaction.rollback()
+        meta.Session.remove()
+        meta.Session.configure(bind=meta.engine)
 
     def __init__(self, *args, **kwargs):
         if pylons.test.pylonsapp:

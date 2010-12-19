@@ -5,6 +5,7 @@ from pylons.controllers.util import abort, redirect
 
 from floof.lib.base import BaseController, render
 from floof.lib.decorators import user_action
+from floof.lib.gallery import GalleryView
 from floof.model import meta
 from floof import model
 
@@ -14,9 +15,12 @@ class UsersController(BaseController):
 
     @user_action
     def view(self, user):
+        c.user_artwork_types = model.user_artwork_types
         c.related_art = {}
-        for rel in meta.Session.query(model.UserArtwork).filter_by(user=user):
-            c.related_art.setdefault(rel.relationship_type, []).append(rel.artwork)
+        for rel in model.user_artwork_types:
+            c.related_art[rel] = GalleryView()
+            c.related_art[rel].filter_by_user(rel, user)
+
         return render('/users/view.mako')
 
     @user_action
