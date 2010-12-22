@@ -149,6 +149,15 @@ class IdentityURL(TableBase):
     user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
     url = Column(Unicode(250), nullable=False, index=True, unique=True)
 
+user_relationship_types = (u'watch.art', u'watch.journals', u'friend', u'ignore')
+class UserRelationship(TableBase):
+    __tablename__ = 'user_relationships'
+    id = Column(Integer, primary_key=True, nullable=False)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    other_user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    relationship_type = Column(Enum(*user_relationship_types, name='user_relationships_relationship_type'), nullable=False)
+    created_time = Column(TZDateTime, nullable=False, index=True, default=now)
+
 
 ### ART
 
@@ -318,12 +327,20 @@ artwork_labels = Table('artwork_labels', meta.metadata,
 
 
 ### RELATIONS
+# TODO: For user/user and user/art relations, it would be nice to have SQLA represent them as a dict of lists.
+# See: http://www.sqlalchemy.org/docs/orm/collections.html#instrumentation-and-custom-types
 
 make_resource_type(User)
 make_resource_type(Artwork)
 
 # Users
 IdentityURL.user = relation(User, backref='identity_urls')
+User.relationships = relation(UserRelationship,
+    primaryjoin=User.id==UserRelationship.user_id,
+    backref='user')
+User.inverse_relationships = relation(UserRelationship,
+    primaryjoin=User.id==UserRelationship.other_user_id,
+    backref='other_user')
 
 
 # Profiles

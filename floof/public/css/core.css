@@ -61,6 +61,14 @@ dl.standard-form dt, dl.standard-form dd { line-height: 1.5; }
 
 /*** Globally useful stuff ***/
 
+.user-panel { display: inline-block; width: 20em; padding: 0.5em; border: 1px solid #5a7086; box-shadow: 0.05em 0.05em 0.1em hsla(0, 0%, 100%, 0.5) inset, -0.05em -0.05em 0.1em -0.05em hsla(0, 0%, 0%, 0.5) inset, 0 -2em 1em -1em #d3d8dd inset; border-radius: 0.5em; vertical-align: top; }
+.user-panel:hover { box-shadow: 0 0 0.17em #b84343, 0.05em 0.05em 0.1em hsla(0, 0%, 100%, 0.5) inset, -0.05em -0.05em 0.1em -0.05em hsla(0, 0%, 0%, 0.5) inset, 0 -2em 1em -1em #d3d8dd inset; border-radius: 0.5em; vertical-align: top; }
+.user-panel:active { padding: 0.6em 0.4em 0.4em 0.6em; box-shadow: 0 0 0.25em #b84343, 0.05em 0.05em 0.1em hsla(0, 0%, 0%, 0.5) inset, -0.05em -0.05em 0.1em -0.05em hsla(0, 0%, 100%, 0.5) inset, 0 2em 1em -1em #d3d8dd inset; }
+
+/* Form bits */
+.stylish-button { font-size: 1.2em; padding: 0.25em 0.5em; border: 1px solid #5a7086; background: hsl(120, 50%, 60%); border-radius: 0.66em; box-shadow: 0.1em 0.1em 0.1em -0.1em white inset, 0 -2em 1em -1em hsla(0, 0%, 0%, 0.2) inset; }
+.stylish-button:active { box-shadow: 0.1em 0.1em 0.1em -0.1em black inset, 0 2em 1em -1em hsla(0, 0%, 0%, 0.2) inset; }
+
 /* Cool three-column layout */
 .column-container { clear: both; overflow: hidden /* float context */; margin-top: 1em; }
 .column { float: left; width: 32.666%; margin-left: 1%; }

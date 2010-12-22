@@ -6,13 +6,16 @@
 <h1>${self.panel_icon()} Control panel » ${self.panel_title()}</h1>
 
 <ul id="control-panel-navigation">
-    <li><a href="/">${lib.icon('fruit')} Apple</a></li>
-    <li><a href="/">${lib.icon('fruit-grape')} Grape</a></li>
-    <li><a href="/">${lib.icon('fruit-lime')} Lime</a></li>
-    <li><a href="/">${lib.icon('fruit-orange')} Orange</a></li>
-    <li class="selected">${lib.icon('question')} Current page</li>
-    <li><a href="/">${lib.icon('fruit-orange')} Orange 2</a></li>
-    <li><a href="/">${lib.icon('fruit-orange')} Orange 3</a></li>
+    % for action, icon, title in [ \
+        ('index',           'fruit',        u'Index??'), \
+        ('relationships',   'users',        u'Watches'), \
+    ]:
+    % if action == c.current_action:
+    <li class="selected">${lib.icon(icon)} ${title}</li>
+    % else:
+    <li><a href="${url(controller='controls', action=action)}">${lib.icon(icon)} ${title}</a></li>
+    % endif
+    % endfor
 </ul>
 
 <div id="control-panel-content">

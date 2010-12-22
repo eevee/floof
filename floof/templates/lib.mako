@@ -12,6 +12,12 @@ ${c.user.localtime(t).strftime('%A, %d %B %Y at %H:%M %Z')}
 <a href="${url('user', user=user)}">${user.display_name}</a>
 </%def>
 
+<%def name="user_panel(user)">
+<a href="${url('user', user=user)}" class="user-panel">
+    ${user.display_name}
+</a>
+</%def>
+
 <%def name="field(form_field, **kwargs)">
 % if isinstance(form_field.widget, wtforms.widgets.CheckboxInput):
 <dd>

@@ -37,6 +37,8 @@ def make_map(config):
         **require_POST)
 
     map.connect('/account/controls', controller='controls', action='index')
+    map.connect('/account/controls/{action}', controller='controls', action='index',
+        requirements=dict(action='relationships'))
 
     map.connect('user', '/users/{name}', controller='users', action='view', _filter=user_filter)
     map.connect('/users/{name}/{action}', controller='users')
