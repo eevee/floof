@@ -10,9 +10,10 @@
     (u'watch.art', u'Watching art') ]:
 <h2>${rel_label}</h2>
 % if c.relationships[rel_type]:
-<ul class="user-list">
+<table class="user-list">
     % for user in c.relationships[rel_type]:
-    <li>${lib.user_panel(user)}</li>
+    <tr>
+        <td>${lib.user_link(user)}</td>
     % endfor
 </ul>
 % else:

@@ -9,6 +9,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import backref, class_mapper, relation
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.session import object_session
+from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.types import *
 from floof.model.types import *
 
@@ -149,13 +150,14 @@ class IdentityURL(TableBase):
     user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
     url = Column(Unicode(250), nullable=False, index=True, unique=True)
 
-user_relationship_types = (u'watch.art', u'watch.journals', u'friend', u'ignore')
-class UserRelationship(TableBase):
-    __tablename__ = 'user_relationships'
-    id = Column(Integer, primary_key=True, nullable=False)
-    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
-    other_user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
-    relationship_type = Column(Enum(*user_relationship_types, name='user_relationships_relationship_type'), nullable=False)
+class UserWatch(TableBase):
+    __tablename__ = 'user_watches'
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, primary_key=True)
+    other_user_id = Column(Integer, ForeignKey('users.id'), nullable=False, primary_key=True)
+    watch_upload = Column(Boolean, nullable=False, index=True, default=False)
+    watch_by = Column(Boolean, nullable=False, index=True, default=False)
+    watch_for = Column(Boolean, nullable=False, index=True, default=False)
+    watch_of = Column(Boolean, nullable=False, index=True, default=False)
     created_time = Column(TZDateTime, nullable=False, index=True, default=now)
 
 
@@ -335,11 +337,11 @@ make_resource_type(Artwork)
 
 # Users
 IdentityURL.user = relation(User, backref='identity_urls')
-User.relationships = relation(UserRelationship,
-    primaryjoin=User.id==UserRelationship.user_id,
+User.watches = relation(UserWatch,
+    primaryjoin=User.id==UserWatch.user_id,
     backref='user')
-User.inverse_relationships = relation(UserRelationship,
-    primaryjoin=User.id==UserRelationship.other_user_id,
+User.inverse_watches = relation(UserWatch,
+    primaryjoin=User.id==UserWatch.other_user_id,
     backref='other_user')
 
 
