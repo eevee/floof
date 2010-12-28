@@ -12,7 +12,13 @@ import re
 
 
 _flash = Flash()
-def flash(message, icon=None, level='info', **extras):
+_default_flash_icons = dict(
+    error='exclamation-red-frame',
+    warning='exclamation-diamond-frame',
+    notice='finger',
+    success='tick-circle',
+)
+def flash(message, icon=None, level='notice', **extras):
     """Custom add-to-flash function.  Arbitrary metadata may be saved with a
     message, but the main options are a Fugue icon and the message level:
     success, info, warning, or error.
@@ -21,8 +27,7 @@ def flash(message, icon=None, level='info', **extras):
     if icon:
         extras['icon'] = icon
     else:
-        # XXX base on level
-        extras['icon'] = 'finger'
+        extras['icon'] = _default_flash_icons.get(level, 'finger')
 
     extras['level'] = level
 

@@ -18,7 +18,7 @@ body { position: relative; min-height: 100%; background: #c1c8cf; font-size: 12p
 #flash li { position: relative; padding: 0.25em 0.5em; border-bottom: 1px dotted #ededed; background: url(/images/flash-background.png) #d8d8d8 top left repeat; }
 #flash li img { display: block; position: absolute; top: -8px; left: -20px; margin-top: 1em; }
 #flash li.flash-level-success { border-color: #799070; background-color: #dee4dc; }
-#flash li.flash-level-info { border-color: #6f8290; background-color: #dbe0e3; }
+#flash li.flash-level-notice { border-color: #6f8290; background-color: #dbe0e3; }
 #flash li.flash-level-warning { border-color: #90846f; background-color: #e3e0db; }
 #flash li.flash-level-error { border-color: #907070; background-color: #e3dbdb; }
 
