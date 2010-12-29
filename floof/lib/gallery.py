@@ -5,6 +5,7 @@ want the `GalleryView` class.
 """
 from sqlalchemy.orm import aliased
 from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.sql import and_, case, or_
 
 from floof import model
 
@@ -65,6 +66,33 @@ class GalleryView(object):
             self.query = self.query.filter(
                 model.Artwork.tag_objs.any(id=tag.id)
             )
+
+    def filter_by_watches(self, user):
+        """Filter the gallery down to only things `user` is watching."""
+        # XXX make this work for multiple users
+        self.query = self.query.filter(or_(
+            # Check for by/for/of watching
+            # XXX need an index on relationship_type, badly!
+            model.Artwork.id.in_(
+                self.session.query(model.UserArtwork.artwork_id)
+                    .join((model.UserWatch, model.UserArtwork.user_id == model.UserWatch.other_user_id))
+                    .filter(model.UserWatch.user_id == user.id)
+                    .filter(case(
+                        value=model.UserArtwork.relationship_type,
+                        whens={
+                            u'by': model.UserWatch.watch_by,
+                            u'for': model.UserWatch.watch_for,
+                            u'of': model.UserWatch.watch_of,
+                        },
+                    ))
+            ),
+            # Check for upload watching
+            model.Artwork.uploader_user_id.in_(
+                self.session.query(model.UserWatch.other_user_id)
+                    .filter(model.UserWatch.user_id == user.id)
+                    .filter(model.UserWatch.watch_upload == True)  # gross
+            ),
+        ))
 
 
     ### Methods for examining the result

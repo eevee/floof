@@ -26,3 +26,10 @@ class UsersController(BaseController):
     @user_action
     def profile(self, user):
         return render('/users/profile.mako')
+
+    @user_action
+    def watchstream(self, user):
+        c.artwork = GalleryView()
+        c.artwork.filter_by_watches(user)
+
+        return render('/users/watchstream.mako')
