@@ -1,8 +1,18 @@
 <%! import wtforms.widgets %>
 
-<%def name="icon(which, alt='')">
-<img src="${url('icon', which=which)}" alt="${alt}">
+<%def name="icon(which, alt='')">\
+<img src="${url('icon', which=which)}" alt="${alt}">\
 </%def>
+
+<%!
+    standard_icons = {
+        'uploader': 'arrow-transition-090',
+        'by': 'palette-paint-brush',
+        'for': 'present-label',
+        'of': 'camera-black',
+    }
+%>
+<%def name="stdicon(which)">${icon(standard_icons[which])}</%def>
 
 <%def name="time(t)">
 ${c.user.localtime(t).strftime('%A, %d %B %Y at %H:%M %Z')}
@@ -10,6 +20,12 @@ ${c.user.localtime(t).strftime('%A, %d %B %Y at %H:%M %Z')}
 
 <%def name="user_link(user)">
 <a href="${url('user', user=user)}">${user.display_name}</a>
+</%def>
+
+<%def name="user_panel(user)">
+<a href="${url('user', user=user)}" class="user-panel">
+    ${user.display_name}
+</a>
 </%def>
 
 <%def name="field(form_field, **kwargs)">

@@ -18,7 +18,7 @@ body { position: relative; min-height: 100%; background: #c1c8cf; font-size: 12p
 #flash li { position: relative; padding: 0.25em 0.5em; border-bottom: 1px dotted #ededed; background: url(/images/flash-background.png) #d8d8d8 top left repeat; }
 #flash li img { display: block; position: absolute; top: -8px; left: -20px; margin-top: 1em; }
 #flash li.flash-level-success { border-color: #799070; background-color: #dee4dc; }
-#flash li.flash-level-info { border-color: #6f8290; background-color: #dbe0e3; }
+#flash li.flash-level-notice { border-color: #6f8290; background-color: #dbe0e3; }
 #flash li.flash-level-warning { border-color: #90846f; background-color: #e3e0db; }
 #flash li.flash-level-error { border-color: #907070; background-color: #e3dbdb; }
 
@@ -47,6 +47,7 @@ h2 { font-size: 1.5em; margin: 1em 0 0.5em; padding: 0.25em 0.5em; background: #
 
 /* Forms */
 input, button, select { vertical-align: middle; }
+input[type="submit"], input[type="button"], input[type="submit"], input[type="image"], button { cursor: pointer; }
 
 .form-error { margin: 0.25em 0.25em 0.5em; padding-left: 16px; background: url(/icons/exclamation-small-red.png) left center no-repeat; color: darkred; }
 
@@ -60,6 +61,18 @@ dl.standard-form dt, dl.standard-form dd { line-height: 1.5; }
 
 
 /*** Globally useful stuff ***/
+
+.user-panel { display: inline-block; width: 20em; padding: 0.5em; border: 1px solid #5a7086; box-shadow: 0.05em 0.05em 0.1em hsla(0, 0%, 100%, 0.5) inset, -0.05em -0.05em 0.1em -0.05em hsla(0, 0%, 0%, 0.5) inset, 0 -2em 1em -1em #d3d8dd inset; border-radius: 0.5em; vertical-align: top; }
+.user-panel:hover { box-shadow: 0 0 0.17em #b84343, 0.05em 0.05em 0.1em hsla(0, 0%, 100%, 0.5) inset, -0.05em -0.05em 0.1em -0.05em hsla(0, 0%, 0%, 0.5) inset, 0 -2em 1em -1em #d3d8dd inset; border-radius: 0.5em; vertical-align: top; }
+.user-panel:active { padding: 0.6em 0.4em 0.4em 0.6em; box-shadow: 0 0 0.25em #b84343, 0.05em 0.05em 0.1em hsla(0, 0%, 0%, 0.5) inset, -0.05em -0.05em 0.1em -0.05em hsla(0, 0%, 100%, 0.5) inset, 0 2em 1em -1em #d3d8dd inset; }
+
+/* Form bits */
+.stylish-button { font-size: 1.2em; padding: 0.25em 0.5em; border: 1px solid #5a7086; border-radius: 0.75em; box-shadow: 0.1em 0.1em 0.1em -0.1em white inset, 0 2em 1em -1em hsla(0, 0%, 100%, 0.4) inset; }
+.stylish-button:hover { box-shadow: 0 0 0.17em #b84343, 0.1em 0.1em 0.1em -0.1em white inset, 0 2em 1em -1em hsla(0, 0%, 100%, 0.4) inset; }
+.stylish-button:active { box-shadow: 0 0 0.17em #b84343, 0.1em 0.1em 0.1em -0.1em black inset, 0 2em 1em -1em hsla(0, 0%, 0%, 0.1) inset; }
+.stylish-button.confirm { background: hsl(120, 40%, 50%); }
+.stylish-button.destroy { background: hsl(0, 40%, 50%); }
+.stylish-button.mini { font-size: 0.8em; }
 
 /* Cool three-column layout */
 .column-container { clear: both; overflow: hidden /* float context */; margin-top: 1em; }

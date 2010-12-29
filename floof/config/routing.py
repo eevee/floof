@@ -37,6 +37,14 @@ def make_map(config):
         **require_POST)
 
     map.connect('/account/controls', controller='controls', action='index')
+    map.connect('/account/controls/{action}', controller='controls',
+        requirements=dict(action='relationships'))
+    map.connect('/account/controls/relationships/watch', controller='controls',
+        action='relationships_watch', **require_GET)
+    map.connect('/account/controls/relationships/watch', controller='controls',
+        action='relationships_watch_commit', **require_POST)
+    map.connect('/account/controls/relationships/unwatch_commit', controller='controls',
+        action='relationships_unwatch_commit', **require_POST)
 
     map.connect('user', '/users/{name}', controller='users', action='view', _filter=user_filter)
     map.connect('/users/{name}/{action}', controller='users')

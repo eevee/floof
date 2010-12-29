@@ -9,6 +9,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import backref, class_mapper, relation
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.session import object_session
+from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.types import *
 from floof.model.types import *
 
@@ -148,6 +149,16 @@ class IdentityURL(TableBase):
     id = Column(Integer, primary_key=True, nullable=False)
     user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
     url = Column(Unicode(250), nullable=False, index=True, unique=True)
+
+class UserWatch(TableBase):
+    __tablename__ = 'user_watches'
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, primary_key=True)
+    other_user_id = Column(Integer, ForeignKey('users.id'), nullable=False, primary_key=True)
+    watch_upload = Column(Boolean, nullable=False, index=True, default=False)
+    watch_by = Column(Boolean, nullable=False, index=True, default=False)
+    watch_for = Column(Boolean, nullable=False, index=True, default=False)
+    watch_of = Column(Boolean, nullable=False, index=True, default=False)
+    created_time = Column(TZDateTime, nullable=False, index=True, default=now)
 
 
 ### ART
@@ -318,12 +329,20 @@ artwork_labels = Table('artwork_labels', meta.metadata,
 
 
 ### RELATIONS
+# TODO: For user/user and user/art relations, it would be nice to have SQLA represent them as a dict of lists.
+# See: http://www.sqlalchemy.org/docs/orm/collections.html#instrumentation-and-custom-types
 
 make_resource_type(User)
 make_resource_type(Artwork)
 
 # Users
 IdentityURL.user = relation(User, backref='identity_urls')
+User.watches = relation(UserWatch,
+    primaryjoin=User.id==UserWatch.user_id,
+    backref='user')
+User.inverse_watches = relation(UserWatch,
+    primaryjoin=User.id==UserWatch.other_user_id,
+    backref='other_user')
 
 
 # Profiles
