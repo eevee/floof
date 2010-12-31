@@ -106,7 +106,7 @@ class ArtController(BaseController):
     HASH_BUFFER_SIZE = 524288  # .5 MiB
     MAX_ASPECT_RATIO = 2
 
-    @user_must('upload_art')
+    @user_must('art.upload')
     def upload(self):
         """Uploads something.  Sort of important, you know."""
         c.form = UploadArtworkForm(request.POST)
@@ -265,7 +265,7 @@ class ArtController(BaseController):
 
         return render('/art/view.mako')
 
-    @user_must('add_tags')
+    @user_must('tags.add')
     def add_tags(self, id):
         artwork = meta.Session.query(model.Artwork).get(id)
         if not artwork:
@@ -287,7 +287,7 @@ class ArtController(BaseController):
 
         redirect(helpers.art_url(artwork))
 
-    @user_must('remove_tags')
+    @user_must('tags.remove')
     def remove_tags(self, id):
         artwork = meta.Session.query(model.Artwork).get(id)
         if not artwork:

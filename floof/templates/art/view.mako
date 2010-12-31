@@ -89,7 +89,7 @@
 </h1>
 ${comments_lib.comment_tree(comments)}
 
-% if c.user.can('write_comment'):
+% if c.user.can('comments.add'):
 <h2>
     ${lib.icon('balloon-white')}
     Write your own
