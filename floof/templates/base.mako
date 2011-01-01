@@ -5,6 +5,7 @@
     <title>${self.title()} - ${config['site_title']}</title>
     <link rel="stylesheet" type="text/css" href="${url('css', which='reset')}">
     <link rel="stylesheet" type="text/css" href="${url('css', which='core')}">
+    <script type="text/javascript" src="${url('/js/lib/jquery-1.4.4.min.js')}"></script>
 </head>
 <body>
     <div id="header">
