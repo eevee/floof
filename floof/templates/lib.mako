@@ -18,6 +18,10 @@
 ${c.user.localtime(t).strftime('%A, %d %B %Y at %H:%M %Z')}
 </%def>
 
+<%def name="timedelta(td)">\
+${ "{0:.02f}".format( td.seconds + td.microseconds / 1000000.0 ) }s\
+</%def>
+
 <%def name="user_link(user)">
 <a href="${url('user', user=user)}">${user.display_name}</a>
 </%def>

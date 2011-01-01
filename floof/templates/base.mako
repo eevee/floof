@@ -5,6 +5,11 @@
     <title>${self.title()} - ${config['site_title']}</title>
     <link rel="stylesheet" type="text/css" href="${url('css', which='reset')}">
     <link rel="stylesheet" type="text/css" href="${url('css', which='core')}">
+    <script type="text/javascript" src="${url('/js/lib/jquery-1.4.4.min.js')}"></script>
+    <script type="text/javascript" src="${url('/js/lib/jquery.cookie.js')}"></script>
+    % if config.get('super_debug', False):
+    <script type="text/javascript" src="${url('/js/debugging.js')}"></script>
+    % endif
 </head>
 <body>
     <div id="header">
@@ -44,8 +49,17 @@
 
     <div id="footer-spacer"></div>
     <div id="footer">
-        Icons from the <a href="http://p.yusukekamiyamane.com/">Fugue set</a>
+        <p id="footer-stats">
+            built in ${lib.timedelta(c.timer.total_time)} <br>
+            ${c.timer.sql_queries} quer${ 'y' if c.timer.sql_queries == 1 else 'ies' }
+                in ${lib.timedelta(c.timer.sql_time)}
+        </p>
+        <p>Icons from the <a href="http://p.yusukekamiyamane.com/">Fugue set</a></p>
     </div>
+
+    % if config.get('super_debug', False):
+    <%include file="/debugging.mako" />
+    % endif
 </body>
 </html>
 
