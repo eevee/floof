@@ -138,7 +138,7 @@ ul#x-debugging > li.selected > .x-debugging-panel { display: block; }
 
 #x-debugging-toggler { position: fixed; font-size: 2em; bottom: -4em; right: -4em; height: 8em; width: 8em; line-height: 3em; text-align: center; vertical-align: bottom; border-radius: 8em; background: hsla(215, 50%, 30%, 0.7); color: hsla(0, 0%, 100%, 0.7); -moz-transform: rotate(-45deg); cursor: pointer; }
 ul#x-debugging.visible + #x-debugging-toggler { background: hsl(215, 50%, 50%); }
-#x-debugging-toggler:hover { background: hsl(215, 50%, 30%); }
+ul#x-debugging + #x-debugging-toggler:hover { background: hsl(215, 50%, 30%); }
 
 table#x-debugging-query-log { line-height: 1.33; }
 table#x-debugging-query-log tbody:nth-child(2n) { background: #e8e8e8; }
