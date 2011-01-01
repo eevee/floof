@@ -6,6 +6,9 @@
     <link rel="stylesheet" type="text/css" href="${url('css', which='reset')}">
     <link rel="stylesheet" type="text/css" href="${url('css', which='core')}">
     <script type="text/javascript" src="${url('/js/lib/jquery-1.4.4.min.js')}"></script>
+    % if config.get('safe_debug', False):
+    <script type="text/javascript" src="${url('/js/debugging.js')}"></script>
+    % endif
 </head>
 <body>
     <div id="header">
@@ -47,6 +50,10 @@
     <div id="footer">
         Icons from the <a href="http://p.yusukekamiyamane.com/">Fugue set</a>
     </div>
+
+    % if config.get('safe_debug', False):
+    <%include file="/debugging.mako" />
+    % endif
 </body>
 </html>
 

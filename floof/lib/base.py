@@ -8,6 +8,7 @@ from pylons.templating import render_mako as render
 from sqlalchemy.orm.exc import NoResultFound
 import wtforms.fields, wtforms.form
 
+from floof.lib.debugging import ResponseTimer
 from floof.model import AnonymousUser, User, meta
 
 class BaseController(WSGIController):
@@ -16,6 +17,8 @@ class BaseController(WSGIController):
 
 
     def __before__(self, action, environ, **params):
+        c.timer = ResponseTimer()
+
         # Check user state
         if 'tests.user_id' in environ:
             user_id = environ['tests.user_id']

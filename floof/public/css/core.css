@@ -123,3 +123,25 @@ ul#control-panel-navigation li.selected { padding: 0.5em; background: #ededed; }
 .comment .content { margin-left: 112px; padding: 0.5em; line-height: 1.5; }
 .comment:hover { outline: 2px solid #b3c0cd; -moz-outline-radius: 8px 0 8px 8px; -webkit-outline-radius: 8px 0 8px 8px; outline-radius: 8px 0 8px 8px; }
 .comment-child { margin-left: 2em; }
+
+
+/*** Debugging ***/
+ul#x-debugging { display: none; position: fixed; top: 0; bottom: 0; right: 0; width: 20em; background: rgba(0, 0, 0, 0.7); }
+ul#x-debugging.visible { display: block; }
+ul#x-debugging > li { border-bottom: 1px solid hsla(0, 0%, 100%, 0.3); padding: 1em; color: white; cursor: pointer; }
+ul#x-debugging > li:hover { background: hsl(215, 50%, 30%); }
+ul#x-debugging > li > h5 { font-size: 1.33em; margin-bottom: 0.5em; }
+ul#x-debugging > li > h6 { font-size: 1.1em; }
+.x-debugging-panel { display: none; position: fixed; overflow: auto; top: 0; bottom: 0; left: 0; right: 20em; padding: 1em; border: 1em solid hsl(215, 50%, 50%); background: #f4f4f4; color: black; cursor: default; }
+ul#x-debugging > li.selected { background: hsl(215, 50%, 50%); }
+ul#x-debugging > li.selected > .x-debugging-panel { display: block; }
+
+#x-debugging-toggler { position: fixed; font-size: 2em; bottom: -4em; right: -4em; height: 8em; width: 8em; line-height: 3em; text-align: center; vertical-align: bottom; border-radius: 8em; background: hsla(215, 50%, 30%, 0.7); color: hsla(0, 0%, 100%, 0.7); -moz-transform: rotate(-45deg); cursor: pointer; }
+ul#x-debugging.visible + #x-debugging-toggler { background: hsl(215, 50%, 50%); }
+#x-debugging-toggler:hover { background: hsl(215, 50%, 30%); }
+
+table#x-debugging-query-log { line-height: 1.33; }
+table#x-debugging-query-log tbody:nth-child(2n) { background: #e8e8e8; }
+table#x-debugging-query-log td,
+table#x-debugging-query-log th { padding: 0.25em 0.5em; }
+table#x-debugging-query-log th { padding-bottom: 1em; font-family: monospace; text-align: left; color: #000080; }
