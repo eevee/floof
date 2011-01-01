@@ -49,7 +49,12 @@
 
     <div id="footer-spacer"></div>
     <div id="footer">
-        Icons from the <a href="http://p.yusukekamiyamane.com/">Fugue set</a>
+        <p id="footer-stats">
+            built in ${lib.timedelta(c.timer.total_time)} <br>
+            ${c.timer.sql_queries} quer${ 'y' if c.timer.sql_queries == 1 else 'ies' }
+                in ${lib.timedelta(c.timer.sql_time)}
+        </p>
+        <p>Icons from the <a href="http://p.yusukekamiyamane.com/">Fugue set</a></p>
     </div>
 
     % if config.get('safe_debug', False):
