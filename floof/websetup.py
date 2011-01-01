@@ -31,11 +31,11 @@ def setup_app(command, conf, vars):
     privileges = dict(
         (name, model.Privilege(name=name, description=description))
         for name, description in [
-            (u'admin',              u'Can administrate'),
-            (u'upload_art',         u'Can upload art'),
-            (u'write_comment',      u'Can post comments'),
-            (u'add_tags',           u'Can add tags with no restrictions'),
-            (u'remove_tags',        u'Can remove tags with no restrictions'),
+            (u'admin.view',         u'Can view administrative tools/panel'),
+            (u'art.upload',         u'Can upload art'),
+            (u'comments.add',       u'Can post comments'),
+            (u'tags.add',           u'Can add tags with no restrictions'),
+            (u'tags.remove',        u'Can remove tags with no restrictions'),
         ]
     )
     upload_art = model.Privilege(name=u'upload_art', description=u'Can upload art')
@@ -46,7 +46,7 @@ def setup_app(command, conf, vars):
         name=u'user',
         description=u'Basic user',
         privileges=[privileges[priv] for priv in [
-            u'upload_art', u'write_comment', u'add_tags', u'remove_tags',
+            u'art.upload', u'comments.add', u'tags.add', u'tags.remove',
         ]],
     )
     admin_user = model.Role(

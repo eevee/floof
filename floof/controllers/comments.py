@@ -61,7 +61,7 @@ class CommentsController(BaseController):
         # TODO show all ancestors + entire tree + discussee somehow
         return render('/comments/view.mako')
 
-    @user_must('write_comment')
+    @user_must('comments.add')
     def write(self, subcontroller, id, title=None, comment_id=None):
         """Show a form for writing a comment.  Either top-level or a reply to
         another comment.
@@ -82,7 +82,7 @@ class CommentsController(BaseController):
         c.comment_form = self.CommentForm()
         return render('/comments/write.mako')
 
-    @user_must('write_comment')
+    @user_must('comments.add')
     def write_commit(self, subcontroller, id, title=None, comment_id=None):
         """Add a comment"""
         discussion, comment = self._get_discussion(subcontroller, id, comment_id)

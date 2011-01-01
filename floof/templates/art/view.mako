@@ -50,8 +50,8 @@
     </p>
 
     % for perm, action, form in [ \
-        ('add_tags', 'add_tags', c.add_tag_form), \
-        ('remove_tags', 'remove_tags', c.remove_tag_form), \
+        ('tags.add', 'add_tags', c.add_tag_form), \
+        ('tags.remove', 'remove_tags', c.remove_tag_form), \
     ]:
     % if c.user.can(perm):
     ${h.form(url(controller='art', action=action, id=c.artwork.id))}
@@ -89,7 +89,7 @@
 </h1>
 ${comments_lib.comment_tree(comments)}
 
-% if c.user.can('write_comment'):
+% if c.user.can('comments.add'):
 <h2>
     ${lib.icon('balloon-white')}
     Write your own

@@ -31,7 +31,7 @@ ${comments_lib.single_comment(c.comment)}
 % endif
 
 
-% if c.user.can('write_comment'):
+% if c.user.can('comments.add'):
 <% hlevel = 'h2' if c.comment else 'h1' %>\
 <${hlevel}>
     ${lib.icon('balloon-white')}
