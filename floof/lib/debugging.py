@@ -91,10 +91,15 @@ class ResponseTimer(object):
         self.from_cache = None
 
         # SQLAlchemy will add to these using the above proxy class; see
-        # spline.config.environment
+        # floof.config.environment
         self.sql_time = timedelta()
+        # Debug mode only
         self.sql_queries = 0
         self.sql_query_log = defaultdict(list)
+
+        # Template time, not including SQLAlchemy time
+        # Also debug mode only
+        self.template_time = timedelta()
 
     @property
     def total_time(self):

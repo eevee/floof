@@ -38,6 +38,8 @@ img { vertical-align: middle; }
 
 p { margin-bottom: 0.5em; }
 
+pre { line-height: 1.2; font-family: monospace; }
+
 /* Headers */
 h1 { font-size: 2em; margin: 1em 0 0.5em; padding: 0.5em 1em; border-bottom: 1px solid #5a7086; background: url(/images/h1-background.png) #bcc3cb left center repeat-x; font-family: serif; text-shadow: 1px 1px 1px #5a7086; }
 #content > h1 { margin: 1em -0.5em 0.5em; }
@@ -132,7 +134,7 @@ ul#x-debugging.visible { display: block; }
 ul#x-debugging > li { border-bottom: 1px solid hsla(0, 0%, 100%, 0.3); padding: 1em; color: white; cursor: pointer; }
 ul#x-debugging > li:hover { background: hsl(215, 50%, 30%); }
 ul#x-debugging > li > h5 { font-size: 1.33em; margin-bottom: 0.5em; }
-ul#x-debugging > li > h6 { font-size: 1.1em; }
+ul#x-debugging > li > h6 { font-size: 1.1em; color: #d0d0d0; }
 .x-debugging-panel { display: none; position: fixed; overflow: auto; top: 0; bottom: 0; left: 0; right: 20em; padding: 1em; border: 1em solid hsl(215, 50%, 50%); background: #f4f4f4; color: black; cursor: default; }
 ul#x-debugging > li.selected { background: hsl(215, 50%, 50%); }
 ul#x-debugging > li.selected > .x-debugging-panel { display: block; }
@@ -141,8 +143,8 @@ ul#x-debugging > li.selected > .x-debugging-panel { display: block; }
 ul#x-debugging.visible + #x-debugging-toggler { background: hsl(215, 50%, 50%); }
 ul#x-debugging + #x-debugging-toggler:hover { background: hsl(215, 50%, 30%); }
 
-table#x-debugging-query-log { line-height: 1.33; }
-table#x-debugging-query-log tbody:nth-child(2n) { background: #e8e8e8; }
-table#x-debugging-query-log td,
-table#x-debugging-query-log th { padding: 0.25em 0.5em; }
+ul#x-debugging table { line-height: 1.33; }
+ul#x-debugging table tbody:nth-child(2n) { background: #e8e8e8; }
+ul#x-debugging table td,
+ul#x-debugging table th { padding: 0.25em 0.5em; }
 table#x-debugging-query-log th { padding-bottom: 1em; font-family: monospace; text-align: left; color: #000080; }

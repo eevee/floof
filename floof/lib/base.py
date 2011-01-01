@@ -2,14 +2,31 @@
 
 Provides the BaseController class for subclassing.
 """
-from pylons import session, tmpl_context as c
+import datetime
+
+from pylons import config, session, tmpl_context as c
 from pylons.controllers import WSGIController
-from pylons.templating import render_mako as render
+from pylons.templating import render_mako
 from sqlalchemy.orm.exc import NoResultFound
 import wtforms.fields, wtforms.form
 
 from floof.lib.debugging import ResponseTimer
 from floof.model import AnonymousUser, User, meta
+
+def render(*args, **kwargs):
+    if config['safe_debug']:
+        start_time = datetime.datetime.now()
+        sql_start_time = c.timer.sql_time
+
+    ret = render_mako(*args, **kwargs)
+
+    if config['safe_debug']:
+        c.timer.template_time += (datetime.datetime.now()
+            - start_time
+            - (c.timer.sql_time - sql_start_time)
+        )
+
+    return ret
 
 class BaseController(WSGIController):
     class CommentForm(wtforms.form.Form):

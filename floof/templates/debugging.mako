@@ -1,4 +1,5 @@
 <%namespace name="lib" file="/lib.mako" />
+<%! import os.path, pprint %>
 
 <ul id="x-debugging">
 <li>
@@ -26,6 +27,53 @@
             % endfor
         </tbody>
         % endfor
+        </table>
+    </div>
+</li>
+<li>
+    <h5>Config</h5>
+    <h6>${os.path.split(config['__file__'])[-1]}</h6>
+
+    <pre class="x-debugging-panel">${pprint.pformat(config)}</pre>
+</li>
+<li>
+    <h5>Session</h5>
+    <h6>
+        % if c.user:
+        User ${c.user.name}
+        % else:
+        Anonymous user
+        % endif
+    </h6>
+
+    <pre class="x-debugging-panel">${pprint.pformat(session)}</pre>
+</li>
+<li>
+    <h5>Time</h5>
+    <h6>${lib.timedelta(c.timer.total_time)}</h6>
+
+    <div class="x-debugging-panel">
+        <table>
+        <tbody>
+            <tr>
+                <th>SQL</th>
+                <td>${lib.timedelta(c.timer.sql_time)}</td>
+            </tr>
+            <tr>
+                <th>Mako</th>
+                <td>${lib.timedelta(c.timer.template_time)}</td>
+            </tr>
+            <tr>
+                <th>Python</th>
+                <td>${lib.timedelta(c.timer.total_time - c.timer.sql_time - c.timer.template_time)}</td>
+            </tr>
+        </tbody>
+        <tbody>
+            <tr>
+                <th>Total</th>
+                <td>${lib.timedelta(c.timer.total_time)}</td>
+            </tr>
+        </tbody>
         </table>
     </div>
 </li>
