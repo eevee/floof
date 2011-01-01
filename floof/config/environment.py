@@ -45,12 +45,12 @@ def load_environment(global_conf, app_conf):
     # Setup SQLAlchemy database engine
     # Proxy class is just to record query time; in debugging mode, it also
     # tracks every query
-    config['safe_debug'] = asbool(config.get('safe_debug', False))
-    if config['safe_debug']:
+    config['super_debug'] = asbool(config.get('super_debug', False))
+    if config['super_debug']:
         sqla_proxy = floof.lib.debugging.SQLAQueryLogProxy()
     else:
         sqla_proxy = floof.lib.debugging.SQLATimerProxy()
-    config['safe_debug.sqlalchemy_proxy'] = sqla_proxy
+    config['super_debug.sqlalchemy_proxy'] = sqla_proxy
     engine = engine_from_config(config, 'sqlalchemy.', proxy=sqla_proxy)
     init_model(engine)
 

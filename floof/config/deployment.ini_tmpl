@@ -51,7 +51,7 @@ set debug = false
 # Custom debugging overlay that won't give the public arbitrary code execution
 # powers, but will slow the whole thing down and laden them with a bunch of
 # debug crap.
-#safe_debug = true
+#super_debug = true
 
 
 # Logging configuration

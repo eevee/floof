@@ -14,13 +14,13 @@ from floof.lib.debugging import ResponseTimer
 from floof.model import AnonymousUser, User, meta
 
 def render(*args, **kwargs):
-    if config['safe_debug']:
+    if config['super_debug']:
         start_time = datetime.datetime.now()
         sql_start_time = c.timer.sql_time
 
     ret = render_mako(*args, **kwargs)
 
-    if config['safe_debug']:
+    if config['super_debug']:
         c.timer.template_time += (datetime.datetime.now()
             - start_time
             - (c.timer.sql_time - sql_start_time)
