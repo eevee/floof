@@ -3,7 +3,7 @@
 
 <h1>Register with OpenID</h1>
 
-${h.form(url(controller='account', action='register'))}
+${h.secure_form(url(controller='account', action='register'))}
 <dl>
     <dt>Registering from</dt>
     <dd><tt>${c.identity_url}</tt></dd>

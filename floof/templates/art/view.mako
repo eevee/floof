@@ -54,7 +54,7 @@
         ('tags.remove', 'remove_tags', c.remove_tag_form), \
     ]:
     % if c.user.can(perm):
-    ${h.form(url(controller='art', action=action, id=c.artwork.id))}
+    ${h.secure_form(url(controller='art', action=action, id=c.artwork.id))}
     <p>
         ${form.tags.label()}:
         ${form.tags()}

@@ -4,10 +4,13 @@ Provides the BaseController class for subclassing.
 """
 import datetime
 
-from pylons import config, session, tmpl_context as c
+from pylons import config, request, session, tmpl_context as c
 from pylons.controllers import WSGIController
+from pylons.controllers.util import abort
 from pylons.templating import render_mako
+from pylons.decorators.secure import authenticated_form
 from sqlalchemy.orm.exc import NoResultFound
+import webhelpers.pylonslib.secure_form as secure_form
 import wtforms.fields, wtforms.form
 
 from floof.lib.debugging import ResponseTimer
@@ -46,6 +49,14 @@ class BaseController(WSGIController):
             c.user = meta.Session.query(User).filter_by(id=user_id).one()
         except (NameError, NoResultFound):
             c.user = AnonymousUser()
+        
+        # Check CSRF token on POST requests.
+        if request.method == 'POST':
+            if authenticated_form(request.POST):
+                del request.POST[secure_form.token_key]
+            else:
+                abort(403, detail='Possible cross-site request forgery detected.')
+
 
     def __call__(self, environ, start_response):
         """Invoke the Controller"""

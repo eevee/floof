@@ -60,7 +60,7 @@
     if parent_comment:
         parent_comment_id = parent_comment.id
 %>\
-${h.form(h.comment_url(resource, 'write_commit', comment_id=parent_comment_id), method='POST')}
+${h.secure_form(h.comment_url(resource, 'write_commit', comment_id=parent_comment_id), method='POST')}
 <p>${form.message(rows=25, cols=80)}</p>
 <p>
     <button type="submit">POST TO INTERNET</button>

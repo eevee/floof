@@ -16,7 +16,7 @@
         <div id="logo"><a href="${url('/')}">floof</a></div>
         <div id="user">
             % if c.user:
-                ${h.form(url(controller='account', action='logout'), class_='compact')}
+                ${h.secure_form(url(controller='account', action='logout'), class_='compact')}
                 <p>Hello, ${lib.user_link(c.user)}!</p>
                 <p><button type="submit">Log out</button></p>
                 ${h.end_form()}

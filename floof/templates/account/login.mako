@@ -6,7 +6,7 @@
 % if c.user:
 <p>Already logged in as ${c.user.display_name}.</p>
 % else:
-${h.form(url(controller='account', action='login_begin'))}
+${h.secure_form(url(controller='account', action='login_begin'))}
 <p>
     ${lib.field(c.form.openid_identifier)}
     <input type="submit" value="Log in">

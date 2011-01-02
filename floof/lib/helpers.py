@@ -7,6 +7,7 @@ from pylons import url
 from webhelpers.html import escape, HTML, literal, url_escape
 from webhelpers.html.tags import *
 from webhelpers.pylonslib import Flash
+from webhelpers.pylonslib.secure_form import secure_form
 
 import re
 
