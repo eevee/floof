@@ -10,18 +10,20 @@ from pylons import request, response, session, tmpl_context as c, url
 from pylons.controllers.util import abort, redirect
 from routes import request_config
 from sqlalchemy.orm.exc import NoResultFound
+from urllib2 import HTTPError, URLError
 import wtforms.form, wtforms.fields, wtforms.validators
 
 from floof.lib import helpers
 from floof.lib.base import BaseController, render
 from floof.lib.decorators import logged_in, logged_out
+from floof.lib.webfinger import finger
 from floof import model
 from floof.model import Discussion, UserProfileRevision, IdentityURL, User, Role, meta
 
 log = logging.getLogger(__name__)
 
 class LoginForm(wtforms.form.Form):
-    openid_identifier = wtforms.fields.TextField(u'OpenID URL')
+    identifier = wtforms.fields.TextField(u'OpenID URL or Webfinger-enabled email address')
 
 class RegistrationForm(wtforms.form.Form):
     username = wtforms.fields.TextField(u'Username', [
@@ -50,25 +52,62 @@ class AccountController(BaseController):
 
     @logged_out
     def login_begin(self):
-        """Step one of logging in with OpenID; we redirect to the provider"""
+        """Step one of logging in with OpenID; we resolve a webfinger,
+        if present, then redirect to the provider."""
 
         c.form = LoginForm(request.POST)
+
         if not c.form.validate():
             return render('/account/login.mako')
+
+        try:
+            identifier = c.form.identifier.data
+        except KeyError:
+            c.form.identifier.errors.append("Gotta enter an OpenID to log in.")
+            return render('/account/login.mako')
+
+        openid_url = identifier
+        # Does it look like an email address?
+        # If so, try finding an OpenID URL via Webfinger.
+        if len(identifier.split('@')) == 2:
+            result = None
+            try:
+                result = finger(identifier)
+            except URLError:
+                c.form.identifier.errors.append(
+                        "Attemted to resolve identifier '{0}' via Webfinger, but hit a URLError.  "
+                        "Is the email address invalid?"
+                        .format(identifier)
+                        )
+                return render('/account/login.mako')
+            except HTTPError:
+                c.form.identifier.errors.append(
+                        "Attemted to resolve identifier '{0}' via Webfinger, but hit an HTTPError.  "
+                        "Does the host support Webfinger?"
+                        .format(identifier)
+                        )
+                return render('/account/login.mako')
+            except Exception as exc:
+                c.form.identifier.errors.append(
+                        "Attemted to resolve identifier '{0}' via Webfinger, but hit the following unusual error: "
+                        "'{1}'  "
+                        "Does the host use an old Webfinger format?"
+                        .format(identifier, exc)
+                        )
+                return render('/account/login.mako')
+
+            if result and result.open_id is not None:
+                session['pending_identity_webfinger'] = identifier
+                session.save()
+                openid_url = result.open_id
 
         cons = Consumer(session=session, store=self.openid_store)
 
         try:
-            openid_url = c.form.openid_identifier.data
-        except KeyError:
-            c.form.openid_identifier.errors.append("Gotta enter an OpenID to log in.")
-            return render('/account/login.mako')
-
-        try:
             auth_request = cons.begin(openid_url)
         except DiscoveryFailure:
-            c.form.openid_identifier.errors.append(
-                "Can't connect to '{0}'.  You sure it's an OpenID?"
+            c.form.identifier.errors.append(
+                "Can't connect to '{0}'.  Are you sure it's a valid OpenID URL or webfinger-enabled email address?"
                 .format(openid_url)
                 )
             return render('/account/login.mako')
@@ -118,6 +157,7 @@ class AccountController(BaseController):
             session['pending_identity_url'] = identity_url
             session.save()
             c.identity_url = identity_url
+            c.identity_webfinger = session.get('pending_identity_webfinger', None)
 
             # Try to pull a name out of the SReg response
             sreg_res = SRegResponse.fromSuccessResponse(res)
@@ -144,6 +184,7 @@ class AccountController(BaseController):
             helpers.flash('Your session expired.  Please try logging in again.')
             redirect(url(controller='account', action='login'), code=303)
 
+        c.identity_webfinger = session.get('pending_identity_webfinger', None)
         c.form = RegistrationForm(request.POST)
         if not c.form.validate():
             return render('/account/register.mako')

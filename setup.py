@@ -22,6 +22,7 @@ setup(
         'PIL',
         'sqlalchemy-migrate>=0.6',
         'pytz',
+        'iso8601',
     ],
     setup_requires=["PasteScript>=1.6.3"],
     packages=find_packages(exclude=['ez_setup']),

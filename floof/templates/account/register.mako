@@ -5,8 +5,12 @@
 
 ${h.secure_form(url(controller='account', action='register'))}
 <dl>
-    <dt>Registering from</dt>
-    <dd><tt>${c.identity_url}</tt></dd>
+    <dt>Registering from:</dt>
+    % if c.identity_webfinger:
+        <dd><tt>${c.identity_webfinger} (${c.identity_url})</tt></dd>
+    % else:
+        <dd><tt>${c.identity_url}</tt></dd>
+    % endif
     ${lib.field(c.form.username)}
 
     <dd><button type="submit">OK, register!</button></dd>

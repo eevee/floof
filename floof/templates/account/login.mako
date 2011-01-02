@@ -8,7 +8,7 @@
 % else:
 ${h.secure_form(url(controller='account', action='login_begin'))}
 <p>
-    ${lib.field(c.form.openid_identifier)}
+    ${lib.field(c.form.identifier)}
     <input type="submit" value="Log in">
 </p>
 ${h.end_form()}
