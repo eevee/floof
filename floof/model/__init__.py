@@ -115,10 +115,11 @@ class User(TableBase):
         """Returns True iff this user has the named privilege."""
         if not self.role:
             return False
-        for priv in self.role.privileges:
-            if priv.name == permission:
-                return True
-        return False
+
+        priv = object_session(self).query(Privilege) \
+            .filter_by(name=permission).one()
+
+        return priv in self.role.privileges
 
     @property
     def display_name(self):
