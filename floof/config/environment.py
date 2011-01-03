@@ -1,5 +1,6 @@
 """Pylons environment configuration"""
-import os
+import os, os.path
+import subprocess
 
 from mako.lookup import TemplateLookup
 from paste.deploy.converters import asbool
@@ -54,6 +55,16 @@ def load_environment(global_conf, app_conf):
     engine = engine_from_config(config, 'sqlalchemy.', proxy=sqla_proxy)
     init_model(engine)
 
+    # Compile stylesheets with Sass
+    # This env var is only set from a convenient launcher script
+    if 'FLOOF_SKIP_SASS_COMPILATION' not in os.environ:
+        sass_paths = u':'.join((
+            os.path.join(root, 'sass'),
+            os.path.join(root, 'public', 'css'),
+        ))
+        subprocess.Popen(
+            ['sass', '--scss', '--style', 'compressed', '--update', sass_paths],
+        ).wait()
 
     # CONFIGURATION OPTIONS HERE (note: all config options will override
     # any Pylons config options)

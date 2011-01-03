@@ -3,8 +3,7 @@
 <html>
 <head>
     <title>${self.title()} - ${config['site_title']}</title>
-    <link rel="stylesheet" type="text/css" href="${url('css', which='reset')}">
-    <link rel="stylesheet" type="text/css" href="${url('css', which='core')}">
+    <link rel="stylesheet" type="text/css" href="${url('css', which='all')}">
     <script type="text/javascript" src="${url('/js/lib/jquery-1.4.4.min.js')}"></script>
     <script type="text/javascript" src="${url('/js/lib/jquery.cookie.js')}"></script>
     % if config.get('super_debug', False):
