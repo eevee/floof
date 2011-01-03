@@ -75,10 +75,10 @@ ul#x-debugging {
     line-height: 3em;
     text-align: center;
     vertical-align: bottom;
-    border-radius: 8em;
+    @include border-radius(8em);
     background: hsla(215, 50%, 30%, 0.7);
     color: hsla(0, 0%, 100%, 0.7);
-    -moz-transform: rotate(-45deg);
+    @include transform(rotate(-45deg));
     cursor: pointer;
 
     ul#x-debugging.visible + & {

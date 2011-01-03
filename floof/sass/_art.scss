@@ -21,9 +21,7 @@ ul.thumbnail-grid {
 
             img {
                 vertical-align: middle;
-                -moz-box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
-                -webkit-box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
-                box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+                @include box-shadow(1px 1px 3px rgba(0, 0, 0, 0.5));
             }
         }
 
@@ -41,9 +39,7 @@ ul.thumbnail-grid {
             border: 1px solid $header2-border;
             background: $header2-bg;
             text-align: left;
-            -moz-border-radius: 1em;
-            -webkit-border-radius: 1em;
-            border-radius: 1em;
+            @include border-radius(1em);
 
             .title {
                 overflow: hidden;
@@ -52,9 +48,7 @@ ul.thumbnail-grid {
                 padding: 0.5em;
                 background: $header2-border;
                 font-weight: bold;
-                -moz-border-radius: 1em 1em 0 0;
-                -webkit-border-radius: 1em 1em 0 0;
-                border-radius: 1em 1em 0 0;
+                @include border-radius(1em 1em 0 0);
             }
             img {
                 vertical-align: text-bottom;
@@ -68,9 +62,7 @@ ul.thumbnail-grid {
                 display: block;
             }
             a img {
-                -moz-box-shadow: none;
-                -webkit-box-shadow: none;
-                box-shadow: none;
+                @include box-shadow(none);
             }
         }
     }
