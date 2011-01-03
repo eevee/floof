@@ -5,12 +5,12 @@ ul#control-panel-navigation {
     margin: -1em;
     margin-right: 1em;
     margin-bottom: -32767px;
-    background: #e4e7ea;
+    background: lighten($body-bg, 12%);
 
     li {
         &.selected {
             padding: 0.5em;
-            background: #ededed;
+            background: $content-bg;
         }
 
         a {
@@ -18,7 +18,7 @@ ul#control-panel-navigation {
             padding: 0.5em;
 
             &:hover {
-                background: #d8dde1;
+                background: lighten($body-bg, 8%);
             }
         }
     }

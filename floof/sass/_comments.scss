@@ -3,7 +3,7 @@
     margin-top: 1em;
 
     &:hover {
-        outline: 2px solid #b3c0cd;
+        outline: 2px solid $header2-border;
         -moz-outline-radius: 8px 0 8px 8px;
         -webkit-outline-radius: 8px 0 8px 8px;
         outline-radius: 8px 0 8px 8px;
@@ -14,7 +14,7 @@
         height: 100px;
         width: 100px;
         padding: 6px;
-        background: #d1d8df;
+        background: $header2-bg;
         -moz-border-radius: 6px 0 6px 6px;
         -webkit-border-radius: 6px 0 6px 6px;
         border-radius: 6px 0 6px 6px;
@@ -23,8 +23,8 @@
         margin-left: 112px;
         padding: 0.25em;
         line-height: 1.5;
-        border-bottom: 1px solid #b3c0cd;
-        background: #d1d8df;
+        border-bottom: 1px solid $header2-border;
+        background: $header2-bg;
 
         ul.links {
             float: right;
@@ -37,12 +37,12 @@
                 a {
                     display: block;
                     padding: 0.25em 0.5em;
-                    background: #b3c0cd;
+                    background: $header2-border;
                     font-weight: normal;
                     color: black;
 
                     &:hover {
-                        background: #94a6b9;
+                        background: darken($header2-border, 10%);
                     }
                 }
             }

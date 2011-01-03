@@ -1,3 +1,5 @@
+@import "_colors";
+
 ////////////////////////////////////////////////////////////////////////////////
 // Core layout
 
@@ -7,7 +9,7 @@ html {
 body {
     position: relative;
     min-height: 100%;
-    background: #c1c8cf;
+    background: $body-bg;
     font-size: 12px;
     font-family: DejaVu Sans, Arial, sans-serif;
 }
@@ -39,19 +41,19 @@ body {
         bottom: 0;
         width: 16em;
         padding: 1em;
-        background: #74818c;
-        background: rgba(116, 129, 140, 0.75);
+        background: $header-bg;
+        background: rgba($header-bg, 0.75);
         color: white;
 
         a {
             &:link {
-                color: #a4c1dc;
+                color: lighten($link-default, 25%);
             }
             &:visited {
-                color: #b1a4dc;
+                color: lighten($link-visited, 25%);
             }
             &:hover {
-                color: #dca4a4;
+                color: lighten($link-hover, 25%);
             }
         }
     }
@@ -61,8 +63,8 @@ body {
         left: 0;
         right: 18em;
         bottom: 0;
-        background: #74818c;
-        background: rgba(116, 129, 140, 0.75);
+        background: $header-bg;
+        background: rgba($header-bg, 0.75);
 
         li {
             display: inline-block;
@@ -74,7 +76,7 @@ body {
                 color: white;
 
                 &:hover {
-                    background: #74818c;
+                    background: $header-bg;
                 }
             }
         }
@@ -99,20 +101,24 @@ body {
         background: url(/images/flash-background.png) #d8d8d8 top left repeat;
 
         &.flash-level-success {
-            border-color: #799070;
-            background-color: #dee4dc;
+            $color: hsl(105, 12.5%, 87.5%);
+            background-color: $color;
+            border-color: darken($color, 37.5%);
         }
         &.flash-level-notice {
-            border-color: #6f8290;
-            background-color: #dbe0e3;
+            $color: hsl(202, 12.5%, 87.5%);
+            background-color: $color;
+            border-color: darken($color, 37.5%);
         }
         &.flash-level-warning {
-            border-color: #90846f;
-            background-color: #e3e0db;
+            $color: hsl(38, 12.5%, 87.5%);
+            background-color: $color;
+            border-color: darken($color, 37.5%);
         }
         &.flash-level-error {
-            border-color: #907070;
-            background-color: #e3dbdb;
+            $color: hsl(0, 12.5%, 87.5%);
+            background-color: $color;
+            border-color: darken($color, 37.5%);
         }
 
         img {
@@ -129,9 +135,9 @@ body {
     overflow: hidden;
     margin: 0 2em;
     padding: 1em;
-    border: 1px solid #909090;
+    border: 1px solid darken($content-bg, 37%);
     border-top: none;
-    background: #ededed;
+    background: $content-bg;
     -moz-box-shadow: 0 0 4px rgba(0, 0, 0, 0.75);
     -webkit-box-shadow: 0 0 4px rgba(0, 0, 0, 0.75);
     box-shadow: 0 0 4px rgba(0, 0, 0, 0.75);
@@ -151,7 +157,7 @@ body {
     height: 4em;
     padding: 1em;
     line-height: 1.33;
-    background: #a6b0ba;
+    background: darken($body-bg, 10%);
     -moz-border-radius: 0.25em 0.25em 0 0;
     -webkit-border-radius: 0.25em 0.25em 0 0;
     border-radius: 0.25em 0.25em 0 0;
@@ -170,13 +176,13 @@ a {
     text-decoration: none;
 
     &:link {
-        color: #437fb8;
+        color: $link-default;
     }
     &:visited {
-        color: #5f43b8;
+        color: $link-visited;
     }
     &:hover {
-        color: #b84343;
+        color: $link-hover;
     }
 }
 
@@ -200,10 +206,10 @@ h1 {
     font-size: 2em;
     margin: 1em 0 0.5em;
     padding: 0.5em 1em;
-    border-bottom: 1px solid #5a7086;
-    background: url(/images/h1-background.png) #bcc3cb left center repeat-x;
+    border-bottom: 1px solid $darker-text;
+    background: url(/images/h1-background.png) $header1-bg left center repeat-x;
     font-family: serif;
-    text-shadow: 1px 1px 1px #5a7086;
+    text-shadow: 1px 1px 1px $darker-text;
 
     #content > & {
         margin: 1em -0.5em 0.5em;
@@ -221,8 +227,8 @@ h2 {
     font-size: 1.5em;
     margin: 1em 0 0.5em;
     padding: 0.25em 0.5em;
-    background: #bdc3cb;
-    border-bottom: 1px solid #94a0ac;
+    background: $header2-bg;
+    border-bottom: 1px solid $header2-border;
 }
 
 // -----------------------------------------------------------------------------
@@ -256,7 +262,7 @@ dl.standard-form {
         width: 11.5em;
         margin-right: 0.5em;
         text-align: right;
-        color: #5a7086;
+        color: $darker-text;
 
         &:after {
             content: ':';
@@ -307,11 +313,6 @@ dl.standard-form {
     }
 }
 
-.column h2,
-.column-2x h2 {
-    border-color: #b8c0c8;
-    background: #d1d8df;
-}
 .column h2:first-child,
 .column-2x h2:first-child {
     margin-top: 0;
@@ -326,30 +327,30 @@ dl.standard-form {
     display: inline-block;
     width: 20em;
     padding: 0.5em;
-    border: 1px solid #5a7086;
+    border: 1px solid $darker-text;
     box-shadow:
-        0.05em 0.05em 0.1em hsla(0, 0%, 100%, 0.5) inset,
-        -0.05em -0.05em 0.1em -0.05em hsla(0, 0%, 0%, 0.5) inset,
-        0 -2em 1em -1em #d3d8dd inset;
+        0.05em 0.05em 0.1em rgba(white, 0.5) inset,
+        -0.05em -0.05em 0.1em -0.05em rgba(black, 0.5) inset,
+        0 -2em 1em -1em $link-hover inset;
     border-radius: 0.5em;
     vertical-align: top;
 
     &:hover {
         box-shadow:
-            0 0 0.17em #b84343,
-            0.05em 0.05em 0.1em hsla(0, 0%, 100%, 0.5) inset,
-            -0.05em -0.05em 0.1em -0.05em hsla(0, 0%, 0%, 0.5) inset,
-            0 -2em 1em -1em #d3d8dd inset;
+            0 0 0.17em $link-hover,
+            0.05em 0.05em 0.1em rgba(white, 0.5) inset,
+            -0.05em -0.05em 0.1em -0.05em rgba(black, 0.5) inset,
+            0 -2em 1em -1em lighten($body-bg, 6%) inset;
         border-radius: 0.5em;
         vertical-align: top;
     }
     &:active {
         padding: 0.6em 0.4em 0.4em 0.6em;
         box-shadow:
-            0 0 0.25em #b84343,
-            0.05em 0.05em 0.1em hsla(0, 0%, 0%, 0.5) inset,
-            -0.05em -0.05em 0.1em -0.05em hsla(0, 0%, 100%, 0.5) inset,
-            0 2em 1em -1em #d3d8dd inset;
+            0 0 0.25em $link-hover,
+            0.05em 0.05em 0.1em rgba(black, 0.5) inset,
+            -0.05em -0.05em 0.1em -0.05em rgba(white, 0.5) inset,
+            0 2em 1em -1em lighten($body-bg, 6%) inset;
     }
 }
 
@@ -357,23 +358,23 @@ dl.standard-form {
 .stylish-button {
     font-size: 1.2em;
     padding: 0.25em 0.5em;
-    border: 1px solid #5a7086;
+    border: 1px solid $darker-text;
     border-radius: 0.75em;
     box-shadow:
         0.1em 0.1em 0.1em -0.1em white inset,
-        0 2em 1em -1em hsla(0, 0%, 100%, 0.4) inset;
+        0 2em 1em -1em rgba(white, 0.4) inset;
 
     &:hover {
         box-shadow:
-            0 0 0.17em #b84343,
+            0 0 0.17em $link-hover,
             0.1em 0.1em 0.1em -0.1em white inset,
-            0 2em 1em -1em hsla(0, 0%, 100%, 0.4) inset;
+            0 2em 1em -1em rgba(white, 0.4) inset;
     }
     &:active {
         box-shadow:
-            0 0 0.17em #b84343,
+            0 0 0.17em $link-hover,
             0.1em 0.1em 0.1em -0.1em black inset,
-            0 2em 1em -1em hsla(0, 0%, 0%, 0.1) inset;
+            0 2em 1em -1em rgba(black, 0.1) inset;
     }
 
     &.confirm {

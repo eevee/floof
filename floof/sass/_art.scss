@@ -38,8 +38,8 @@ ul.thumbnail-grid {
             margin-top: -2em;
             padding: 0 4px 0.5em;
             line-height: 1.33;
-            border: 1px solid #b3c0cd;
-            background: #d1d8df;
+            border: 1px solid $header2-border;
+            background: $header2-bg;
             text-align: left;
             -moz-border-radius: 1em;
             -webkit-border-radius: 1em;
@@ -50,7 +50,7 @@ ul.thumbnail-grid {
                 white-space: nowrap;
                 margin: 0 -4px 180px;
                 padding: 0.5em;
-                background: #b3c0cd;
+                background: $header2-border;
                 font-weight: bold;
                 -moz-border-radius: 1em 1em 0 0;
                 -webkit-border-radius: 1em 1em 0 0;
