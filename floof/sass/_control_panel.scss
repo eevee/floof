@@ -1,0 +1,29 @@
+ul#control-panel-navigation {
+    float: left;
+    width: 20em;
+    padding-bottom: 32767px;
+    margin: -1em;
+    margin-right: 1em;
+    margin-bottom: -32767px;
+    background: #e4e7ea;
+
+    li {
+        &.selected {
+            padding: 0.5em;
+            background: #ededed;
+        }
+
+        a {
+            display: block;
+            padding: 0.5em;
+
+            &:hover {
+                background: #d8dde1;
+            }
+        }
+    }
+}
+
+#control-panel-content {
+    margin-left: 20em;
+}
