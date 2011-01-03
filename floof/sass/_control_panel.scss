@@ -1,0 +1,29 @@
+ul#control-panel-navigation {
+    float: left;
+    width: 20em;
+    padding-bottom: 32767px;
+    margin: -1em;
+    margin-right: 1em;
+    margin-bottom: -32767px;
+    background: lighten($body-bg, 12%);
+
+    li {
+        &.selected {
+            padding: 0.5em;
+            background: $content-bg;
+        }
+
+        a {
+            display: block;
+            padding: 0.5em;
+
+            &:hover {
+                background: lighten($body-bg, 8%);
+            }
+        }
+    }
+}
+
+#control-panel-content {
+    margin-left: 20em;
+}

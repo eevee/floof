@@ -1,0 +1,79 @@
+// Thumbnail grid, used basically everywhere art appears
+ul.thumbnail-grid {
+    position: relative;
+
+    li.thumbnail {
+        z-index: 0;
+        display: inline-block;
+        position: relative;
+        height: 160px;
+        width: 160px;
+        margin: 0.5em;
+
+        a.thumbnail {
+            z-index: 10;
+            display: block;
+            position: relative;
+            height: 160px;
+            width: 160px;
+            line-height: 160px;
+            text-align: center;
+
+            img {
+                vertical-align: middle;
+                @include box-shadow(1px 1px 3px rgba(0, 0, 0, 0.5));
+            }
+        }
+
+        // Metadata block that shows on hover
+        .thumbnail-meta {
+            z-index: 0;
+            display: none;
+            position: absolute;
+            width: 200px;
+            top: -16px;
+            left: -25px;
+            margin-top: -2em;
+            padding: 0 4px 0.5em;
+            line-height: 1.33;
+            border: 1px solid $header2-border;
+            background: $header2-bg;
+            text-align: left;
+            @include border-radius(1em);
+
+            .title {
+                overflow: hidden;
+                white-space: nowrap;
+                margin: 0 -4px 180px;
+                padding: 0.5em;
+                background: $header2-border;
+                font-weight: bold;
+                @include border-radius(1em 1em 0 0);
+            }
+            img {
+                vertical-align: text-bottom;
+            }
+        }
+
+        &:hover {
+            z-index: 10;
+
+            .thumbnail-meta {
+                display: block;
+            }
+            a img {
+                @include box-shadow(none);
+            }
+        }
+    }
+}
+
+// Container for a work of art as displayed on its own page
+.artwork {
+    margin: 2em 0;
+    text-align: center;
+
+    img {
+        max-width: 100%;
+    }
+}

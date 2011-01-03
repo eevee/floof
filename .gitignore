@@ -6,3 +6,7 @@
 *.egg-info/
 data/
 floof/public/files
+
+# sass cruft
+.sass-cache
+floof/public/css

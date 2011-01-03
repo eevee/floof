@@ -1,0 +1,56 @@
+.comment {
+    overflow: hidden;
+    margin-top: 1em;
+
+    &:hover {
+        outline: 2px solid $header2-border;
+        @include outline-radius(8px 0 8px 8px);
+    }
+
+    .avatar {
+        float: left;
+        height: 100px;
+        width: 100px;
+        padding: 6px;
+        background: $header2-bg;
+        @include border-radius(6px 0 6px 6px);
+    }
+    .header {
+        margin-left: 112px;
+        padding: 0.25em;
+        line-height: 1.5;
+        border-bottom: 1px solid $header2-border;
+        background: $header2-bg;
+
+        ul.links {
+            float: right;
+            margin: -0.25em;
+
+            li {
+                display: inline-block;
+                text-transform: lowercase;
+
+                a {
+                    display: block;
+                    padding: 0.25em 0.5em;
+                    background: $header2-border;
+                    font-weight: normal;
+                    color: black;
+
+                    &:hover {
+                        background: darken($header2-border, 10%);
+                    }
+                }
+            }
+        }
+    }
+    .content {
+        margin-left: 112px;
+        padding: 0.5em;
+        line-height: 1.5;
+    }
+}
+
+.comment-child {
+    margin-left: 2em;
+}

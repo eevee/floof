@@ -1,0 +1,35 @@
+////////////////////////////////////////////////////////////////////////////////
+// CSS3 cross-browser macros
+
+@mixin border-radius($def) {
+    -moz-border-radius: $def;
+    -webkit-border-radius: $def;
+    border-radius: $def;
+}
+
+@mixin box-shadow($def) {
+    // If there are multiple shadows, the def needs quoting to avoid ambiguity
+    // with Sass commas.  This unquotes it
+    $raw-def: unquote($def);
+    -moz-box-shadow: $raw-def;
+    -webkit-box-shadow: $raw-def;
+    box-shadow: $raw-def;
+}
+
+@mixin outline-radius($def) {
+    // This is actually not a thing outside of Gecko; it seems the intention is
+    // for outlines to follow the border-radius.  Probably going to need to
+    // revisit places we use this
+    // See: https://bugzilla.mozilla.org/show_bug.cgi?id=593717
+    -moz-outline-radius: $def;
+}
+
+@mixin transform($def) {
+    // Same deal here
+    $raw-def: unquote($def);
+    -moz-transform: $raw-def;
+    -webkit-transform: $raw-def;
+    -o-transform: $raw-def;
+    -ms-transform: $raw-def;  // yes!  it works in IE9!
+    transform: $raw-def;
+}

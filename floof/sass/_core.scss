@@ -1,0 +1,387 @@
+@import "_colors";
+@import "_lib";
+
+////////////////////////////////////////////////////////////////////////////////
+// Core layout
+
+html {
+    height: 100%;
+}
+body {
+    position: relative;
+    min-height: 100%;
+    background: $body-bg;
+    font-size: 12px;
+    font-family: DejaVu Sans, Arial, sans-serif;
+}
+
+#header {
+    position: relative;
+    overflow: hidden;
+    height: 100px;
+    background: black;
+
+    #logo {
+        position: absolute;
+        font-size: 3em;
+        top: 0.33em;
+        left: 0.33em;
+        font-family: "Brush Script MT", cursive, serif;
+        font-weight: bold;
+        color: white;
+
+        a {
+            color: white;
+        }
+    }
+
+    #user {
+        position: absolute;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        width: 16em;
+        padding: 1em;
+        background: $header-bg;
+        background: rgba($header-bg, 0.75);
+        color: white;
+
+        a {
+            &:link {
+                color: lighten($link-default, 25%);
+            }
+            &:visited {
+                color: lighten($link-visited, 25%);
+            }
+            &:hover {
+                color: lighten($link-hover, 25%);
+            }
+        }
+    }
+
+    #navigation {
+        position: absolute;
+        left: 0;
+        right: 18em;
+        bottom: 0;
+        background: $header-bg;
+        background: rgba($header-bg, 0.75);
+
+        li {
+            display: inline-block;
+
+            a {
+                display: block;
+                margin: 0 0.5em;
+                padding: 0.5em 1em;
+                color: white;
+
+                &:hover {
+                    background: $header-bg;
+                }
+            }
+        }
+    }
+}
+
+#flash {
+    margin: 0 2em;
+    line-height: 1.5;
+    border: 1px solid rgba(0, 0, 0, 0.75);
+    border-top: none;
+    border-bottom: none;
+    color: #202020;
+    @include box-shadow(0 0 4px rgba(0, 0, 0, 0.75));
+
+    li {
+        position: relative;
+        padding: 0.25em 0.5em;
+        border-bottom: 1px dotted #ededed;
+        background: url(/images/flash-background.png) #d8d8d8 top left repeat;
+
+        &.flash-level-success {
+            $color: hsl(105, 12.5%, 87.5%);
+            background-color: $color;
+            border-color: darken($color, 37.5%);
+        }
+        &.flash-level-notice {
+            $color: hsl(202, 12.5%, 87.5%);
+            background-color: $color;
+            border-color: darken($color, 37.5%);
+        }
+        &.flash-level-warning {
+            $color: hsl(38, 12.5%, 87.5%);
+            background-color: $color;
+            border-color: darken($color, 37.5%);
+        }
+        &.flash-level-error {
+            $color: hsl(0, 12.5%, 87.5%);
+            background-color: $color;
+            border-color: darken($color, 37.5%);
+        }
+
+        img {
+            display: block;
+            position: absolute;
+            top: -8px;
+            left: -20px;
+            margin-top: 1em;
+        }
+    }
+}
+
+#content {
+    overflow: hidden;
+    margin: 0 2em;
+    padding: 1em;
+    border: 1px solid darken($content-bg, 37%);
+    border-top: none;
+    background: $content-bg;
+    @include box-shadow(0 0 4px rgba(0, 0, 0, 0.75));
+    @include border-radius(0 0 1em 1em);
+}
+
+#footer-spacer {
+    height: 8em;
+}
+#footer {
+    position: absolute;
+    left: 2em;
+    right: 2em;
+    bottom: 0;
+    height: 4em;
+    padding: 1em;
+    line-height: 1.33;
+    background: darken($body-bg, 10%);
+    @include border-radius(0.25em 0.25em 0 0);
+}
+#footer-stats {
+    float: right;
+    text-align: right;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Simple elements
+
+a {
+    font-weight: bold;
+    text-decoration: none;
+
+    &:link {
+        color: $link-default;
+    }
+    &:visited {
+        color: $link-visited;
+    }
+    &:hover {
+        color: $link-hover;
+    }
+}
+
+img {
+    vertical-align: middle;
+}
+
+p {
+    margin-bottom: 0.5em;
+}
+
+pre {
+    line-height: 1.2;
+    font-family: monospace;
+}
+
+// -----------------------------------------------------------------------------
+// Headers
+
+h1 {
+    font-size: 2em;
+    margin: 1em 0 0.5em;
+    padding: 0.5em 1em;
+    border-bottom: 1px solid $darker-text;
+    background: url(/images/h1-background.png) $header1-bg left center repeat-x;
+    font-family: serif;
+    text-shadow: 1px 1px 1px $darker-text;
+
+    #content > & {
+        margin: 1em -0.5em 0.5em;
+    }
+    #content > &:first-child {
+        margin: -0.5em -0.5em 0.5em;
+    }
+
+    img:first-child {
+        margin-left: -16px;
+    }
+}
+
+h2 {
+    font-size: 1.5em;
+    margin: 1em 0 0.5em;
+    padding: 0.25em 0.5em;
+    background: $header2-bg;
+    border-bottom: 1px solid $header2-border;
+}
+
+// -----------------------------------------------------------------------------
+// Forms
+
+input, button, select {
+    vertical-align: middle;
+}
+input[type="submit"], input[type="button"], input[type="submit"], input[type="image"], button {
+    cursor: pointer;
+}
+
+.form-error {
+    margin: 0.25em 0.25em 0.5em;
+    padding-left: 16px;
+    background: url(/icons/exclamation-small-red.png) left center no-repeat;
+    color: darkred;
+}
+
+// -----------------------------------------------------------------------------
+// Lists
+
+dl.standard-form {
+    dl {
+        overflow: hidden /* new float context */;
+        margin-bottom: 0.75em;
+    }
+    dt {
+        float: left;
+        clear: left;
+        width: 11.5em;
+        margin-right: 0.5em;
+        text-align: right;
+        color: $darker-text;
+
+        &:after {
+            content: ':';
+        }
+    }
+    dd {
+        padding-left: 12em /* float width, so hover highlight includes dt but lines wrap correctly */;
+
+        &:after {
+            content: 'float clear';
+            display: block;
+            clear: both;
+            height: 0;
+            visibility: hidden;
+        }
+    }
+    dt, dd {
+        line-height: 1.5;
+    }
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Global, generic components
+
+// Three-column containers
+.column-container {
+    clear: both;
+    overflow: hidden /* float context */;
+    margin-top: 1em;
+}
+.column {
+    float: left;
+    width: 32.666%;
+    margin-left: 1%;
+
+    &:first-child {
+        margin-left: 0;
+    }
+}
+.column-2x {
+    float: left;
+    width: 66.333%;
+    margin-left: 1%;
+
+    &:first-child {
+        margin-left: 0;
+    }
+}
+
+.column h2:first-child,
+.column-2x h2:first-child {
+    margin-top: 0;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// App-specific components
+
+// Cool button-like link to a user.  Not really finished
+.user-panel {
+    display: inline-block;
+    width: 20em;
+    padding: 0.5em;
+    border: 1px solid $darker-text;
+    @include box-shadow("
+        0.05em 0.05em 0.1em rgba(white, 0.5) inset,
+        -0.05em -0.05em 0.1em -0.05em rgba(black, 0.5) inset,
+        0 -2em 1em -1em $link-hover inset
+    ");
+    @include border-radius(0.5em);
+    vertical-align: top;
+
+    &:hover {
+        @include box-shadow("
+            0 0 0.17em $link-hover,
+            0.05em 0.05em 0.1em rgba(white, 0.5) inset,
+            -0.05em -0.05em 0.1em -0.05em rgba(black, 0.5) inset,
+            0 -2em 1em -1em lighten($body-bg, 6%) inset
+        ");
+    }
+    &:active {
+        padding: 0.6em 0.4em 0.4em 0.6em;
+        @include box-shadow("
+            0 0 0.25em $link-hover,
+            0.05em 0.05em 0.1em rgba(black, 0.5) inset,
+            -0.05em -0.05em 0.1em -0.05em rgba(white, 0.5) inset,
+            0 2em 1em -1em lighten($body-bg, 6%) inset
+        ");
+    }
+}
+
+// Custom-styled button
+.stylish-button {
+    font-size: 1.2em;
+    padding: 0.25em 0.5em;
+    border: 1px solid $darker-text;
+    @include border-radius(0.75em);
+    @include box-shadow("
+        0.1em 0.1em 0.1em -0.1em white inset,
+        0 2em 1em -1em #{rgba(white, 0.4)} inset
+    ");
+
+    &:hover {
+        @include box-shadow("
+            0 0 0.17em #{$link-hover},
+            0.1em 0.1em 0.1em -0.1em white inset,
+            0 2em 1em -1em #{rgba(white, 0.4)} inset
+        ");
+    }
+    &:active {
+        @include box-shadow("
+            0 0 0.17em #{$link-hover},
+            0.1em 0.1em 0.1em -0.1em black inset,
+            0 2em 1em -1em #{rgba(black, 0.1)} inset
+        ");
+    }
+
+    &.confirm {
+        background: hsl(120, 40%, 50%);
+    }
+    &.destroy {
+        background: hsl(0, 40%, 50%);
+    }
+
+    &.mini {
+        font-size: 0.8em;
+    }
+}
