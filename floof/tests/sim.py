@@ -1,5 +1,8 @@
 from __future__ import unicode_literals
 
+import random
+import string
+
 import floof.model as model
 from floof.model import meta
 
@@ -11,7 +14,7 @@ from floof.model import meta
 
 def sim_user():
     user = model.User(
-        name = 'sim',
+        name = 'sim_' + ''.join(random.choice(string.letters) for n in range(10)),
         role_id = 1,
         resource = model.Resource(type=u'users'),
     )

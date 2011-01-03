@@ -50,8 +50,8 @@ class BaseController(WSGIController):
         except (NameError, NoResultFound):
             c.user = AnonymousUser()
         
-        # Check CSRF token on POST requests.
-        if request.method == 'POST':
+        # Check CSRF token on POST requests.  Ignore during test runs
+        if request.method == 'POST' and not 'paste.testing' in environ:
             if authenticated_form(request.POST):
                 del request.POST[secure_form.token_key]
             else:

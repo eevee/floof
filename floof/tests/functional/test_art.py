@@ -5,6 +5,7 @@ from pylons import session
 from floof import model
 from floof.model import meta
 from floof.tests import *
+import floof.tests.sim as sim
 
 class TestArtController(TestController):
     def file_contents(self, filename):
@@ -17,14 +18,11 @@ class TestArtController(TestController):
     @classmethod
     def setup_class(cls):
         """Creates a user to be used as a fake login."""
-        # XXX probably could be in general test setup
-        cls.user = model.User(
-            name=u'user',
-        )
-        meta.Session.add(cls.user)
+        cls.user = sim.sim_user()
         meta.Session.commit()
 
         # Force a refresh of the user, to get id populated
+        # XXX surely there's a better way!
         meta.Session.refresh(cls.user)
 
 
@@ -37,11 +35,11 @@ class TestArtController(TestController):
         png = self.file_contents('pk.engiveer.png')
         response = self.app.post(
             url(controller='art', action='upload'),
-            params=dict(
-                title=u"test title",
-                relationship_by_for=u'by',
-                relationship_of=u'y',
-            ),
+            params=[
+                ('title', u"test title"),
+                ('relationship', u'by'),
+                ('relationship', u'of'),
+            ],
             upload_files=(
                 ('file', 'pk.engiveer.png', png),
             ),
