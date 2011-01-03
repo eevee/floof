@@ -62,9 +62,12 @@ def load_environment(global_conf, app_conf):
             os.path.join(root, 'sass'),
             os.path.join(root, 'public', 'css'),
         ))
-        subprocess.Popen(
-            ['sass', '--scss', '--style', 'compressed', '--update', sass_paths],
-        ).wait()
+        subprocess.Popen(['sass',
+            '--scss',
+            '--style', 'compressed',
+            '--stop-on-error',
+            '--update', sass_paths,
+        ]).wait()
 
     # CONFIGURATION OPTIONS HERE (note: all config options will override
     # any Pylons config options)
