@@ -23,7 +23,9 @@ from floof.model import Discussion, UserProfileRevision, IdentityURL, User, Role
 log = logging.getLogger(__name__)
 
 class LoginForm(wtforms.form.Form):
-    identifier = wtforms.fields.TextField(u'OpenID URL or Webfinger-enabled email address')
+    # n.b.: This is actually a name recommended by the OpenID spec, for ease of
+    # client identification
+    openid_identifier = wtforms.fields.TextField(u'OpenID URL or Webfinger-enabled email address')
 
 class RegistrationForm(wtforms.form.Form):
     username = wtforms.fields.TextField(u'Username', [
@@ -61,9 +63,9 @@ class AccountController(BaseController):
             return render('/account/login.mako')
 
         try:
-            identifier = c.form.identifier.data
+            identifier = c.form.openid_identifier.data
         except KeyError:
-            c.form.identifier.errors.append("Gotta enter an OpenID to log in.")
+            c.form.openid_identifier.errors.append("Gotta enter an OpenID to log in.")
             return render('/account/login.mako')
 
         openid_url = identifier
@@ -74,21 +76,21 @@ class AccountController(BaseController):
             try:
                 result = finger(identifier)
             except URLError:
-                c.form.identifier.errors.append(
+                c.form.openid_identifier.errors.append(
                         "Attemted to resolve identifier '{0}' via Webfinger, but hit a URLError.  "
                         "Is the email address invalid?"
                         .format(identifier)
                         )
                 return render('/account/login.mako')
             except HTTPError:
-                c.form.identifier.errors.append(
+                c.form.openid_identifier.errors.append(
                         "Attemted to resolve identifier '{0}' via Webfinger, but hit an HTTPError.  "
                         "Does the host support Webfinger?"
                         .format(identifier)
                         )
                 return render('/account/login.mako')
             except Exception as exc:
-                c.form.identifier.errors.append(
+                c.form.openid_identifier.errors.append(
                         "Attemted to resolve identifier '{0}' via Webfinger, but hit the following unusual error: "
                         "'{1}'  "
                         "Does the host use an old Webfinger format?"
@@ -106,7 +108,7 @@ class AccountController(BaseController):
         try:
             auth_request = cons.begin(openid_url)
         except DiscoveryFailure:
-            c.form.identifier.errors.append(
+            c.form.openid_identifier.errors.append(
                 "Can't connect to '{0}'.  Are you sure it's a valid OpenID URL or webfinger-enabled email address?"
                 .format(openid_url)
                 )
