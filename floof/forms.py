@@ -22,6 +22,10 @@ class MultiTagField(fields.TextField):
 
     _tag_re = re.compile(r'^[a-z0-9\s]*$')
     def process_formdata(self, valuelist):
+        if not valuelist:
+            self.data = []
+            return
+
         value = valuelist[0]
         if not self._tag_re.match(value):
             raise ValueError("Tags must be lowercase and alphanumeric")
