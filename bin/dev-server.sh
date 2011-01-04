@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env bash
 
 if [[ $# != 1 ]]; then
     echo "usage: $0 config-file.ini"
@@ -26,3 +26,6 @@ sass --scss --quiet --watch ${DIR}/floof/sass:${DIR}/floof/public/css &
 trap 'kill %1' 2
 
 $PASTER serve --reload $*
+
+# Kill sass again just in case; might get here if paster dies on its own
+kill %1
