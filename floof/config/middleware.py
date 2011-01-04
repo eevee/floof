@@ -7,8 +7,28 @@ from paste.deploy.converters import asbool
 from pylons.middleware import ErrorHandler, StatusCodeRedirect
 from pylons.wsgiapp import PylonsApp
 from routes.middleware import RoutesMiddleware
+import webob
 
 from floof.config.environment import load_environment
+
+class HTTPOnlyCookieMiddleware(object):
+    """Middleware that catches Set-Cookie headers and forces them to be
+    HTTPOnly, preventing session hijacking attacks in most browsers.
+    """
+    def __init__(self, app):
+        self.app = app
+
+    def __call__(self, environ, start_response):
+        req = webob.Request(environ)
+        res = req.get_response(self.app)
+
+        # There's also res.headers, but directly changing a value seems to be
+        # tricky with a multidict.  This is kinda lame but works fine
+        for i, (key, val) in enumerate(res.headerlist):
+            if key.lower() == 'set-cookie' and 'httponly' not in val.lower():
+                res.headerlist[i] = (key, val + '; HTTPOnly')
+
+        return res(environ, start_response)
 
 def make_app(global_conf, full_stack=True, static_files=True, **app_conf):
     """Create a Pylons WSGI application and return it
@@ -42,6 +62,7 @@ def make_app(global_conf, full_stack=True, static_files=True, **app_conf):
     # Routing/Session/Cache Middleware
     app = RoutesMiddleware(app, config['routes.map'])
     app = SessionMiddleware(app, config)
+    app = HTTPOnlyCookieMiddleware(app)
 
     # CUSTOM MIDDLEWARE HERE (filtered by error handling middlewares)
 
