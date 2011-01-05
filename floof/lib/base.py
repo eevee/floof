@@ -52,9 +52,7 @@ class BaseController(WSGIController):
         
         # Check CSRF token on POST requests.  Ignore during test runs
         if request.method == 'POST' and not 'paste.testing' in environ:
-            if authenticated_form(request.POST):
-                del request.POST[secure_form.token_key]
-            else:
+            if not authenticated_form(request.POST):
                 abort(403, detail='Possible cross-site request forgery detected.')
 
 
