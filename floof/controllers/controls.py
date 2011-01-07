@@ -32,6 +32,8 @@ class OpenIDForm(wtforms.form.Form):
     def validate_openids(form, field):
         if not form.del_openids.data:
             return
+        if len(field.choices) < 2:
+            raise wtforms.ValidationError('You must keep at least one OpenID identity URL.')
         if not field.data:
             raise wtforms.ValidationError('You must select at least one OpenID identity URL to delete.')
         if len(field.data) >= len(field.choices):
@@ -68,7 +70,15 @@ class ControlsController(BaseController):
 
             existing_urls = [id.url for id in c.user.identity_urls]
             if identity_url in existing_urls:
-                c.openid_form.new_openid.errors.append(u'You can already authenticate with that OpenID URL.')
+                c.openid_form.new_openid.errors.append(u'You can already authenticate with that OpenID identity.')
+                return render('/account/controls/openid.mako')
+
+            # XXX: Allow an OpenID identity to be registered to only one user.
+            url_count = meta.Session.query(model.IdentityURL) \
+                    .filter_by(url=identity_url) \
+                    .count()
+            if url_count > 0:
+                c.openid_form.new_openid.errors.append(u'That OpenID identity is already in use by another account.')
                 return render('/account/controls/openid.mako')
 
             openid = model.IdentityURL(url=identity_url)
