@@ -6,13 +6,36 @@ from pylons.controllers.util import abort, redirect
 from sqlalchemy.exc import IntegrityError
 import wtforms
 
+from floof.forms import MultiCheckboxField
 from floof.lib import helpers
 from floof.lib.base import BaseController, render
 from floof.lib.decorators import logged_in
+from floof.lib.openid_ import OpenIDError, openid_begin, openid_end
 import floof.model as model
 from floof.model import meta
 
 log = logging.getLogger(__name__)
+
+# XXX: Should add and delete be seperate forms?
+class OpenIDForm(wtforms.form.Form):
+    new_openid = wtforms.TextField(u'New OpenID')
+    add_openid = wtforms.SubmitField(u'Add OpenID')
+    openids = MultiCheckboxField(u'OpenIDs', coerce=int)
+    del_openids = wtforms.SubmitField(u'Delete Selected Identities')
+
+    def validate_new_openid(form, field):
+        if not form.add_openid.data:
+            return
+        if not field.data:
+            raise wtforms.ValidationError('You must supply a new OpenID URL.')
+
+    def validate_openids(form, field):
+        if not form.del_openids.data:
+            return
+        if not field.data:
+            raise wtforms.ValidationError('You must select at least one OpenID identity URL to delete.')
+        if len(field.data) >= len(field.choices):
+            raise wtforms.ValidationError('You must keep at least one OpenID identity URL.')
 
 class WatchForm(wtforms.form.Form):
     watch_upload = wtforms.fields.BooleanField(u'')
@@ -20,13 +43,78 @@ class WatchForm(wtforms.form.Form):
     watch_for = wtforms.fields.BooleanField(u'')
     watch_of = wtforms.fields.BooleanField(u'')
 
-
 class ControlsController(BaseController):
 
     @logged_in
     def index(self):
         c.current_action = 'index'
         return render('/account/controls/index.mako')
+
+    @logged_in
+    def openid(self):
+        c.current_action = 'openid'
+        c.openid_form = OpenIDForm(request.POST)
+        c.openid_form.openids.choices = [(oid.id, oid.url) for oid in c.user.identity_urls]
+
+        # Process a returning OpenID check
+        # XXX: Is this an appropriate way to catch an OpenID response?
+        if 'openid.assoc_handle' in request.params:
+            c.openid_form.validate()  # Ensure new_openid.errors is an appendable list
+            try:
+                identity_url, identity_webfinger, sreg_res = openid_end(url.current(host=request.headers['host']))
+            except OpenIDError as exc:
+                c.openid_form.new_openid.errors.append(exc.args[0])
+                return render('/account/controls/openid.mako')
+
+            existing_urls = [id.url for id in c.user.identity_urls]
+            if identity_url in existing_urls:
+                c.openid_form.new_openid.errors.append(u'You can already authenticate with that OpenID URL.')
+                return render('/account/controls/openid.mako')
+
+            openid = model.IdentityURL(url=identity_url)
+            c.user.identity_urls.append(openid)
+            meta.Session.commit()
+            helpers.flash(
+                    u'Successfully added OpenID identifier "{0}"'
+                    .format(identity_url),
+                    level=u'success'
+                    )
+            c.openid_form.openids.choices = [(oid.id, oid.url) for oid in c.user.identity_urls]
+            return render('/account/controls/openid.mako')
+
+        # Add an OpenID identity URL
+        if (request.method == 'POST' and
+                c.openid_form.add_openid.data and
+                c.openid_form.validate()):
+            try:
+                redirect(openid_begin(
+                        identifier=c.openid_form.new_openid.data,
+                        return_url=url.current(host=request.headers['host']),
+                        sreg=False,
+                        ))
+            except OpenIDError as exc:
+                c.openid_form.new_openid.errors.append(exc.args[0])
+                return render('/account/controls/openid.mako')
+
+        # Delete one or more OpenID identity URLs
+        if (request.method == 'POST' and
+                c.openid_form.del_openids.data and
+                c.openid_form.validate()):
+            del_targets = filter(lambda oid: oid.id in c.openid_form.openids.data, c.user.identity_urls)
+            target_urls = [oid.url for oid in del_targets]
+            for target in del_targets:
+                meta.Session.delete(target)
+            helpers.flash(
+                    u'Successfully deleted the OpenID identifier{0}: "{1}"'
+                    .format(('s' if len(target_urls) == 1 else ''), '", "'.join(target_urls)),
+                    level=u'success'
+                    )
+            meta.Session.commit()
+
+        # Non-OpenID response GET request, successful delete or invalid form -- just show the page
+        c.openid_form.openids.choices = [(oid.id, oid.url) for oid in c.user.identity_urls]
+        return render('/account/controls/openid.mako')
+
 
     @logged_in
     def relationships(self):

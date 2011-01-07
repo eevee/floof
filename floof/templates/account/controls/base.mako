@@ -8,6 +8,7 @@
 <ul id="control-panel-navigation">
     % for action, icon, title in [ \
         ('index',           'fruit',        u'Index??'), \
+        ('openid',          'user',         u'OpenID Identities'), \
         ('relationships',   'users',        u'Watches'), \
     ]:
     % if action == c.current_action:
