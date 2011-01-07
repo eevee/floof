@@ -62,6 +62,9 @@ def load_environment(global_conf, app_conf):
             os.path.join(root, 'sass'),
             os.path.join(root, 'public', 'css'),
         ))
+        
+        # If this fails with a file not found, sass probably isn't installed
+        # or in your path.  (gem install haml)
         subprocess.Popen(['sass',
             '--scss',
             '--style', 'compressed',

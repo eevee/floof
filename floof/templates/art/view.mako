@@ -3,6 +3,10 @@
 <%namespace name="comments_lib" file="/comments/lib.mako" />
 
 <%def name="title()">${c.artwork.title or 'Untitled'} - Artwork</%def>
+<%def name="script_dependencies()">
+    ${h.javascript_link('/js/lib/jquery.ui-1.8.7.js')}
+    ${h.javascript_link('/js/lib/jquery.ui.rater.js')}
+</%def>
 
 <h1>
     ${lib.icon('image')}
@@ -16,8 +20,11 @@
 
 ## Metadata and whatever
 <div class="column-container">
+
 <div class="column-2x">
     <h2>Art</h2>
+    <div class="column-container">
+    <div class="column-2x">
     <dl class="standard-form">
         <dt>Title</dt>
         <dd>${c.artwork.title or 'Untitled'}</dd>
@@ -42,6 +49,34 @@
         % endfor
     </dl>
 
+    </div>
+## Rating
+    <div class="column">
+        <div class="art-rater">
+        % if c.user:
+            <script type="text/javascript">
+            $("div.art-rater").rater({rate_url: "${url(controller='art', action='rate', id=c.artwork.id)}", value: ${c.current_rating}, num_ratings: ${c.artwork.num_ratings}, rating_sum: ${c.artwork.rating_sum}, auth_token: "${h.authentication_token()}", auth_token_field: "${h.token_key}"})
+            </script>
+            <noscript>
+                <div class="rater-info"><span class="rater-num-ratings">${c.artwork.num_ratings}</span> (<span class="rater-rating-sum">${c.artwork.rating_sum}</span>)</div>
+                <% rating_chars = [u'\u2b06', u'\u2022', u'\u2b07'] %>
+                % for r in range(len(rating_chars)):
+                    ${h.secure_form(url(controller='art', action='rate', id=c.artwork.id), class_="rater-form")}
+                        ${h.hidden(name="rating", value=(len(rating_chars) / 2 - r))}
+                    % if c.current_rating == (len(rating_chars) / 2 - r):
+                        ${h.submit(value=rating_chars[r], name="commit", disabled="disabled")}
+                    % else:
+                        ${h.submit(value=rating_chars[r], name="commit")}
+                    % endif
+                    ${h.end_form()}
+                % endfor
+            </noscript>
+        % else:
+            <div class="rater-info"><span class="rater-num-ratings">${c.artwork.num_ratings}</span> (<span class="rater-rating-sum">${c.artwork.rating_sum}</span>)</div><div class="rater-info">Log in to vote!</div>
+        % endif
+            </div>
+        </div>
+    </div>
     <h2 id="tags">Tags</h2>
     <p>\
     % for tag in c.artwork.tags:

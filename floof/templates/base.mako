@@ -4,11 +4,16 @@
 <head>
     <title>${self.title()} - ${config['site_title']}</title>
     <link rel="stylesheet" type="text/css" href="${url('css', which='all')}">
-    <script type="text/javascript" src="${url('/js/lib/jquery-1.4.4.min.js')}"></script>
-    <script type="text/javascript" src="${url('/js/lib/jquery.cookie.js')}"></script>
+    ${h.javascript_link(url('/js/lib/jquery-1.4.4.min.js'))}
+    ${h.javascript_link(url('/js/lib/jquery.cookie.js'))}
     % if config.get('super_debug', False):
-    <script type="text/javascript" src="${url('/js/debugging.js')}"></script>
+        ${h.javascript_link(url('/js/debugging.js'))}
     % endif
+
+## Allow templates to define their script dependencies to include in head
+    % if hasattr(self, "script_dependencies") and hasattr(self.script_dependencies, "__call__"):
+        ${self.script_dependencies()}
+    %endif
 </head>
 <body>
     <div id="header">

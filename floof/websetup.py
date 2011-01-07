@@ -33,6 +33,7 @@ def setup_app(command, conf, vars):
         for name, description in [
             (u'admin.view',         u'Can view administrative tools/panel'),
             (u'art.upload',         u'Can upload art'),
+            (u'art.rate',           u'Can rate art'),
             (u'comments.add',       u'Can post comments'),
             (u'tags.add',           u'Can add tags with no restrictions'),
             (u'tags.remove',        u'Can remove tags with no restrictions'),
@@ -46,7 +47,7 @@ def setup_app(command, conf, vars):
         name=u'user',
         description=u'Basic user',
         privileges=[privileges[priv] for priv in [
-            u'art.upload', u'comments.add', u'tags.add', u'tags.remove',
+            u'art.upload', u'art.rate', u'comments.add', u'tags.add', u'tags.remove',
         ]],
     )
     admin_user = model.Role(

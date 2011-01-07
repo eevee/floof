@@ -1,4 +1,5 @@
 import hashlib
+import json
 import logging
 import random
 
@@ -256,6 +257,17 @@ class ArtController(BaseController):
         c.artwork = meta.Session.query(model.Artwork).get(id)
         if not c.artwork:
             abort(404)
+        
+        # If the user is not anonymous, get the previous rating if it exists
+        if c.user:
+            rating_obj = meta.Session.query(model.ArtworkRating)\
+                             .filter_by(artwork=c.artwork,
+                                        user=c.user)\
+                             .first()
+
+            c.current_rating = rating_obj.rating if rating_obj else 0
+        else:
+            c.current_rating = 0
 
         c.artwork_url = url('filestore', key=c.artwork.hash)
 
@@ -264,6 +276,53 @@ class ArtController(BaseController):
         c.remove_tag_form = RemoveTagForm()
 
         return render('/art/view.mako')
+
+    @user_must('art.rate')
+    def rate(self, id):
+        """Post a rating for a piece of art"""
+        artwork = meta.Session.query(model.Artwork).get(id)
+        if not artwork:
+            abort(404)
+        
+        try:
+            rating = int(request.POST['rating'])
+        except KeyError, ValueError:
+            abort(403)
+
+        # Get the previous rating, if there was one
+        rating_obj = meta.Session.query(model.ArtworkRating)\
+                             .filter_by(artwork=artwork,
+                                        user=c.user)\
+                             .first()
+
+        # Update the rating or create it and add it to the db
+        #
+        # N.B.
+        #   - model.ArtworkRating ensures the rating is within the
+        #     proper radius using orm.validates.  My intuition says
+        #     validation should go here, but having it in the model
+        #     makes sure it's always enforced
+        #   - The model also handles automatically updating the number
+        #     of ratings/rating scores for the artwork
+        if rating_obj:
+            rating_obj.rating = rating
+        else:
+            rating_obj = model.ArtworkRating(rating)
+            rating_obj.artwork = artwork
+            rating_obj.user = c.user
+            meta.Session.add(rating_obj)
+
+        meta.Session.commit()
+
+        # If the request has the asynchronous parameter, we return the
+        # number/sum of ratings to update the widget
+        if 'asynchronous' in request.POST.keys():
+            response.headers['Content-Type'] = 'application/json'
+            return json.dumps(dict(ratings=artwork.num_ratings, rating_sum=artwork.rating_sum))
+
+        # Otherwise, we're probably dealing with a no-js request and just
+        # re-render the art page
+        redirect(url(controller='art', action='view', id=id))
 
     @user_must('tags.add')
     def add_tags(self, id):

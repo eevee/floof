@@ -34,6 +34,10 @@ filestore.url_prefix = /files
 # Size for a thumbnail, in pixels
 thumbnail_size = 160
 
+# Allowed rating radius (i.e. 'radius = 1' allows ratings in the closed
+# interval [-1,1])
+rating_radius = 1
+
 # If you'd like to fine-tune the individual locations of the cache data dirs
 # for the Cache data, or the Session saves, un-comment the desired settings
 # here:

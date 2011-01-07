@@ -58,6 +58,7 @@ def make_map(config):
     map.connect(r'/art/{id:\d+}', controller='art', action='view')
     map.connect(r'/art/{id:\d+}/add_tags', controller='art', action='add_tags', **require_POST)
     map.connect(r'/art/{id:\d+}/remove_tags', controller='art', action='remove_tags', **require_POST)
+    map.connect(r'/art/{id:\d+}/rate', controller='art', action='rate', **require_POST)
 
     map.connect('/tags', controller='tags', action='index')
     map.connect('/tags/{name}', controller='tags', action='view')

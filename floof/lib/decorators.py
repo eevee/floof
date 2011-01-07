@@ -26,7 +26,7 @@ def user_must(priv):
     @decorator
     def deco(f, *a, **kw):
         if not c.user.can(priv):
-            abort(403)
+            abort(403, detail="User does not have permission to perform this action")
         return f(*a, **kw)
     return deco
 
