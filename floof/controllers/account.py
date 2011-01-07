@@ -2,10 +2,6 @@
 import logging
 import re
 
-from openid.consumer.consumer import Consumer
-from openid.extensions.sreg import SRegRequest, SRegResponse
-from openid.store.filestore import FileOpenIDStore
-from openid.yadis.discover import DiscoveryFailure
 from pylons import request, response, session, tmpl_context as c, url
 from pylons.controllers.util import abort, redirect
 from routes import request_config
@@ -16,7 +12,7 @@ import wtforms.form, wtforms.fields, wtforms.validators
 from floof.lib import helpers
 from floof.lib.base import BaseController, render
 from floof.lib.decorators import logged_in, logged_out
-from floof.lib.webfinger import finger
+from floof.lib.openid_ import OpenIDError, openid_begin, openid_end
 from floof import model
 from floof.model import Discussion, UserProfileRevision, IdentityURL, User, Role, meta
 
@@ -25,7 +21,9 @@ log = logging.getLogger(__name__)
 class LoginForm(wtforms.form.Form):
     # n.b.: This is actually a name recommended by the OpenID spec, for ease of
     # client identification
-    openid_identifier = wtforms.fields.TextField(u'OpenID URL or Webfinger-enabled email address')
+    openid_identifier = wtforms.fields.TextField(u'OpenID URL or Webfinger-enabled email address',
+            validators=[wtforms.validators.Required(u'Gotta enter an OpenID to log in.')]
+            )
 
 class RegistrationForm(wtforms.form.Form):
     username = wtforms.fields.TextField(u'Username', [
@@ -45,8 +43,6 @@ class ProfileForm(wtforms.form.Form):
 
 class AccountController(BaseController):
 
-    openid_store = FileOpenIDStore('/var/tmp')
-
     @logged_out
     def login(self):
         c.form = LoginForm()
@@ -54,90 +50,36 @@ class AccountController(BaseController):
 
     @logged_out
     def login_begin(self):
-        """Step one of logging in with OpenID; we resolve a webfinger,
-        if present, then redirect to the provider."""
+        """Step one of logging in with OpenID; redirect to the provider."""
 
         c.form = LoginForm(request.POST)
-
         if not c.form.validate():
             return render('/account/login.mako')
 
         try:
-            identifier = c.form.openid_identifier.data
-        except KeyError:
-            c.form.openid_identifier.errors.append("Gotta enter an OpenID to log in.")
+            redirect(openid_begin(
+                    identifier=c.form.openid_identifier.data,
+                    return_url=url(host=request.headers['host'],
+                        controller='account',
+                        action='login_finish',
+                        )
+                    ))
+        except OpenIDError as exc:
+            c.form.openid_identifier.errors.append(exc.args[0])
             return render('/account/login.mako')
-
-        openid_url = identifier
-        # Does it look like an email address?
-        # If so, try finding an OpenID URL via Webfinger.
-        if len(identifier.split('@')) == 2:
-            result = None
-            try:
-                result = finger(identifier)
-            except URLError:
-                c.form.openid_identifier.errors.append(
-                        "Attemted to resolve identifier '{0}' via Webfinger, but hit a URLError.  "
-                        "Is the email address invalid?"
-                        .format(identifier)
-                        )
-                return render('/account/login.mako')
-            except HTTPError:
-                c.form.openid_identifier.errors.append(
-                        "Attemted to resolve identifier '{0}' via Webfinger, but hit an HTTPError.  "
-                        "Does the host support Webfinger?"
-                        .format(identifier)
-                        )
-                return render('/account/login.mako')
-            except Exception as exc:
-                c.form.openid_identifier.errors.append(
-                        "Attemted to resolve identifier '{0}' via Webfinger, but hit the following unusual error: "
-                        "'{1}'  "
-                        "Does the host use an old Webfinger format?"
-                        .format(identifier, exc)
-                        )
-                return render('/account/login.mako')
-
-            if result and result.open_id is not None:
-                session['pending_identity_webfinger'] = identifier
-                session.save()
-                openid_url = result.open_id
-
-        cons = Consumer(session=session, store=self.openid_store)
-
-        try:
-            auth_request = cons.begin(openid_url)
-        except DiscoveryFailure:
-            c.form.openid_identifier.errors.append(
-                "Can't connect to '{0}'.  Are you sure it's a valid OpenID URL or webfinger-enabled email address?"
-                .format(openid_url)
-                )
-            return render('/account/login.mako')
-
-        sreg_req = SRegRequest(optional=['nickname', 'email', 'dob', 'gender',
-                                         'country', 'language', 'timezone'])
-        auth_request.addExtension(sreg_req)
-
-        host = request.headers['host']
-        protocol = request_config().protocol
-        return_url = url(host=host, controller='account', action='login_finish')
-        new_url = auth_request.redirectURL(return_to=return_url,
-                                           realm=protocol + '://' + host)
-        redirect(new_url)
 
     @logged_out
     def login_finish(self):
         """Step two of logging in; the OpenID provider redirects back here."""
 
-        cons = Consumer(session=session, store=self.openid_store)
-        host = request.headers['host']
-        return_url = url(host=host, controller='account', action='login_finish')
-        res = cons.complete(request.params, return_url)
-
-        if res.status != 'success':
-            return 'Error!  %s' % res.message
-
-        identity_url = unicode(res.identity_url)
+        try:
+            identity_url, identity_webfinger, sreg_res = openid_end(
+                    return_url=url(host=request.headers['host'],
+                        controller='account',
+                        action='login_finish',
+                    ))
+        except OpenIDError as exc:
+            return exc.args[0]
 
         try:
             # Grab an existing user record, if one exists
@@ -162,7 +104,6 @@ class AccountController(BaseController):
             c.identity_webfinger = session.get('pending_identity_webfinger', None)
 
             # Try to pull a name out of the SReg response
-            sreg_res = SRegResponse.fromSuccessResponse(res)
             try:
                 username = sreg_res['nickname'].lower()
             except (KeyError, TypeError):
