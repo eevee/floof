@@ -13,11 +13,10 @@
         },
 
         _create: function() {
-            
             var self = this,
                 rate_span = $("<span></span>")
                             .addClass("ui-widget ui-voter");
-            
+
             self.options.rate_span = rate_span;
             self.element.prepend(rate_span);
 
@@ -25,11 +24,11 @@
             self.element.prepend($("<div></div>")
                         .addClass('rater-info')
                         .html("<span class='rater-num-ratings'>" + self.options.num_ratings + "</span> (<span class='rater-rating-sum'>" + self.options.rating_sum + "</span>)")); // Text interspersed with elements makes doing this 'right' hard :p
-            
+
             rate_span.append($("<a>" + self.options.up_str + "</a>")
                       .addClass('ui-rater-button-up')
                       .data({'value': 1}));
-            
+
             rate_span.append($("<a>" + self.options.ambi_str + "</a>")
                       .addClass('ui-rater-button-ambi')
                       .data({'value': 0}));

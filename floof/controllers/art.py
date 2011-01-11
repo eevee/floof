@@ -257,7 +257,7 @@ class ArtController(BaseController):
         c.artwork = meta.Session.query(model.Artwork).get(id)
         if not c.artwork:
             abort(404)
-        
+
         # If the user is not anonymous, get the previous rating if it exists
         if c.user:
             rating_obj = meta.Session.query(model.ArtworkRating)\
@@ -283,7 +283,7 @@ class ArtController(BaseController):
         artwork = meta.Session.query(model.Artwork).get(id)
         if not artwork:
             abort(404)
-        
+
         try:
             rating = int(request.POST['rating'])
         except KeyError, ValueError:

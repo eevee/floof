@@ -3,7 +3,7 @@ from sqlalchemy.orm.interfaces import AttributeExtension
 class RatingAttributeExtension(AttributeExtension):
     """AttributeExtension to act on the change of a rating.  Updates
        the rating_sum of the artwork"""
-    
+
     active_history = True
 
     def append(self, state, value, initiator):

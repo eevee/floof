@@ -10,7 +10,7 @@ from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import backref, class_mapper, relation, validates
 from sqlalchemy.orm.exc import NoResultFound
-from sqlalchemy.orm.properties import ColumnProperty 
+from sqlalchemy.orm.properties import ColumnProperty
 from sqlalchemy.orm.session import object_session
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.types import *
@@ -237,7 +237,7 @@ class ArtworkRating(TableBase):
         """Ensures the rating is within the proper rating radius.  Rrrrrr."""
         radius = asint(pylons.config['rating_radius'])
         return math.min(math.max(rating, -radius), radius)
-    
+
 
 ### PERMISSIONS
 
