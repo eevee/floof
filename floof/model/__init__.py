@@ -1,17 +1,21 @@
 """The application's model objects"""
 import datetime
+import math
 import pytz
 import re
 
 from sqlalchemy import Column, ForeignKey, MetaData, Table, and_
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import backref, class_mapper, relation
+from sqlalchemy.orm import backref, class_mapper, relation, validates
 from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.orm.properties import ColumnProperty
 from sqlalchemy.orm.session import object_session
-from sqlalchemy.schema import UniqueConstraint
+from sqlalchemy.schema import CheckConstraint, UniqueConstraint
 from sqlalchemy.types import *
+from floof.model.extensions import *
 from floof.model.types import *
+from paste.deploy.converters import asint
 
 from floof.model import meta
 
@@ -179,6 +183,9 @@ class Artwork(TableBase):
     mime_type = Column(Unicode(255), nullable=False)
     file_size = Column(Integer, nullable=False)
     __mapper_args__ = {'polymorphic_on': media_type}
+    rating_count = Column(Integer, nullable=False, default=0)
+    rating_sum = Column(Float, nullable=False, default=0)
+    rating_score = Column(Float, nullable=True, default=None)
 
     @property
     def resource_title(self):
@@ -213,6 +220,22 @@ class UserArtwork(TableBase):
     user_id = Column(Integer, ForeignKey('users.id'), primary_key=True, nullable=True)
     artwork_id = Column(Integer, ForeignKey('artwork.id'), primary_key=True, nullable=True)
     relationship_type = Column(Enum(*user_artwork_types, name='user_artwork_relationship_type'), primary_key=True, nullable=True)
+
+class ArtworkRating(TableBase):
+    """The rating that a single user has given a single piece of art"""
+    __tablename__ = 'artwork_ratings'
+
+    artwork_id = Column(Integer, ForeignKey(Artwork.id), primary_key=True, nullable=False)
+    user_id = Column(Integer, ForeignKey(User.id), primary_key=True, nullable=False)
+    rating = ColumnProperty(
+        Column(Float, CheckConstraint('rating >= -1.0 AND rating <= 1.0'), nullable=False),
+        extension=RatingAttributeExtension(),
+    )
+
+    validates('rating')
+    def validate_rating(self, key, rating):
+        """Ensures the rating is within the proper rating radius."""
+        return -1.0 <= rating <= 1.0
 
 
 ### PERMISSIONS
@@ -362,9 +385,12 @@ Artwork.tag_objs = relation(Tag, backref='artwork', secondary=artwork_tags)
 Artwork.tags = association_proxy('tag_objs', 'name', creator=get_or_create_tag)
 Artwork.uploader = relation(User, backref='uploaded_artwork')
 Artwork.user_artwork = relation(UserArtwork, backref='artwork')
+Artwork.ratings = relation(ArtworkRating, backref='artwork',
+                    extension=ArtworkRatingsAttributeExtension())
 
 #User.discussion = relation(Discussion, backref='user')
 User.user_artwork = relation(UserArtwork, backref='user')
+User.ratings_given = relation(ArtworkRating, backref='user')
 
 # Permissions
 User.role = relation(Role, uselist=False, backref='users')

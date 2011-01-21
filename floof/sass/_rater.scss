@@ -1,0 +1,63 @@
+@mixin rater-button {
+    color: #000;
+    cursor: pointer;
+    text-decoration: none;
+    font-size: x-large
+}
+
+@mixin rater-button-active {
+    font-weight: bolder;
+}
+
+.art-rater {
+    float: right;
+    margin-right: 1em;
+}
+
+.rater-info {
+    font-size: large;
+    font-weight: bold;
+    margin-bottom: .5em;
+    color: #222;
+    text-align: center;
+}
+
+.rater-rating-sum {
+    color: #22a;
+}
+
+.ui-voter {
+    text-align: center;
+}
+
+.rater-form {
+    display: inline;
+}
+
+.ui-rater-button-up {
+    @include rater-button;
+}
+
+.ui-rater-button-up.ui-rater-button-active {
+    @include rater-button-active;
+    color: #1a1
+}
+
+.ui-rater-button-ambi {
+    @include rater-button;
+    color: #222
+}
+
+.ui-rater-button-ambi.ui-rater-button-active {
+    @include rater-button-active;
+    color: #888
+}
+
+.ui-rater-button-down {
+    @include rater-button;
+}
+
+.ui-rater-button-down.ui-rater-button-active {
+    @include rater-button-active;
+    color: #a11
+}

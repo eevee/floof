@@ -62,6 +62,9 @@ def load_environment(global_conf, app_conf):
             os.path.join(root, 'sass'),
             os.path.join(root, 'public', 'css'),
         ))
+
+        # If this fails with a file not found, sass probably isn't installed
+        # or in your path.  (gem install haml)
         subprocess.Popen(['sass',
             '--scss',
             '--style', 'compressed',
@@ -71,6 +74,7 @@ def load_environment(global_conf, app_conf):
 
     # CONFIGURATION OPTIONS HERE (note: all config options will override
     # any Pylons config options)
+    config['rating_radius'] = int(config['rating_radius'])
 
     # Create file storage object and stick it back in the config
     storage = filestore.get_storage(config)
