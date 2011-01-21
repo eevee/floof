@@ -1,6 +1,18 @@
 from wtforms import fields, widgets
 import re
 
+class PassthroughListWidget(widgets.ListWidget):
+    """Just like a ListWidget, but passes rendering kwargs to its children."""
+    def __call__(self, field, **kwargs):
+        html = [u'<%s>' % (self.html_tag)]
+        for subfield in field:
+            if self.prefix_label:
+                html.append(u'<li>%s: %s</li>' % (subfield.label, subfield(**kwargs)))
+            else:
+                html.append(u'<li>%s %s</li>' % (subfield(**kwargs), subfield.label))
+        html.append(u'</%s>' % self.html_tag)
+        return widgets.HTMLString(u''.join(html))
+
 # borrowed from spline
 class MultiCheckboxField(fields.SelectMultipleField):
     """ A multiple-select, except displays a list of checkboxes.
@@ -8,7 +20,7 @@ class MultiCheckboxField(fields.SelectMultipleField):
     Iterating the field will produce subfields, allowing custom rendering of
     the enclosed checkbox fields.
     """
-    widget = widgets.ListWidget(prefix_label=False)
+    widget = PassthroughListWidget(prefix_label=False)
     option_widget = widgets.CheckboxInput()
 
 class MultiTagField(fields.TextField):

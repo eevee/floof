@@ -38,7 +38,7 @@ def make_map(config):
 
     map.connect('/account/controls', controller='controls', action='index')
     map.connect('/account/controls/{action}', controller='controls',
-        requirements=dict(action='relationships'))
+        requirements=dict(action='openid|relationships'))
     map.connect('/account/controls/relationships/watch', controller='controls',
         action='relationships_watch', **require_GET)
     map.connect('/account/controls/relationships/watch', controller='controls',
