@@ -74,6 +74,7 @@ def load_environment(global_conf, app_conf):
 
     # CONFIGURATION OPTIONS HERE (note: all config options will override
     # any Pylons config options)
+    config['rating_radius'] = int(config['rating_radius'])
 
     # Create file storage object and stick it back in the config
     storage = filestore.get_storage(config)

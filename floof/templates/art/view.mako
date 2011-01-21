@@ -55,7 +55,7 @@
         <div class="art-rater">
         % if c.user:
             <script type="text/javascript">
-            $("div.art-rater").rater({rate_url: "${url(controller='art', action='rate', id=c.artwork.id)}", value: ${c.current_rating}, num_ratings: ${c.artwork.rating_count}, rating_sum: ${c.artwork.rating_score}, auth_token: "${h.authentication_token()}", auth_token_field: "${h.token_key}"})
+            $("div.art-rater").rater({rate_url: "${url(controller='art', action='rate', id=c.artwork.id)}", value: ${c.current_rating}, num_ratings: ${c.artwork.rating_count}, rating_sum: ${c.artwork.rating_score * config['rating_radius']}, auth_token: "${h.authentication_token()}", auth_token_field: "${h.token_key}"})
             </script>
             <noscript>
                 <div class="rater-info"><span class="rater-num-ratings">${c.artwork.rating_count}</span> (<span class="rater-rating-sum">${c.artwork.rating_sum}</span>)</div>

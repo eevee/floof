@@ -286,8 +286,9 @@ class ArtController(BaseController):
         if not artwork:
             abort(404)
 
+        radius = config['rating_radius']
         try:
-            rating = int(request.POST['rating']) / int(config['rating_radius'])
+            rating = int(request.POST['rating']) / radius
         except KeyError, ValueError:
             abort(400)
 
@@ -299,6 +300,7 @@ class ArtController(BaseController):
         # Update the rating or create it and add it to the db.
         # n.b.: The model is responsible both for ensuring that the rating is
         # within [-1, 1], and updating rating stats on the artwork
+
         if rating_obj:
             rating_obj.rating = rating
         else:
@@ -315,7 +317,10 @@ class ArtController(BaseController):
         # number/sum of ratings to update the widget
         if 'asynchronous' in request.POST:
             response.headers['Content-Type'] = 'application/json'
-            return json.dumps(dict(ratings=artwork.rating_count, rating_sum=artwork.rating_score))
+            return json.dumps(dict(
+                ratings=artwork.rating_count,
+                rating_sum=artwork.rating_score * radius,
+            ))
 
         # Otherwise, we're probably dealing with a no-js request and just
         # re-render the art page
