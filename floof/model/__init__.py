@@ -1,7 +1,6 @@
 """The application's model objects"""
 import datetime
 import math
-import pylons
 import pytz
 import re
 
@@ -12,7 +11,7 @@ from sqlalchemy.orm import backref, class_mapper, relation, validates
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.properties import ColumnProperty
 from sqlalchemy.orm.session import object_session
-from sqlalchemy.schema import UniqueConstraint
+from sqlalchemy.schema import CheckConstraint, UniqueConstraint
 from sqlalchemy.types import *
 from floof.model.extensions import *
 from floof.model.types import *
@@ -184,8 +183,9 @@ class Artwork(TableBase):
     mime_type = Column(Unicode(255), nullable=False)
     file_size = Column(Integer, nullable=False)
     __mapper_args__ = {'polymorphic_on': media_type}
-    rating_sum = Column(Integer, nullable=False, default=0)
-    num_ratings = Column(Integer, nullable=False, default=0)
+    rating_count = Column(Integer, nullable=False, default=0)
+    rating_sum = Column(Float, nullable=False, default=0)
+    rating_score = Column(Float, nullable=True, default=None)
 
     @property
     def resource_title(self):
@@ -225,18 +225,17 @@ class ArtworkRating(TableBase):
     """The rating that a single user has given a single piece of art"""
     __tablename__ = 'artwork_ratings'
 
-    rating = ColumnProperty(Column(Integer, nullable=False), extension=RatingAttributeExtension())
     artwork_id = Column(Integer, ForeignKey(Artwork.id), primary_key=True, nullable=False)
     user_id = Column(Integer, ForeignKey(User.id), primary_key=True, nullable=False)
-
-    def __init__(self, rating):
-        self.rating = rating
+    rating = ColumnProperty(
+        Column(Float, CheckConstraint('rating >= -1.0 AND rating <= 1.0'), nullable=False),
+        extension=RatingAttributeExtension(),
+    )
 
     validates('rating')
     def validate_rating(self, key, rating):
-        """Ensures the rating is within the proper rating radius.  Rrrrrr."""
-        radius = asint(pylons.config['rating_radius'])
-        return math.min(math.max(rating, -radius), radius)
+        """Ensures the rating is within the proper rating radius."""
+        return -1.0 <= rating <= 1.0
 
 
 ### PERMISSIONS

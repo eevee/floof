@@ -9,9 +9,9 @@ TableBase = declarative_base()
 from migrate.changeset import schema
 meta = MetaData()
 artwork_ratings = Table('artwork_ratings', meta,
-  Column('rating', Integer(),  nullable=False),
   Column('artwork_id', Integer(),  primary_key=True, nullable=False),
   Column('user_id', Integer(),  primary_key=True, nullable=False),
+  Column('rating', Float(), CheckConstraint('rating >= -1.0 AND rating <= 1.0', columns=['rating']), nullable=False),
 )
 user_artwork = Table('user_artwork', meta,
   Column('user_id', Integer(),  primary_key=True, nullable=False),
@@ -37,8 +37,9 @@ artwork = Table('artwork', meta,
   Column('original_filename', String(length=None, convert_unicode=False, assert_unicode=None, unicode_error=None, _warn_on_bytestring=False),  nullable=False),
   Column('mime_type', String(length=None, convert_unicode=False, assert_unicode=None, unicode_error=None, _warn_on_bytestring=False),  nullable=False),
   Column('file_size', Integer(),  nullable=False),
-  Column('rating_sum', Integer(), nullable=False, default=0, server_default="0"),
-  Column('num_ratings', Integer(), nullable=False, default=0, server_default="0"),
+  Column('rating_count', Integer(), nullable=False, default=0, server_default="0"),
+  Column('rating_sum', Float(), nullable=False, default=0, server_default="0"),
+  Column('rating_score', Float(), nullable=True, default=None)
 )
 class Privilege(TableBase):
     __tablename__ = 'privileges'
@@ -65,8 +66,9 @@ def downgrade(migrate_engine):
     # Operations to reverse the above upgrade go here.
     meta.bind = migrate_engine
     artwork_ratings.drop()
+    artwork.columns['rating_count'].drop()
     artwork.columns['rating_sum'].drop()
-    artwork.columns['num_ratings'].drop()
+    artwork.columns['rating_score'].drop()
 
     Session = sessionmaker(bind=migrate_engine)()
     to_remove = Session.query(Privilege).filter_by(name=priv[0]).one()
@@ -80,11 +82,12 @@ def upgrade(migrate_engine):
     # to your metadata
     meta.bind = migrate_engine
     artwork_ratings.create()
+    artwork.columns['rating_count'].create(table=artwork)
     artwork.columns['rating_sum'].create(table=artwork)
-    artwork.columns['num_ratings'].create(table=artwork)
+    artwork.columns['rating_score'].create(table=artwork)
 
     Session = sessionmaker(bind=migrate_engine)()
-    to_add = Privilege(name=priv[0], description=priv[0])
+    to_add = Privilege(name=priv[0], description=priv[1])
     Session.add(to_add)
     user = Session.query(Role).filter_by(name=u'user').one()
     user.privileges.append(to_add)
