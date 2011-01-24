@@ -7,7 +7,7 @@ import re
 from sqlalchemy import Column, ForeignKey, MetaData, Table, and_
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import backref, class_mapper, relation, validates
+from sqlalchemy.orm import backref, class_mapper, joinedload, relation, subqueryload, validates
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.properties import ColumnProperty
 from sqlalchemy.orm.session import object_session
@@ -98,11 +98,14 @@ class AnonymousUser(object):
         """Anonymous users can suffer UTC."""
         return dt
 
-    def can(self, permission):
+    def can(self, permission, log=False):
         """Anonymous users aren't allowed to do anything that needs explicit
         permission.
         """
         return False
+    
+    def logged_privs(self):
+        return []
 
 class User(TableBase):
     __tablename__ = 'users'
@@ -118,15 +121,27 @@ class User(TableBase):
             return dt
         return dt.astimezone(self.timezone)
 
-    def can(self, permission):
+    def can(self, permission, log=False):
         """Returns True iff this user has the named privilege."""
         if not self.role:
             return False
 
         priv = object_session(self).query(Privilege) \
             .filter_by(name=permission).one()
+        can = priv in self.role.privileges
 
-        return priv in self.role.privileges
+        if can and log:
+            if not hasattr(self, '_logged_privs'):
+                self._logged_privs = []
+            if priv not in self._logged_privs:
+                self._logged_privs.append(priv)
+
+        return can
+
+    def logged_privs(self):
+        if hasattr(self, '_logged_privs'):
+            return self._logged_privs
+        return []
 
     @property
     def display_name(self):
@@ -355,6 +370,45 @@ artwork_labels = Table('artwork_labels', meta.metadata,
 )
 
 
+### Logging
+
+class Log(TableBase):
+    __tablename__ = 'logs'
+    id = Column(Integer, primary_key=True)
+    visibility = Column(Enum(u'public', u'admin'), nullable=False)
+    timestamp = Column(DateTime, nullable=False, default=now)
+    logger = Column(String, nullable=False)
+    level = Column(Integer, nullable=False)
+    user_id = Column(Integer, ForeignKey('users.id'))
+    url = Column(Unicode)
+    ipaddr = Column(IPAddr)
+    target_user_id = Column(Integer, ForeignKey('users.id'))
+    message = Column(Unicode, nullable=False)
+    reason = Column(Unicode)
+
+log_privileges = Table('log_privileges', meta.metadata,
+    Column('log_id', Integer, ForeignKey('logs.id'), primary_key=True, nullable=False),
+    Column('priv_id', Integer, ForeignKey('privileges.id'), primary_key=True, nullable=False),
+)
+
+def get_log_records(count=50, offset=0):
+    return meta.Session.query(Log) \
+            .options(joinedload('privileges')) \
+            .order_by(Log.timestamp.desc()) \
+            .offset(offset) \
+            .limit(count) \
+            .all()
+
+def get_public_log_records(count=50, offset=0):
+    return meta.Session.query(Log) \
+            .filter_by(visibility='public') \
+            .order_by(Log.timestamp.desc()) \
+            .offset(offset) \
+            .limit(count) \
+            .all()
+
+
+
 ### RELATIONS
 # TODO: For user/user and user/art relations, it would be nice to have SQLA represent them as a dict of lists.
 # See: http://www.sqlalchemy.org/docs/orm/collections.html#instrumentation-and-custom-types
@@ -415,3 +469,13 @@ Discussion.comments = relation(Comment, order_by=Comment.left.asc(),
 # Tags & Labels
 Label.user = relation(User, innerjoin=True, backref='labels')
 Label.artwork = relation(Artwork, secondary=artwork_labels)
+
+# Logs
+Log.user = relation(User, backref='logs',
+        primaryjoin=User.id==Log.user_id,
+        order_by=Log.timestamp.desc(),
+        )
+Log.target_user = relation(User,
+        primaryjoin=User.id==Log.target_user_id,
+        )
+Log.privileges = relation(Privilege, secondary=log_privileges)

@@ -25,7 +25,7 @@ def user_must(priv):
     """Decorator to automatically abort if a user isn't permissed enough."""
     @decorator
     def deco(f, *a, **kw):
-        if not c.user.can(priv):
+        if not c.user.can(priv, log=True):
             abort(403, detail="User does not have permission to perform this action")
         return f(*a, **kw)
     return deco

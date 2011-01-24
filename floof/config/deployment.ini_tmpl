@@ -57,20 +57,19 @@ set debug = false
 # debug crap.
 #super_debug = true
 
-
 # Logging configuration
 [loggers]
 keys = root
 
 [handlers]
-keys = console
+keys = console,floofdb,flooffile
 
 [formatters]
-keys = generic
+keys = generic,flooffile
 
 [logger_root]
 level = INFO
-handlers = console
+handlers = console,floofdb,flooffile
 
 [handler_console]
 class = StreamHandler
@@ -78,5 +77,19 @@ args = (sys.stderr,)
 level = NOTSET
 formatter = generic
 
+[handler_floofdb]
+class = floof.lib.log.FloofDBHandler
+# The next line sets the level to the current value of floof.lib.log.ADMIN
+args = (25,)
+
+[handler_flooffile]
+class = floof.lib.log.FloofFileHandler
+args = ('floof.log',)
+level = DEBUG
+formatter = flooffile
+
 [formatter_generic]
 format = %(asctime)s %(levelname)-5.5s [%(name)s] %(message)s
+
+[formatter_flooffile]
+format = %(asctime)s %(levelname)-5.5s %(levelno)s [%(name)s] %(ipaddr)s %(username)s "%(message)s"
