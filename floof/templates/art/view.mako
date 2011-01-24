@@ -53,12 +53,12 @@
 ## Rating
     <div class="column">
         <div class="art-rater">
-        % if c.user:
+        % if c.user.can('art.rate'):
             <script type="text/javascript">
             $("div.art-rater").rater({rate_url: "${url(controller='art', action='rate', id=c.artwork.id)}", value: ${c.current_rating}, num_ratings: ${c.artwork.rating_count}, rating_sum: ${c.artwork.rating_score * config['rating_radius']}, auth_token: "${h.authentication_token()}", auth_token_field: "${h.token_key}"})
             </script>
             <noscript>
-                <div class="rater-info"><span class="rater-num-ratings">${c.artwork.rating_count}</span> (<span class="rater-rating-sum">${c.artwork.rating_sum}</span>)</div>
+                <div class="rater-info"><span class="rater-num-ratings">${c.artwork.rating_count}</span> (<span class="rater-rating-sum">${c.artwork.rating_score * config['rating_radius']}</span>)</div>
                 <% rating_chars = [u'\u2b06', u'\u2022', u'\u2b07'] %>
                 % for r in range(len(rating_chars)):
                     ${h.secure_form(url(controller='art', action='rate', id=c.artwork.id), class_="rater-form")}
@@ -71,8 +71,12 @@
                     ${h.end_form()}
                 % endfor
             </noscript>
+        % elif c.user:
+            <div class="rater-info"><span class="rater-num-ratings">${c.artwork.rating_count}</span> (<span class="rater-rating-sum">${c.artwork.rating_score * config['rating_radius']}</span>)</div>
+            <div class="rater-info">You do not have permission to vote.</div>
         % else:
-            <div class="rater-info"><span class="rater-num-ratings">${c.artwork.rating_count}</span> (<span class="rater-rating-sum">${c.artwork.rating_sum}</span>)</div><div class="rater-info">Log in to vote!</div>
+            <div class="rater-info"><span class="rater-num-ratings">${c.artwork.rating_count}</span> (<span class="rater-rating-sum">${c.artwork.rating_score * config['rating_radius']}</span>)</div>
+            <div class="rater-info">Log in to vote!</div>
         % endif
             </div>
         </div>

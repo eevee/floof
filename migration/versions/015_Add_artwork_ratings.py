@@ -61,6 +61,7 @@ class RolePrivilege(TableBase):
 Role.privileges = relation(Privilege, secondary=RolePrivilege.__table__)
 
 priv = (u'art.rate',           u'Can rate art')
+roles = [u'user', u'admin']
 
 def downgrade(migrate_engine):
     # Operations to reverse the above upgrade go here.
@@ -72,8 +73,7 @@ def downgrade(migrate_engine):
 
     Session = sessionmaker(bind=migrate_engine)()
     to_remove = Session.query(Privilege).filter_by(name=priv[0]).one()
-    user = Session.query(Role).filter_by(name=u'user').one()
-    user.privileges.remove(to_remove)
+    Session.query(RolePrivilege).filter_by(priv_id=to_remove.id).delete()
     Session.delete(to_remove)
     Session.commit()
 
@@ -89,6 +89,7 @@ def upgrade(migrate_engine):
     Session = sessionmaker(bind=migrate_engine)()
     to_add = Privilege(name=priv[0], description=priv[1])
     Session.add(to_add)
-    user = Session.query(Role).filter_by(name=u'user').one()
-    user.privileges.append(to_add)
+    for role in roles:
+        user = Session.query(Role).filter_by(name=role).one()
+        user.privileges.append(to_add)
     Session.commit()

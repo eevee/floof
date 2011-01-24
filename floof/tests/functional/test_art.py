@@ -78,6 +78,8 @@ class TestArtController(TestController):
         # And it should have the title in the URL
         assert location.endswith(u';test-title')
 
+        # Test viewing the new artwork
+        response = self.app.get(url(controller='art', action='view', id=art.id))
 
 
     def test_sadday_upload_junk(self):
