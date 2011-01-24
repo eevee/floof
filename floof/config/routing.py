@@ -48,6 +48,10 @@ def make_map(config):
 
     map.connect('/log', controller='main', action='log')
 
+    map.connect('/admin', controller='admin', action='dashboard')
+    map.connect('/admin/{action}', controller='admin',
+        requirements=dict(action='log'))
+
     map.connect('user', '/users/{name}', controller='users', action='view', _filter=user_filter)
     map.connect('/users/{name}/{action}', controller='users')
 
