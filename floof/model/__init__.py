@@ -67,7 +67,10 @@ def make_resource_type(cls):
     mapper = class_mapper(cls)
     table = mapper.local_table
     mapper.add_property('resource', relation(
-        Resource, backref=backref('_backref_%s' % table.name, uselist=False)
+        Resource,
+        innerjoin=True,
+        backref=backref(
+            '_backref_%s' % table.name, uselist=False, innerjoin=True),
     ))
 
     # Attach a 'discussion' shortcut
@@ -360,49 +363,55 @@ make_resource_type(User)
 make_resource_type(Artwork)
 
 # Users
-IdentityURL.user = relation(User, backref='identity_urls')
+IdentityURL.user = relation(User, innerjoin=True, backref='identity_urls')
 User.watches = relation(UserWatch,
     primaryjoin=User.id==UserWatch.user_id,
-    backref='user')
+    backref=backref('user', innerjoin=True))
 User.inverse_watches = relation(UserWatch,
     primaryjoin=User.id==UserWatch.other_user_id,
-    backref='other_user')
+    backref=backref('other_user', innerjoin=True))
 
 
 # Profiles
-UserProfile.user = relation(User, uselist=False, backref=backref('_profile', uselist=False))
-UserProfileRevision.user = relation(User, uselist=False, backref='profile_revisions',
+UserProfile.user = relation(User, innerjoin=True, backref=backref('_profile', uselist=False))
+UserProfileRevision.user = relation(User, innerjoin=True,
     foreign_keys=[UserProfileRevision.user_id],
-    primaryjoin=UserProfileRevision.user_id == User.id)
-UserProfileRevision.updated_by = relation(User, uselist=False,
+    primaryjoin=UserProfileRevision.user_id == User.id,
+    backref='profile_revisions')
+UserProfileRevision.updated_by = relation(User, innerjoin=True,
     foreign_keys=[UserProfileRevision.updated_by_id],
     primaryjoin=UserProfileRevision.updated_by_id == User.id)
 
 
 # Art
 #Artwork.discussion = relation(Discussion, backref='artwork')
-Artwork.tag_objs = relation(Tag, backref='artwork', secondary=artwork_tags)
+Artwork.tag_objs = relation(Tag, secondary=artwork_tags, backref=backref('artwork', innerjoin=True))
 Artwork.tags = association_proxy('tag_objs', 'name', creator=get_or_create_tag)
-Artwork.uploader = relation(User, backref='uploaded_artwork')
-Artwork.user_artwork = relation(UserArtwork, backref='artwork')
-Artwork.ratings = relation(ArtworkRating, backref='artwork',
-                    extension=ArtworkRatingsAttributeExtension())
+Artwork.uploader = relation(User, innerjoin=True,
+    backref='uploaded_artwork')
+Artwork.user_artwork = relation(UserArtwork,
+    backref=backref('artwork', innerjoin=True))
+Artwork.ratings = relation(ArtworkRating,
+    backref=backref('artwork', innerjoin=True),
+    extension=ArtworkRatingsAttributeExtension())
 
 #User.discussion = relation(Discussion, backref='user')
-User.user_artwork = relation(UserArtwork, backref='user')
-User.ratings_given = relation(ArtworkRating, backref='user')
+User.user_artwork = relation(UserArtwork, backref=backref('user', innerjoin=True))
+User.ratings_given = relation(ArtworkRating, backref=backref('user', innerjoin=True))
 
 # Permissions
-User.role = relation(Role, uselist=False, backref='users')
+User.role = relation(Role, innerjoin=True, backref='users')
 Role.privileges = relation(Privilege, secondary=RolePrivilege.__table__)
 
 # Comments
-Resource.discussion = relation(Discussion, uselist=False, backref='resource')
+Resource.discussion = relation(Discussion, uselist=False,
+    backref=backref('resource', innerjoin=True))
 
-Comment.author = relation(User, backref='comments')
+Comment.author = relation(User, innerjoin=True, backref='comments')
 
-Discussion.comments = relation(Comment, order_by=Comment.left.asc(), backref='discussion')
+Discussion.comments = relation(Comment, order_by=Comment.left.asc(),
+    backref=backref('discussion', innerjoin=True))
 
 # Tags & Labels
-Label.user = relation(User, backref='labels')
+Label.user = relation(User, innerjoin=True, backref='labels')
 Label.artwork = relation(Artwork, secondary=artwork_labels)
