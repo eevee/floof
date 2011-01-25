@@ -7,7 +7,7 @@
 <h1>${lib.icon('user-nude')} <a href="${url.current(action='profile')}">${c.this_user.name}</a></h1>
 
 ## this is kinda grody until there are enough bits to flesh it out
-% if c.user != c.this_user:
+% if c.user and c.user != c.this_user:
 <div>
     <a href="${url(controller='controls', action='relationships_watch', target_user=c.this_user.name)}">
         % if any(watch.other_user == c.this_user for watch in c.user.watches):
