@@ -6,17 +6,15 @@
 
 ## Only show art watches for now; the others don't have a remote chance of
 ## working yet
-% for rel_type, rel_label in [ \
-    (u'watch.art', u'Watching art') ]:
-<h2>${rel_label}</h2>
-% if c.relationships[rel_type]:
+<h2>Watches</h2>
+% if c.watches:
 <table class="user-list">
-    % for user in c.relationships[rel_type]:
+    % for watch in c.watches:
     <tr>
-        <td>${lib.user_link(user)}</td>
+        <td>${lib.user_link(watch.other_user)}</td>
+    </tr>
     % endfor
-</ul>
+</table>
 % else:
 <p>Nobody.</p>
 % endif
-% endfor

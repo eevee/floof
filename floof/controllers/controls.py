@@ -132,12 +132,10 @@ class ControlsController(BaseController):
         # exists
         # XXX: show timestamps
 
-        c.relationships = defaultdict(list)
-        q = meta.Session.query(model.UserRelationship) \
+        q = meta.Session.query(model.UserWatch) \
             .filter_by(user_id=c.user.id) \
-            .order_by(model.UserRelationship.created_time.desc())
-        for rel in q:
-            c.relationships[rel.relationship_type].append(rel.other_user)
+            .order_by(model.UserWatch.created_time.desc())
+        c.watches = q.all()
 
         c.current_action = 'relationships'
         return render('/account/controls/relationships.mako')
