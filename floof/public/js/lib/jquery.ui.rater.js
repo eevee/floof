@@ -23,7 +23,7 @@
             // The rating sum/num rating indicator
             self.element.prepend($("<div></div>")
                         .addClass('rater-info')
-                        .html("<span class='rater-num-ratings'>" + self.options.num_ratings + "</span> (<span class='rater-rating-sum'>" + self.options.rating_sum + "</span>)")); // Text interspersed with elements makes doing this 'right' hard :p
+                        .html("<span class='rater-num-ratings'>" + self.options.num_ratings + "</span> (<span class='rater-rating-sum'>" + self._display_rating(self.options.rating_sum) + "</span>)")); // Text interspersed with elements makes doing this 'right' hard :p
 
             rate_span.append($("<a>" + self.options.up_str + "</a>")
                       .addClass('ui-rater-button-up')
@@ -71,7 +71,7 @@
                         self.options.rating_sum = data.rating_sum;
                         $('.rater-info').hide('fade', 100, function() {
                             $('.rater-num-ratings').text(self.options.num_ratings);
-                            $('.rater-rating-sum').text(self.options.rating_sum);
+                            $('.rater-rating-sum').text(self._display_rating(self.options.rating_sum));
                             $('.rater-info').show('fade', 100);
                         });
                     }
@@ -88,6 +88,15 @@
                 else
                     $(this).removeClass('ui-rater-button-active');
             });
+        },
+        // Converts null to an em dash for display
+        _display_rating: function(rating) {
+            if (rating == null) {
+                return '—'
+            }
+            else {
+                return rating
+            }
         }
     });
 })(jQuery);

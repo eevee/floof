@@ -188,7 +188,7 @@ class Artwork(TableBase):
     __mapper_args__ = {'polymorphic_on': media_type}
     rating_count = Column(Integer, nullable=False, default=0)
     rating_sum = Column(Float, nullable=False, default=0)
-    rating_score = Column(Float, nullable=False, default=0)
+    rating_score = Column(Float, nullable=True, default=None)
 
     @property
     def resource_title(self):
