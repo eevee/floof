@@ -138,6 +138,7 @@ class User(TableBase):
 
         return can
 
+    @property
     def logged_privs(self):
         if hasattr(self, '_logged_privs'):
             return self._logged_privs
@@ -375,7 +376,6 @@ artwork_labels = Table('artwork_labels', meta.metadata,
 class Log(TableBase):
     __tablename__ = 'logs'
     id = Column(Integer, primary_key=True)
-    visibility = Column(Enum(u'public', u'admin', name='logs_visibility'), nullable=False)
     timestamp = Column(DateTime, nullable=False, default=now)
     logger = Column(String, nullable=False)
     level = Column(Integer, nullable=False)
@@ -401,7 +401,7 @@ def get_log_records(count=50, offset=0):
 
 def get_public_log_records(count=50, offset=0):
     return meta.Session.query(Log) \
-            .filter_by(visibility='public') \
+            .filter_by(level=25) \
             .order_by(Log.timestamp.desc()) \
             .offset(offset) \
             .limit(count) \
