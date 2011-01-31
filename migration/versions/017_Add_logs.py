@@ -21,7 +21,7 @@ class Privilege(TableBase):
 class Log(TableBase):
     __tablename__ = 'logs'
     id = Column(Integer, primary_key=True)
-    visibility = Column(Enum(u'public', u'admin'), nullable=False)
+    visibility = Column(Enum(u'public', u'admin', name='logs_visibility'), nullable=False)
     timestamp = Column(DateTime, nullable=False)
     logger = Column(String, nullable=False)
     level = Column(Integer, nullable=False)

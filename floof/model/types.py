@@ -1,7 +1,9 @@
 import pytz
 import re
 from socket import AF_INET, AF_INET6, inet_ntop, inet_pton
+
 from sqlalchemy import types
+from sqlalchemy.dialects.postgresql import INET
 
 class TZDateTime(types.TypeDecorator):
     impl = types.DateTime
@@ -37,22 +39,29 @@ class Timezone(types.TypeDecorator):
 # XXX: According to the Python docs, socket.inet_pton only works on *nix
 # XXX: I have not actually tested this with IPv6
 class IPAddr(types.TypeDecorator):
-    impl = types.LargeBinary(length=16)
+    impl = types.LargeBinary
 
-    def __init__(self):
-        pass
+    def load_dialect_impl(self, dialect):
+        if dialect.name == 'postgresql':
+            return dialect.type_descriptor(INET())
+        else:
+            return dialect.type_descriptor(types.LargeBinary(length=16))
 
-    def process_bind_param(self, value, engine):
+    def process_bind_param(self, value, dialect):
         if value is None:
             return None
+        elif dialect.name == 'postgresql':
+            return str(value)
         elif '.' in value:
             return inet_pton(AF_INET, value)
         else:
             return inet_pton(AF_INET6, value)
 
-    def process_result_value(self, value, engine):
+    def process_result_value(self, value, dialect):
         if value is None:
             return None
+        elif dialect.name == 'postgresql':
+            return str(value)
         elif len(value) == 4:
             return inet_ntop(AF_INET, value)
         else:

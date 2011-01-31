@@ -375,7 +375,7 @@ artwork_labels = Table('artwork_labels', meta.metadata,
 class Log(TableBase):
     __tablename__ = 'logs'
     id = Column(Integer, primary_key=True)
-    visibility = Column(Enum(u'public', u'admin'), nullable=False)
+    visibility = Column(Enum(u'public', u'admin', name='logs_visibility'), nullable=False)
     timestamp = Column(DateTime, nullable=False, default=now)
     logger = Column(String, nullable=False)
     level = Column(Integer, nullable=False)
