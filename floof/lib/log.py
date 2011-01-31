@@ -4,6 +4,7 @@ from floof import model
 from floof.model import Log, meta
 
 from datetime import datetime
+import logging
 from logging import *
 
 """
@@ -37,6 +38,7 @@ is to raise an exception.
 
 # Between INFO (20) and WARNING (30).
 ADMIN = 25
+logging.addLevelName(ADMIN, 'ADMIN')
 
 class FloofFilter(Filter):
     """
@@ -87,11 +89,8 @@ class FloofDBHandler(Handler):
         meta.Session.commit()
 
 class FloofFileHandler(FileHandler):
-    """
-    Simply adds a FloofFilter to a FileHandler.
-
-    There doesn't seem to be a way to do this via the config file,
-    though I may be wrong. --epii
+    """Simply adds a FloofFilter to a FileHandler.  Alas, this can't be done
+    via the paster config file.
     """
     def __init__(self, *args):
         FileHandler.__init__(self, *args)
