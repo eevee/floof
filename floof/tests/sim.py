@@ -12,7 +12,8 @@ from floof.model import meta
 # But, for now, the constant values below were determined to be sufficiently
 # random.
 
-def sim_user():
+def sim_user(role='user'):
+    role_id = meta.Session.query(model.Role).filter_by(name=role).one().id
     user = model.User(
         name = 'sim_' + ''.join(random.choice(string.letters) for n in range(10)),
         role_id = 1,

@@ -3,6 +3,7 @@
 
 *.db
 *.ini
+*.log
 *.egg-info/
 data/
 floof/public/files

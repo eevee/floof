@@ -385,3 +385,22 @@ dl.standard-form {
         font-size: 0.8em;
     }
 }
+
+
+////////////////////////////////////////////////////////////////////////////////
+// App-specific components
+
+// Some generic table stylings. Not necessarily complete.
+table {
+    th {
+        background: $body-bg;
+        font-weight: bold;
+    }
+    tr.even {
+        background: lighten($body-bg, 12%);
+    }
+    th, td {
+        padding: 0.5em;
+    }
+}
+

@@ -62,6 +62,7 @@
                 in ${lib.timedelta(c.timer.sql_time)}
         </p>
         <p>Icons from the <a href="http://p.yusukekamiyamane.com/">Fugue set</a></p>
+        <p><a href="${url(controller='main', action='log')}">Admin log</a></p>
     </div>
 
     % if config.get('super_debug', False):

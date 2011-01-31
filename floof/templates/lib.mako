@@ -14,6 +14,19 @@
 %>
 <%def name="stdicon(which)">${icon(standard_icons[which])}</%def>
 
+<%!
+    level_icons = {
+        10: ('debug', 'document-list'),
+        20: ('info', 'information-frame'),
+        25: ('admin', 'hand-point'),
+        30: ('warning', 'exclamation-diamond-frame'),
+        40: ('error', 'cross-circle-frame'),
+        50: ('critical', 'exclamation-red-frame'),
+    }
+%>
+<%def name="levelname(level)">${level_icons[level][0]}</%def>
+<%def name="levelicon(level)">${icon(level_icons[level][1], level_icons[level][0])}</%def>
+
 <%def name="time(t)">
 ${c.user.localtime(t).strftime('%A, %d %B %Y at %H:%M %Z')}
 </%def>

@@ -46,6 +46,8 @@ def make_map(config):
     map.connect('/account/controls/relationships/unwatch_commit', controller='controls',
         action='relationships_unwatch_commit', **require_POST)
 
+    map.connect('/log', controller='main', action='log')
+
     map.connect('user', '/users/{name}', controller='users', action='view', _filter=user_filter)
     map.connect('/users/{name}/{action}', controller='users')
 

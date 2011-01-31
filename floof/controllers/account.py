@@ -91,6 +91,9 @@ class AccountController(BaseController):
             session['user_id'] = user.id
             session.save()
 
+            log.debug('User {0} (#{1}) logged in with OpenID URL "{2}"'
+                    .format(user.id, user.name, identity_url)) 
+
             helpers.flash(u"""Hello, {0}!""".format(user.display_name),
                     icon='user')
 
@@ -147,6 +150,7 @@ class AccountController(BaseController):
         user.identity_urls.append(openid)
 
         meta.Session.commit()
+        log.info('User #{0} registered: {1}'.format(user.id, user.name))
 
         # Log 'em in
         del session['pending_identity_url']
