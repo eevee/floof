@@ -18,7 +18,8 @@
     level_icons = {
         10: ('debug', 'document-list'),
         20: ('info', 'information-frame'),
-        25: ('admin', 'hand-point'),
+        25: ('admin-public', 'hand-point'),
+        26: ('admin-private', 'hand-point'),
         30: ('warning', 'exclamation-diamond-frame'),
         40: ('error', 'cross-circle-frame'),
         50: ('critical', 'exclamation-red-frame'),
