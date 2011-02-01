@@ -27,7 +27,7 @@ off = "odd" %>
     % if record.user:
     <td>${record.user.name}</td>
     % else:
-    <td>Anonymous</td>
+    <td>—</td>
     % endif
     % if record.target_user:
     <td>${record.target_user.name}</td>

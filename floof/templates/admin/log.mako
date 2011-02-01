@@ -33,14 +33,14 @@ off = "odd" %>
     % if record.user:
     <td>${record.user.name}</td>
     % else:
-    <td>Anonymous</td>
+    <td>—</td>
     % endif
     <% privs = ', '.join([priv.name for priv in record.privileges]) %>
     <td>${privs}</td>
     % if record.target_user:
     <td>${record.target_user.name}</td>
     % else:
-    <td>N/A</td>
+    <td>—</td>
     % endif
     <td>${record.message}</td>
     <td>${record.reason}</td>
