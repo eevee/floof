@@ -24,7 +24,7 @@ off = "odd" %>
   <% curr, off = off, curr %>
   <tr class="${curr}">
     <td>${lib.levelicon(record.level)} ${lib.levelname(record.level)}</td>
-    <td>${record.timestamp}</td>
+    <td>${lib.time(record.timestamp)}</td>
     % if record.ipaddr:
     <td>${record.ipaddr}</td>
     % else:

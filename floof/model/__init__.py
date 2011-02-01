@@ -376,7 +376,7 @@ artwork_labels = Table('artwork_labels', meta.metadata,
 class Log(TableBase):
     __tablename__ = 'logs'
     id = Column(Integer, primary_key=True)
-    timestamp = Column(DateTime, nullable=False, default=now)
+    timestamp = Column(TZDateTime, nullable=False, default=now)
     logger = Column(String, nullable=False)
     level = Column(Integer, nullable=False)
     user_id = Column(Integer, ForeignKey('users.id'))

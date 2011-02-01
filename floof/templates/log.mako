@@ -1,4 +1,5 @@
 <%inherit file="/base.mako" />
+<%namespace name="lib" file="/lib.mako" />
 <%def name="title()">Public Admin Log</%def>
 
 <h1>Public Admin Log</h1>
@@ -22,7 +23,7 @@ off = "odd" %>
 % for record in c.records:
   <% curr, off = off, curr %>
   <tr class="${curr}">
-    <td>${record.timestamp}</td>
+    <td>${lib.time(record.timestamp)}</td>
     % if record.user:
     <td>${record.user.name}</td>
     % else:
