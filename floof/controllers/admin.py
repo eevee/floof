@@ -2,6 +2,7 @@ import logging
 
 from pylons import request, response, session, tmpl_context as c
 from pylons.controllers.util import abort, redirect
+from sqlalchemy.orm import subqueryload
 
 from floof.lib.base import BaseController, render
 from floof.lib.decorators import user_must
@@ -20,5 +21,8 @@ class AdminController(BaseController):
     @user_must('admin.view')
     def log(self):
         c.current_action = 'log'
-        c.records = model.get_log_records()
+        c.records = meta.Session.query(model.Log) \
+            .options(subqueryload('privileges')) \
+            .offset(0) \
+            .limit(50)
         return render('/admin/log.mako')

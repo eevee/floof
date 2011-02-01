@@ -7,7 +7,7 @@ import re
 from sqlalchemy import Column, ForeignKey, MetaData, Table, and_
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import backref, class_mapper, joinedload, relation, subqueryload, validates
+from sqlalchemy.orm import backref, class_mapper, relation, subqueryload, validates
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.properties import ColumnProperty
 from sqlalchemy.orm.session import object_session
@@ -376,9 +376,9 @@ artwork_labels = Table('artwork_labels', meta.metadata,
 class Log(TableBase):
     __tablename__ = 'logs'
     id = Column(Integer, primary_key=True)
-    timestamp = Column(TZDateTime, nullable=False, default=now)
+    timestamp = Column(TZDateTime, nullable=False, index=True, default=now)
     logger = Column(String, nullable=False)
-    level = Column(Integer, nullable=False)
+    level = Column(Integer, nullable=False, index=True)
     user_id = Column(Integer, ForeignKey('users.id'))
     url = Column(Unicode)
     ipaddr = Column(IPAddr)
@@ -386,27 +386,12 @@ class Log(TableBase):
     message = Column(Unicode, nullable=False)
     reason = Column(Unicode)
 
+    __mapper_args__ = {'order_by': timestamp.desc()}
+
 log_privileges = Table('log_privileges', meta.metadata,
     Column('log_id', Integer, ForeignKey('logs.id'), primary_key=True, nullable=False),
     Column('priv_id', Integer, ForeignKey('privileges.id'), primary_key=True, nullable=False),
 )
-
-def get_log_records(count=50, offset=0):
-    return meta.Session.query(Log) \
-            .options(joinedload('privileges')) \
-            .order_by(Log.timestamp.desc()) \
-            .offset(offset) \
-            .limit(count) \
-            .all()
-
-def get_public_log_records(count=50, offset=0):
-    return meta.Session.query(Log) \
-            .filter_by(level=25) \
-            .order_by(Log.timestamp.desc()) \
-            .offset(offset) \
-            .limit(count) \
-            .all()
-
 
 
 ### RELATIONS
