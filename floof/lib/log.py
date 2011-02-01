@@ -1,4 +1,5 @@
 from pylons import request, response, session, tmpl_context as c, url
+from sqlalchemy.orm import scoped_session, sessionmaker
 
 from floof import model
 from floof.model import Log, meta
@@ -15,12 +16,13 @@ To use, issue statements like the following in a controller:
 
     log.info('A description of the log')
 or
-    log.log(ADMIN, 'An admin action log')
+    log.log(PRIV_ADMIN, 'A private admin action log')
 or
-    log.log(ADMIN, 'This admin action log will be publically viewable', extra={'visibility':'public'})
+    log.log(ADMIN, 'This admin action log will be publically viewable')
 
-ADMIN is a constant defined in this module.  You'll need something like:
-    from floof.lib.log import ADMIN
+ADMIN and PRI_ADMIN are constants defined in this module.  You'll need
+something like:
+    from floof.lib.log import ADMIN, PRIV_ADMIN
 
 If the request triggering the log required permissions to complete, the
 filter will attempt to log which privileges held by the user were
@@ -30,15 +32,13 @@ if any other privileges were excercised, set the keyword flag `log` to
 True when you use c.user.can.  e.g.:
     c.user.can('priv', log=True)
 
-Note that the current behaviour should a log record attempt to make
-public an action that did not require a privilege prefixed with 'admin.'
-is to raise an exception.
-
 """
 
 # Between INFO (20) and WARNING (30).
 ADMIN = 25
+PRIV_ADMIN = 26
 logging.addLevelName(ADMIN, 'ADMIN')
+logging.addLevelName(PRIV_ADMIN, 'PRIV_ADMIN')
 
 class FloofFilter(Filter):
     """
@@ -49,18 +49,10 @@ class FloofFilter(Filter):
         record.user = None
         record.username = None
         record.privileges = []
-        if not hasattr(record, 'visibility'):
-            record.visibility = 'admin'
-        has_admin_privs = False
         if c.user:
             record.user = c.user
             record.username = c.user.name
-            record.privileges = c.user.logged_privs()
-            for priv in c.user.logged_privs():
-                if priv.name.startswith('admin.'):
-                    has_admin_privs = True
-        if record.visibility == 'public' and not has_admin_privs:
-            raise RuntimeError('Attempted to log a non-admin action publically.')
+            record.privileges = c.user.logged_privs
         record.url = url.current()
         # XXX: Fix this to account for proxied requests (e.g. via nginx).
         record.ipaddr = request.remote_addr
@@ -73,7 +65,6 @@ class FloofDBHandler(Handler):
 
     def emit(self, record):
         entry = Log(
-                visibility=record.visibility,
                 timestamp=datetime.fromtimestamp(record.created),
                 logger=record.name,
                 level=record.levelno,

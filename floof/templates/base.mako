@@ -35,6 +35,9 @@
             % if c.user:
                 <li><a href="${url(controller='controls', action='index')}">Controls</a></li>
             % endif
+            % if c.user.can('admin.view'):
+                <li><a href="${url(controller='admin', action='dashboard')}">Admin</a></li>
+            % endif
         </ul>
     </div>
 

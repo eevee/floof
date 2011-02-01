@@ -17,6 +17,7 @@ from floof.lib import helpers
 from floof.lib.base import BaseController, render
 from floof.lib.decorators import user_must
 from floof.lib.gallery import GalleryView
+from floof.lib.log import ADMIN, PRIV_ADMIN
 from floof.model import meta
 from floof import model
 
