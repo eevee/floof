@@ -1,12 +1,10 @@
 <%inherit file="/base.mako" />
 <%def name="title()">Public Admin Log</%def>
 
-<h1>Pubic Admin Log</h1>
+<h1>Public Admin Log</h1>
 
 <p>This is a log of all administrative actions, for purposes of
 transparency.</p>
-
-<p>Not sure if we want this, but it's here as an example. --epii</p>
 
 <table class="log">
 <thead>
