@@ -3,6 +3,7 @@
 <html>
 <head>
     <title>${self.title()} - ${config['site_title']}</title>
+    <meta charset="utf-8" />
     <link rel="stylesheet" type="text/css" href="${url('css', which='all')}">
     ${h.javascript_link(url('/js/lib/jquery-1.4.4.min.js'))}
     ${h.javascript_link(url('/js/lib/jquery.cookie.js'))}
@@ -20,10 +21,25 @@
         <div id="logo"><a href="${url('/')}">floof</a></div>
         <div id="user">
             % if c.user:
-                ${h.secure_form(url(controller='account', action='logout'), class_='compact')}
-                <p>Hello, ${lib.user_link(c.user)}!</p>
-                <p><button type="submit">Log out</button></p>
-                ${h.end_form()}
+            ${h.secure_form(url(controller='account', action='logout'), class_='compact')}
+            <p>Hello, ${lib.user_link(c.user)}!</p>
+                % if c.auth.can_purge:
+                <p><input type="submit" value="Log out" /></p>
+                % else:
+                <p>To log out, you'll need to instruct your browser to stop
+                sending your SSL certificate.</p>
+                % endif
+            ${h.end_form()}
+            % elif c.auth.pending_user:
+            <p><a href="${url(controller='account', action='login')}">Complete log in for ${c.auth.pending_user.name}</a></p>
+            ${h.secure_form(url(controller='account', action='purge_auth'), class_='compact')}
+                % if c.auth.can_purge:
+                <p><input type="submit" value="Purge Authentication" /></p>
+                % else:
+                <p>To log in as someone else, you'll need to instruct
+                your browser to stop sending your SSL certificate.</p>
+                % endif
+            ${h.end_form()}
             % else:
             <a href="${url(controller='account', action='login')}">Log in or register</a>
             % endif

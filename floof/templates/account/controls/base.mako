@@ -10,6 +10,8 @@
         ('index',           'fruit',        u'Index??'), \
         ('openid',          'user',         u'OpenID Identities'), \
         ('relationships',   'users',        u'Watches'), \
+        ('certificates',    'key',          u'SSL Certificates'), \
+        ('authentication',  'key',          u'Authentication Options'), \
     ]:
     % if action == c.current_action:
     <li class="selected">${lib.icon(icon)} ${title}</li>
@@ -21,3 +23,4 @@
 
 <div id="control-panel-content">
 ${next.body()}
+</div>

@@ -5,6 +5,7 @@ import floof.tests.openidspoofer as oidspoof
 import floof.tests.sim as sim
 
 from openid import oidutil
+import OpenSSL.crypto as ssl
 
 PORT = 19614
 DATA_PATH = '/tmp'
@@ -128,3 +129,141 @@ class TestControlsController(TestController):
                 )
         assert 'http://localhost:{0}/id/flooftest1</label>'.format(PORT) in response, 'Test user\'s final OpenID URL was deleted.  It should not have been.'
         assert 'http://localhost:{0}/id/flooftest2</label>'.format(PORT) not in response, 'Found an OpenID identity URL that should not have been.'
+
+    def test_certificates(self):
+        """Test generation, viewing, downloading and revocation of SSL certificates."""
+        # Test generation
+        response = self.app.get(
+                url(controller='controls', action='certificates'),
+                extra_environ={'tests.user_id': self.user.id},
+                )
+        assert 'Generate New Certificate' in response, 'Could not find the anticipated page title.'
+        for days, time in [(31, '30 days, 23 hours'), (366, '365 days, 23 hours')]:
+            response = self.app.post(
+                    url(controller='controls', action='certificates'),
+                    params=[
+                        ('days', days),
+                        ('generate', u'Generate New Certificate'),
+                        ],
+                    extra_environ={'tests.user_id': self.user.id},
+                    )
+            response = self.app.get(
+                    response.headers['location'],
+                    extra_environ={'tests.user_id': self.user.id},
+                    )
+            assert time in response, 'Unable to find appropriate time to expiry for new certificate.'
+
+        assert url(controller='controls', action='certificates_details', id=2) in response, 'Could not find a link to a certificate details page.'
+
+        # Test viewing details
+        response = self.app.get(
+                url(controller='controls', action='certificates_details', id=2),
+                extra_environ={'tests.user_id': self.user.id},
+                )
+        assert 'Certificate ID 2' in response, 'Unable to find appropriate time to expiry for new certificate.'
+        assert 'OU=Users, CN={0}'.format(self.user.name) in response, 'Unable to find appropriate Subject field.'
+        assert 'X509v3 Authority Key Identifier:' in response, 'Unable to find Authority Key Identifier X.509 extension.'
+        assert 'X509v3 Subject Key Identifier:' in response, 'Unable to find Subject Key Identifier X.509 extension.'
+        assert """
+            X509v3 Basic Constraints: 
+                CA:FALSE
+            X509v3 Key Usage: critical
+                Digital Signature
+            X509v3 Extended Key Usage: critical
+                TLS Web Client Authentication\n""" in response, 'Unable to find anticipated X.509 extensions.'
+
+        # Test downloading PKCS12
+        response = self.app.get(
+                url(controller='controls', action='certificates_download_prep', id=2),
+                extra_environ={'tests.user_id': self.user.id},
+                )
+        assert 'Certificate ID 2' in response, 'Unable to find appropriate time to expiry for new certificate.'
+        assert 'Passphrase' in response, 'Unable to find passphrase prompt.'
+        response = self.app.post(
+                url(controller='controls', action='certificates_download', user=self.user.name, id=2),
+                params=[
+                    ('passphrase', u'1234'),
+                    ('download', u'Download Certificate')
+                    ],
+                extra_environ={'tests.user_id': self.user.id},
+                )
+        assert response.content_type == 'application/x-pkcs12', 'Anticipated a response MIME type of "application/x-pkcs12", got {0}'.format(response.content_type)
+        pkcs12 = ssl.load_pkcs12(response.response.content, u'1234')
+        # TODO: Test pkcs12 further... ?
+
+        # Test revocation
+        response = self.app.get(
+                url(controller='controls', action='certificates_revoke', id=1),
+                extra_environ={'tests.user_id': self.user.id},
+                )
+        assert 'Permanently Revoke Certificate ID 1' in response, 'Unable to find anticipated heading in page.'
+        response = self.app.post(
+                url(controller='controls', action='certificates_revoke', user=self.user.name, id=1),
+                params=[('ok', u'Revoke Certificate')],
+                extra_environ={'tests.user_id': self.user.id},
+                )
+        response = self.app.get(
+                url(controller='controls', action='certificates'),
+                extra_environ={'tests.user_id': self.user.id},
+                )
+        assert url(controller='controls', action='certificates_details', id=1) in response, 'Revoked cert not found on certificates pasge at all/'
+        assert url(controller='controls', action='certificates_revoke', id=1) not in response, 'Revocation link found for supposedly revoked certificate.'
+
+
+    def test_auth_method_change(self):
+        """Test changing the user authentication method."""
+        response = self.app.get(
+                url(controller='controls', action='authentication'),
+                extra_environ={'tests.user_id': self.user.id},
+                )
+        assert 'selected="selected" value="openid_only"' in response, 'Could not find evidence of anticipated default value.'
+        response = self.app.post(
+                url(controller='controls', action='authentication'),
+                params=[
+                    ('confirm', u'Confirm Authentication Method Change'),
+                    ('auth_method', u'cert_and_openid')
+                    ],
+                extra_environ={'tests.user_id': self.user.id},
+                )
+        response = self.app.get(
+                url(controller='controls', action='authentication'),
+                extra_environ={'tests.user_id': self.user.id},
+                )
+        assert 'selected="selected" value="openid_only"' in response, 'Allowed change to method requiring a certificate when user has no certificates.'
+        response = self.app.post(
+                url(controller='controls', action='certificates'),
+                params=[
+                    ('days', 31),
+                    ('generate', u'Generate New Certificate'),
+                    ],
+                extra_environ={'tests.user_id': self.user.id},
+                )
+        response = self.app.post(
+                url(controller='controls', action='authentication'),
+                params=[
+                    ('confirm', u'Confirm Authentication Method Change'),
+                    ('auth_method', u'cert_and_openid')
+                    ],
+                extra_environ={'tests.user_id': self.user.id},
+                )
+        response = self.app.get(
+                url(controller='controls', action='authentication'),
+                extra_environ={'tests.user_id': self.user.id},
+                )
+        assert 'selected="selected" value="openid_only"' in response, 'Allowed change to method requiring a certificate when user did not present one in request.'
+        user = meta.Session.query(model.User).filter_by(id=self.user.id).one()
+        assert len(user.valid_certificates) > 0, 'User does not appear to have any valid certificates, even though we just created one.'
+        serial = user.valid_certificates[0].serial
+        response = self.app.post(
+                url(controller='controls', action='authentication'),
+                params=[
+                    ('confirm', u'Confirm Authentication Method Change'),
+                    ('auth_method', u'cert_and_openid')
+                    ],
+                extra_environ={'tests.user_id': self.user.id, 'tests.auth_cert_serial': serial},
+                )
+        response = self.app.get(
+                url(controller='controls', action='authentication'),
+                extra_environ={'tests.user_id': self.user.id},
+                )
+        assert 'selected="selected" value="cert_and_openid"' in response, 'The authentication method did not appear to update.'

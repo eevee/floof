@@ -1,7 +1,11 @@
 """The application's model objects"""
 import datetime
+import hashlib
 import math
+import OpenSSL.crypto as ssl
+import os
 import pytz
+import random
 import re
 
 from sqlalchemy import Column, ForeignKey, MetaData, Table, and_
@@ -16,6 +20,7 @@ from sqlalchemy.types import *
 from floof.model.extensions import *
 from floof.model.types import *
 from paste.deploy.converters import asint
+from pylons import config
 
 from floof.model import meta
 
@@ -114,6 +119,12 @@ class User(TableBase):
     name = Column(Unicode(24), nullable=False, index=True, unique=True)
     timezone = Column(Timezone, nullable=True)
     role_id = Column(Integer, ForeignKey('roles.id'), nullable=False)
+    auth_method = Column(Enum(
+        u'cert_only',
+        u'openid_only',
+        u'cert_or_openid',
+        u'cert_and_openid',
+        name='user_auth_method'), nullable=False, default=u'openid_only')
 
     def localtime(self, dt):
         """Return a datetime localized to this user's preferred timezone."""
@@ -126,9 +137,7 @@ class User(TableBase):
         if not self.role:
             return False
 
-        priv = object_session(self).query(Privilege) \
-            .filter_by(name=permission).one()
-        can = priv in self.role.privileges
+        can = permission in [priv.name for priv in self.role.privileges]
 
         if can and log:
             if not hasattr(self, '_logged_privs'):
@@ -152,6 +161,14 @@ class User(TableBase):
         return self.name
 
     @property
+    def invalid_certificates(self):
+        return [cert for cert in self.certificates if not cert.valid]
+
+    @property
+    def valid_certificates(self):
+        return [cert for cert in self.certificates if cert.valid]
+
+    @property
     def profile(self):
         """Returns the user's profile, if they have one.
 
@@ -167,7 +184,7 @@ class User(TableBase):
         if self._profile is None:
             self._profile = UserProfile()
         self._profile.content = value
-
+    
 class IdentityURL(TableBase):
     __tablename__ = 'identity_urls'
     id = Column(Integer, primary_key=True, nullable=False)
@@ -337,6 +354,181 @@ class UserProfileRevision(TableBase):
     content = Column(Unicode, nullable=True)
 
 
+### CERTIFICATES
+
+class Certificate(TableBase):
+    __tablename__ = 'certificates'
+    id = Column(Integer, primary_key=True, nullable=False)
+    serial = Column(Unicode, unique=True, index=True, nullable=False)
+    user_id = Column(Integer, ForeignKey('users.id'))
+    created_time = Column(TZDateTime, nullable=False)
+    expiry_time = Column(TZDateTime, nullable=False)
+    revoked = Column(Boolean, nullable=False, default=False)
+    revoked_time = Column(TZDateTime)
+    bits = Column(Integer, nullable=False)
+    public_data = Column(String, nullable=False)
+    private_data = Column(String, nullable=False)
+    pkcs12_data = Column(LargeBinary, nullable=False)
+
+    @validates('revoked')
+    def validate_revoked(self, key, status):
+        if self.revoked:
+            assert status == True, 'It is not possible to un-revoke a certificate.'
+        return status
+
+    @validates('user')
+    def validate_user(self, key, user):
+        """Enforce that the certificate is available only to the user
+        to whom it was issued."""
+        cert = ssl.load_certificate(ssl.FILETYPE_PEM, self.public_data)
+        assert cert.get_subject().commonName == user.name
+        return user
+
+    @property
+    def details(self):
+        """Render the certificate's public component as human-readable text."""
+        pubcert = ssl.load_certificate(ssl.FILETYPE_PEM, self.public_data)
+        return ssl.dump_certificate(ssl.FILETYPE_TEXT, pubcert)
+
+    @property
+    def expired(self):
+        """Returns True if the certificate has expired."""
+        return self.expiry_time < now()
+
+    @property
+    def valid(self):
+        """Returns True if the certificate is neither expired nor revoked."""
+        return not self.expired and not self.revoked
+
+    def __init__(self, user, **kwargs):
+        ca_cert, ca_key = self.get_ca()
+        site_title=ca_cert.get_subject().organizationName
+        cert, cert_key, serial, bits, begin, expire = self.make_cert(
+                site_title=site_title,
+                ca=False,
+                user=user,
+                **kwargs
+                )
+
+        pkcs12 = ssl.PKCS12()
+        pkcs12.set_certificate(cert)
+        pkcs12.set_privatekey(cert_key)
+        pkcs12.set_ca_certificates([ca_cert])
+        pkcs12.set_friendlyname('User "{0}" at {1}'.format(user.name, site_title))
+
+        self.serial = u'{0:x}'.format(serial)
+        self.created_time = begin
+        self.expiry_time = expire
+        self.bits = bits
+        self.public_data = ssl.dump_certificate(ssl.FILETYPE_PEM, cert).decode()
+        self.private_data = ssl.dump_privatekey(ssl.FILETYPE_PEM, cert_key).decode()
+        self.pkcs12_data = pkcs12.export()
+
+    def revoke(self):
+        self.revoked = True
+        self.revoked_time = now()
+        self.generate_crl()
+
+    # XXX: Requires config dict, open()
+    @classmethod
+    def generate_crl(self):
+        current_time = now()
+        revoked = meta.Session.query(Certificate).filter_by(revoked=True).all()
+        crl = ssl.CRL()
+        for cert in revoked:
+            r = ssl.Revoked()
+            r.set_serial(cert.serial)
+            r.set_rev_date(cert.revoked_time.strftime('%Y%m%d%H%M%SZ'))
+            crl.add_revoked(r)
+        ca_cert, ca_key = self.get_ca()
+        crl_file = os.path.join(config['client_cert_dir'], 'crl.pem')
+        with open(crl_file, 'w') as f:
+            f.write(crl.export(ca_cert, ca_key, ssl.FILETYPE_PEM))
+
+    @classmethod
+    def get(self, Session, id=None, serial=None):
+        try:
+            if id is not None:
+                return Session.query(Certificate).filter_by(id=id).one()
+            if serial is not None:
+                if isinstance(serial, int):
+                    serial = '{0:x}'.format(serial)
+                else:
+                    serial = unicode(serial.lower())
+                return Session.query(Certificate).filter_by(serial=serial).one()
+        except NoResultFound:
+            return None
+
+    # XXX: Requires config dict, open()
+    @classmethod
+    def get_ca(self):
+        """Fetches the CA certificate and key.
+
+        Returns a (ca_cert, ca_key) tuple, where ca_cert is a pyOpenSSL
+        X509 object and ca_key is a pyOpenSSL PKey object.
+
+        """
+        # TODO: Cache this.  Or something
+        cert_dir = config['client_cert_dir']
+        ca_cert_file = os.path.join(cert_dir, 'ca.pem')
+        ca_key_file = os.path.join(cert_dir, 'ca.key')
+        with open(ca_cert_file, 'rU') as f:
+            ca_cert = ssl.load_certificate(ssl.FILETYPE_PEM, f.read())
+        with open(ca_key_file, 'rU') as f:
+            ca_key = ssl.load_privatekey(ssl.FILETYPE_PEM, f.read())
+        return ca_cert, ca_key
+
+    @classmethod
+    def make_cert(self, site_title, ca=False, user=None, bits=2048, days=3653, digest='sha1'):
+        """Returns a new X.509 certificate."""
+        now = datetime.datetime.now(pytz.utc)
+        expire = now + datetime.timedelta(days=days)
+
+        cert_key = ssl.PKey()
+        cert_key.generate_key(ssl.TYPE_RSA, bits)
+
+        cert = ssl.X509()
+        cert.set_version(2)  # Value 2 means v3
+        cert.get_subject().organizationName = site_title
+        cert.set_notBefore(now.strftime('%Y%m%d%H%M%SZ'))
+        cert.set_notAfter(expire.strftime('%Y%m%d%H%M%SZ'))
+        cert.set_pubkey(cert_key)
+
+        if ca:
+            cert.set_serial_number(1)
+            cert.get_subject().commonName = '{0} Client Certificate CA'.format(site_title)
+            cert.set_issuer(cert.get_subject())
+            cert.add_extensions([
+                    ssl.X509Extension('subjectKeyIdentifier', False, 'hash', cert),
+                    ssl.X509Extension('basicConstraints', True, 'CA:TRUE'),
+                    ssl.X509Extension('keyUsage', True, 'cRLSign, keyCertSign'),
+                    ])
+            cert.sign(cert_key, digest)
+
+        else:
+            ca_cert, ca_key = self.get_ca()
+            # Uniqueness should be supplied by the user name and the certificate
+            # number.  The rand element is mostly for ease of development, to
+            # protect old CRLs from clobbering new certs, etc.
+            rand = '{0:x}'.format(random.randint(0, 2**40 - 1))
+            hasher = hashlib.sha1(user.name + str(len(user.certificates) + 1) + rand)
+
+            cert.set_serial_number(long(hasher.hexdigest(), 16))
+            cert.get_subject().OU = 'Users'
+            cert.get_subject().commonName = user.name
+            cert.set_issuer(ca_cert.get_subject())
+            cert.add_extensions([
+                    ssl.X509Extension('authorityKeyIdentifier', False, 'keyid:always,issuer:always', cert, ca_cert),
+                    ssl.X509Extension('subjectKeyIdentifier', False, 'hash', cert),
+                    ssl.X509Extension('basicConstraints', False, 'CA:FALSE'),
+                    ssl.X509Extension('keyUsage', True, 'digitalSignature'),
+                    ssl.X509Extension('extendedKeyUsage', True, 'clientAuth'),
+                    ])
+            cert.sign(ca_key, digest)
+
+        return cert, cert_key, cert.get_serial_number(), bits, now, expire
+
+
 ### TAGS
 
 def get_or_create_tag(name):
@@ -440,7 +632,7 @@ User.ratings_given = relation(ArtworkRating, backref=backref('user', innerjoin=T
 
 # Permissions
 User.role = relation(Role, innerjoin=True, backref='users')
-Role.privileges = relation(Privilege, secondary=RolePrivilege.__table__)
+Role.privileges = relation(Privilege, secondary=RolePrivilege.__table__, lazy='joined')
 
 # Comments
 Resource.discussion = relation(Discussion, uselist=False,
@@ -450,6 +642,9 @@ Comment.author = relation(User, innerjoin=True, backref='comments')
 
 Discussion.comments = relation(Comment, order_by=Comment.left.asc(),
     backref=backref('discussion', innerjoin=True))
+
+# Certificates
+Certificate.user = relation(User, innerjoin=True, backref='certificates')
 
 # Tags & Labels
 Label.user = relation(User, innerjoin=True, backref='labels')

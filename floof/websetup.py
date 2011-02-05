@@ -42,9 +42,6 @@ def setup_app(command, conf, vars):
             (u'tags.remove',        u'Can remove tags with no restrictions'),
         ]
     )
-    upload_art = model.Privilege(name=u'upload_art', description=u'Can upload art')
-    write_comment = model.Privilege(name=u'write_comment', description=u'Can post comments')
-    admin_priv = model.Privilege(name=u'admin', description=u'Can administrate')
 
     base_user = model.Role(
         name=u'user',
@@ -63,55 +60,38 @@ def setup_app(command, conf, vars):
     meta.Session.commit()
 
     ### Client SSL/TLS certificate stuff
-
-    # Generate the CA.  Only bother if we have a directory in which to put it.
-    # And skip if we already appear to have a CA.
-    build_ca = True
-    cert_dir = conf.local_conf.get('client_cert_dir', None)
-    if cert_dir is None:
-        build_ca = False
-    else:
-        for filename in ['ca.key', 'ca.pem']:
-            filepath = os.path.join(cert_dir, filename)
-            if os.path.isfile(filepath):
-                build_ca = False
-                print "  Encountered existing file {0}".format(filepath)
-                print "  Will not generate an SSL Client Certificate CA."
-                break
-
-    if build_ca:
+    # Generate the CA.  Attempt to load it from file first.
+    generate_ca = True
+    cert_dir = conf.local_conf['client_cert_dir']
+    for filename in ['ca.pem', 'ca.key']:
+        filepath = os.path.join(cert_dir, filename)
+        if os.path.isfile(filepath):
+            generate_ca = False
+            break
+    if generate_ca:
+        ca_cert, ca_key, serial, bits, begin, expire = model.Certificate.make_cert(
+                site_title=conf.local_conf['site_title'],
+                ca=True,
+                bits=2048,
+                days=10 * 365 + 3,
+                digest='sha1',
+                )
         if not os.path.isdir(cert_dir):
             os.makedirs(cert_dir)
-
-        now = datetime.utcnow()
-        expire = now + timedelta(days=3654)
-
-        ca_key = ssl.PKey()
-        ca_key.generate_key(ssl.TYPE_RSA, 2048)
-
-        ca = ssl.X509()
-        ca.set_version(2)  # Value 2 means v3
-        ca.set_serial_number(1)
-        ca.get_subject().organizationName = 'Floof'
-        ca.get_subject().commonName = 'Floof Client Certificate CA'
-        ca.set_issuer(ca.get_subject())
-        ca.set_notBefore(now.strftime('%Y%m%d%H%M%SZ'))
-        ca.set_notAfter(expire.strftime('%Y%m%d%H%M%SZ'))
-        ca.set_pubkey(ca_key)
-
-        ca.add_extensions([
-                ssl.X509Extension('subjectKeyIdentifier', False, 'hash', ca),
-                ssl.X509Extension('basicConstraints', True, 'CA:TRUE'),
-                ssl.X509Extension('keyUsage', True, 'cRLSign, keyCertSign'),
-                ])
-
-        ca.sign(ca_key, 'sha1')
-
         with open(os.path.join(cert_dir, 'ca.key'), 'w') as f:
             f.write(ssl.dump_privatekey(ssl.FILETYPE_PEM, ca_key))
         with open(os.path.join(cert_dir, 'ca.pem'), 'w') as f:
-            f.write(ssl.dump_certificate(ssl.FILETYPE_PEM, ca))
-
-        print "  SSL Client Certificate CA generated at {0}" \
-                .format(os.path.join(cert_dir, 'ca.pem'))
-
+            f.write(ssl.dump_certificate(ssl.FILETYPE_PEM, ca_cert))
+        print """  New SSL Client Certificate CA generated at {0}
+  ENSURE that {1} has appropriately restrictive access permissions!""".format(
+                os.path.join(cert_dir, 'ca.pem'),
+                os.path.join(cert_dir, 'ca.key'),
+                )
+    else:
+        print "  Encountered existing CA certificate file {0}".format(filepath)
+        # Breifly test the found files
+        with open(os.path.join(cert_dir, 'ca.key'), 'rU') as f:
+            ca_key = ssl.load_privatekey(ssl.FILETYPE_PEM, f.read())
+        with open(os.path.join(cert_dir, 'ca.pem'), 'rU') as f:
+            ca_cert = ssl.load_certificate(ssl.FILETYPE_PEM, f.read())
+        print "  Will use this file as the SSL Client Certificate CA."

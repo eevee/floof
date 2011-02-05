@@ -9,14 +9,20 @@ from pylons.controllers import WSGIController
 from pylons.controllers.util import abort
 from pylons.templating import render_mako
 from pylons.decorators.secure import authenticated_form
+from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import NoResultFound
 import webhelpers.pylonslib.secure_form as secure_form
 import wtforms.fields, wtforms.form
 
+from floof.lib import auth
 from floof.lib.debugging import ResponseTimer
+from floof.lib.helpers import flash
 from floof.model import AnonymousUser, User, meta
+from floof import model
 
 def render(*args, **kwargs):
+###    c.auth.save(session)
+
     if config['super_debug']:
         start_time = datetime.datetime.now()
         sql_start_time = c.timer.sql_time
@@ -38,22 +44,14 @@ class BaseController(WSGIController):
 
     def __before__(self, action, environ, **params):
         c.timer = ResponseTimer()
-
-        # Check user state
-        if 'tests.user_id' in environ:
-            user_id = environ['tests.user_id']
-        elif 'user_id' in session:
-            user_id = session['user_id']
-
-        try:
-            c.user = meta.Session.query(User).filter_by(id=user_id).one()
-        except (NameError, NoResultFound):
-            c.user = AnonymousUser()
         
+        c.auth = auth.Auth(session, environ)
+        c.user = c.auth.get_user()
+
         # Check CSRF token on POST requests.  Ignore during test runs
         if request.method == 'POST' and not 'paste.testing' in environ:
             if not authenticated_form(request.POST):
-                abort(403, detail='Possible cross-site request forgery detected.')
+                abort(400, detail='Possible cross-site request forgery detected.')
 
 
     def __call__(self, environ, start_response):

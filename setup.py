@@ -23,7 +23,11 @@ setup(
         'sqlalchemy-migrate>=0.6',
         'pytz',
         'iso8601',
-        'pyOpenSSL',
+        # We need pyOpenSSL to be at least 0.11 for CRL support.
+        # At the time of writing, easy_install chokes on pyOpenSSL > 0.10. Try:
+        # $ wget http://launchpad.net/pyopenssl/main/0.11/+download/pyOpenSSL-0.11.tar.gz
+        # $ easy_install pyOpenSSL-0.11.tar.gz
+        'pyOpenSSL>=0.11',
     ],
     setup_requires=["PasteScript>=1.6.3"],
     packages=find_packages(exclude=['ez_setup']),

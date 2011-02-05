@@ -20,3 +20,4 @@
 
 <div id="control-panel-content">
 ${next.body()}
+</div>

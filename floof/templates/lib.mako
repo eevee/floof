@@ -1,4 +1,7 @@
+<%! import math %>
+<%! import pytz %>
 <%! import wtforms.widgets %>
+<%! from datetime import datetime %>
 
 <%def name="icon(which, alt='')">\
 <img src="${url('icon', which=which)}" alt="${alt}">\
@@ -34,6 +37,21 @@ ${c.user.localtime(t).strftime('%A, %d %B %Y at %H:%M %Z')}
 
 <%def name="timedelta(td)">\
 ${ "{0:.02f}".format( td.seconds + td.microseconds / 1000000.0 ) }s\
+</%def>
+
+<%def name="longtimedelta(t1)">
+<%
+if type(t1).__name__ == 'timedelta':
+  td = t1
+else:
+  td = t1 - datetime.now(pytz.utc)
+secs = td.seconds
+hours = int(math.floor(secs / 60**2))
+secs -= hours * 60**2
+mins = int(math.floor(secs / 60))
+secs -= mins * 60
+%>
+${"{0} days, {1} hours, {2} mins".format(td.days, hours, mins)}
 </%def>
 
 <%def name="user_link(user)">

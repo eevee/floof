@@ -58,13 +58,25 @@ set debug = false
 #super_debug = true
 
 # Enable client certificate authentication for users.
-# This may be dangerous if you don't understand the particulars.
-# See <FIXME:URL> for more information before enabling this.
-#client_cert_auth = true
+# This may be dangerous if you don't understand the particulars, but
+# the UI presently assumes that it is always "true".
+# See: http://bugs.veekun.com/projects/floof/wiki/Client_Certificates
+client_cert_auth = true
+
+# Determines where to look for the client certificate serial passed from the
+# frontend HTTPS server.
+# May be: 'http_headers'
+client_cert_transport = http_headers
+
+# Required in a 'X-Floof-Secret' HTTP header for certificate authentication
+# via HTTP headers to work.
+# During normal operation, this provides no actual security benefit, but
+# it provides some fallback securty should access to the raw HTTP application
+# accidently become publically attainable.
+client_cert_http_secret = ${app_instance_secret}
 
 # Where to generate and keep the CA and CRL for SSL client certificate
-# authentication.  If you comment this out, you'll have to set up the
-# CA manually.
+# authentication.
 client_cert_dir = %(here)s/certs
 
 # Logging configuration

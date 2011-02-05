@@ -4,12 +4,11 @@ import re
 
 from pylons import request, response, session, tmpl_context as c, url
 from pylons.controllers.util import abort, redirect
-from routes import request_config
 from sqlalchemy.orm.exc import NoResultFound
 from urllib2 import HTTPError, URLError
 import wtforms.form, wtforms.fields, wtforms.validators
 
-from floof.lib import helpers
+from floof.lib import auth, helpers
 from floof.lib.base import BaseController, render
 from floof.lib.decorators import logged_in, logged_out
 from floof.lib.openid_ import OpenIDError, openid_begin, openid_end
@@ -51,8 +50,10 @@ class AccountController(BaseController):
     @logged_out
     def login_begin(self):
         """Step one of logging in with OpenID; redirect to the provider."""
-
         c.form = LoginForm(request.POST)
+
+        if 'openid' in c.auth.satisfied_mechanisms:
+            redirect(url(controller='account', action='login'))
         if not c.form.validate():
             return render('/account/login.mako')
 
@@ -87,17 +88,13 @@ class AccountController(BaseController):
                     .filter(User.identity_urls.any(url=identity_url))
             user = q.one()
 
-            # Remember who's logged in, and we're good to go
-            session['user_id'] = user.id
-            session.save()
-
-            log.debug('User {0} (#{1}) logged in with OpenID URL "{2}"'
+            log.debug('User {0} (#{1}) authenticated with OpenID URL "{2}"'
                     .format(user.id, user.name, identity_url)) 
 
-            helpers.flash(u"""Hello, {0}!""".format(user.display_name),
-                    icon='user')
-
-            redirect(url('/'), code=303)
+            # Log the successful authentication
+            if c.auth.auth_success(session, 'openid', user.id):
+                redirect(url('/'), code=303)
+            redirect(url(controller='account', action='login'))
 
         except NoResultFound:
             # Nope.  Give a (brief!) registration form instead
@@ -154,23 +151,26 @@ class AccountController(BaseController):
 
         # Log 'em in
         del session['pending_identity_url']
-        session['user_id'] = user.id
-        session.save()
+        c.auth.auth_success(session, 'openid', user.id)
 
         # And off we go
         redirect(url('/'), code=303)
 
     @logged_in
     def logout(self):
-        """Logs the user out."""
+        """Logs the user out, if possible."""
 
-        session.pop('user_id', None)
-        session.save()
-
-        helpers.flash(u"""Logged out.""",
-                icon='user-silhouette')
-
+        if c.auth.can_purge:
+            c.auth.purge(session)
+            helpers.flash(u'Logged out.',
+                  icon='user-silhouette')
         redirect(url('/'), code=303)
+
+    def purge_auth(self):
+        c.auth.purge(session)
+        helpers.flash(u'Authentication data purged.',
+                icon='user-silhouette')
+        redirect(url(controller='account', action='login'))
 
     @logged_in
     def profile(self):

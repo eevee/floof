@@ -33,12 +33,20 @@ def make_map(config):
     map.connect('/account/{action}', controller='account',
         requirements=dict(action='login|login_finish|profile'))
     map.connect('/account/{action}', controller='account',
-        requirements=dict(action='login_begin|register|logout|profile'),
+        requirements=dict(action='login_begin|register|logout|profile|purge_auth'),
         **require_POST)
 
     map.connect('/account/controls', controller='controls', action='index')
     map.connect('/account/controls/{action}', controller='controls',
-        requirements=dict(action='openid|relationships'))
+        requirements=dict(action='authentication|certificates|openid|relationships'))
+    map.connect('/account/controls/certificates/details/{id}', controller='controls',
+        action='certificates_details', **require_GET)
+    map.connect('/account/controls/certificates/download/{id}', controller='controls',
+        action='certificates_download_prep', **require_GET)
+    map.connect('/account/controls/certificates/download/cert-{user}-{id}.p12', controller='controls',
+        action='certificates_download', **require_POST)
+    map.connect('/account/controls/certificates/revoke/{id}', controller='controls',
+        action='certificates_revoke')
     map.connect('/account/controls/relationships/watch', controller='controls',
         action='relationships_watch', **require_GET)
     map.connect('/account/controls/relationships/watch', controller='controls',
