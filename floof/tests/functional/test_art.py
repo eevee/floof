@@ -27,6 +27,7 @@ class TestArtController(TestController):
 
 
     def test_gallery(self):
+        """Test loading the main art page."""
         response = self.app.get(url(controller='art', action='gallery'))
         # Test response...
 

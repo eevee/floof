@@ -20,12 +20,15 @@ class OpenIDSpoofer(object):
         self.port = str(port)
         self.data_path = data_path
         self.server = subprocess.Popen([
-                sys.executable,
-                SERVER_PATH,
-                self.host,
-                self.port,
-                self.data_path
-                ])
+                    sys.executable,
+                    SERVER_PATH,
+                    self.host,
+                    self.port,
+                    self.data_path,
+                    ],
+                # Eat the access log so it doesn't get dumped while testing
+                stderr=subprocess.PIPE,
+                )
         # XXX: Disgusting hack to wait until the server is set up before
         # connecting to it.  I'm trying to minimise complexity.
         time.sleep(1)
@@ -57,6 +60,7 @@ class OpenIDSpoofer(object):
         body = urlencode(post)
         self.conn.request('POST', '/update', body)
         self.conn.getresponse()
+        self.url = u'http://{0}:{1}/id/{2}'.format(self.host, self.port, user)
 
     def spoof(self, location):
         """
@@ -82,4 +86,3 @@ class OpenIDSpoofer(object):
         path = parse[2]
         params = parse[4]
         return path, params
-

@@ -4,8 +4,15 @@ from floof.tests import *
 import floof.tests.openidspoofer as oidspoof
 import floof.tests.sim as sim
 
+from openid import oidutil
+
 PORT = 19614
 DATA_PATH = '/tmp'
+
+# Hook OpenID's stderr log to stop it spewing all over our nosetest
+def null_log(message, level=0):
+    pass
+oidutil.log = null_log
 
 class TestControlsController(TestController):
     
@@ -21,6 +28,7 @@ class TestControlsController(TestController):
 
 
     def test_index(self):
+        """Test display of user controls index."""
         response = self.app.get(
                 url(controller='controls', action='index'),
                 extra_environ={'tests.user_id': self.user.id},
@@ -28,6 +36,7 @@ class TestControlsController(TestController):
         # Test response...
 
     def test_openids(self):
+        """Test display of user OpenID controls page."""
         response = self.app.get(
                 url(controller='controls', action='openid'),
                 extra_environ={'tests.user_id': self.user.id},
@@ -35,6 +44,7 @@ class TestControlsController(TestController):
         # Test response...
 
     def test_openids_add_del(self):
+        """Test addition and deletion of OpenID URLs."""
         test_openids = [
                 u'flooftest1',
                 u'flooftest2',
@@ -50,7 +60,7 @@ class TestControlsController(TestController):
                     url(controller='controls', action='openid'),
                     params=[
                         ('add_openid', u'Add OpenID'),
-                        ('new_openid', u'localhost:{0}/id/{1}'.format(PORT, user)),
+                        ('new_openid', spoofer.url),
                     ],
                     extra_environ={'tests.user_id': self.user.id},
                     )
@@ -74,7 +84,7 @@ class TestControlsController(TestController):
                 url(controller='controls', action='openid'),
                 params=[
                     ('add_openid', u'Add OpenID'),
-                    ('new_openid', u'localhost:{0}/id/{1}'.format(PORT, test_openids[1])),
+                    ('new_openid', spoofer.url),
                 ],
                 extra_environ={'tests.user_id': self.user.id},
                 )
@@ -90,7 +100,7 @@ class TestControlsController(TestController):
 
         # Test deletion
         oid = meta.Session.query(model.IdentityURL) \
-                .filter_by(url='http://localhost:{0}/id/flooftest2'.format(PORT)) \
+                .filter_by(url=spoofer.url) \
                 .one()
         response = self.app.post(
                 url(controller='controls', action='openid'),
@@ -118,4 +128,3 @@ class TestControlsController(TestController):
                 )
         assert 'http://localhost:{0}/id/flooftest1</label>'.format(PORT) in response, 'Test user\'s final OpenID URL was deleted.  It should not have been.'
         assert 'http://localhost:{0}/id/flooftest2</label>'.format(PORT) not in response, 'Found an OpenID identity URL that should not have been.'
-
