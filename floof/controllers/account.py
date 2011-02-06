@@ -53,7 +53,7 @@ class AccountController(BaseController):
         c.form = LoginForm(request.POST)
 
         if 'openid' in c.auth.satisfied_mechanisms:
-            redirect(url(controller='account', action='login'))
+            redirect(url(controller='account', action='login'), code=303)
         if not c.form.validate():
             return render('/account/login.mako')
 
@@ -64,7 +64,7 @@ class AccountController(BaseController):
                         controller='account',
                         action='login_finish',
                         )
-                    ))
+                    ), code=303)
         except OpenIDError as exc:
             c.form.openid_identifier.errors.append(exc.args[0])
             return render('/account/login.mako')
@@ -94,7 +94,7 @@ class AccountController(BaseController):
             # Log the successful authentication
             if c.auth.auth_success(session, 'openid', user.id):
                 redirect(url('/'), code=303)
-            redirect(url(controller='account', action='login'))
+            redirect(url(controller='account', action='login'), code=303)
 
         except NoResultFound:
             # Nope.  Give a (brief!) registration form instead
@@ -170,7 +170,7 @@ class AccountController(BaseController):
         c.auth.purge(session)
         helpers.flash(u'Authentication data purged.',
                 icon='user-silhouette')
-        redirect(url(controller='account', action='login'))
+        redirect(url(controller='account', action='login'), code=303)
 
     @logged_in
     def profile(self):

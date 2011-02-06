@@ -148,7 +148,7 @@ class ControlsController(BaseController):
                         identifier=c.openid_form.new_openid.data,
                         return_url=url.current(host=request.headers['host']),
                         sreg=False,
-                        ))
+                        ), code=303)
             except OpenIDError as exc:
                 c.openid_form.new_openid.errors.append(exc.args[0])
                 return render('/account/controls/openid.mako')
@@ -243,7 +243,7 @@ class ControlsController(BaseController):
             u"Saved watch settings for {0}.".format(target_user.display_name),
             level=u'success',
         )
-        redirect(url('user', user=target_user))
+        redirect(url('user', user=target_user), code=303)
 
     # XXX does this need a permission
     @logged_in
@@ -262,7 +262,9 @@ class ControlsController(BaseController):
                 level=u'error',
             )
             redirect(url.current(
-                action='relationships_watch', target_user=target_username))
+                action='relationships_watch', target_user=target_username),
+                code=303,
+                )
 
         meta.Session.query(model.UserWatch) \
             .filter_by(user_id=c.user.id, other_user_id=target_user.id) \
@@ -274,7 +276,7 @@ class ControlsController(BaseController):
             u"Unwatched {0}.".format(target_user.display_name),
             level=u'success',
         )
-        redirect(url('user', user=target_user))
+        redirect(url('user', user=target_user), code=303)
 
     @logged_in
     def certificates(self):
@@ -291,7 +293,7 @@ class ControlsController(BaseController):
                     u'New certificate generated.',
                     level=u'success',
                     )
-            return redirect(url.current())
+            return redirect(url.current(), code=303)
         return render('/account/controls/certificates.mako')
 
     @logged_in
@@ -324,7 +326,7 @@ class ControlsController(BaseController):
         if cert not in c.user.certificates:
             abort(403, detail='That does not appear to be your certificate.')
         if not c.form.validate():
-            redirect(url(controller='controls', action='certificates_download_prep'))
+            redirect(url(controller='controls', action='certificates_download_prep'), code=303)
         response.content_type = "application/x-pkcs12"
         if c.form.passphrase.data:
             pkcs12 = ssl.load_pkcs12(cert.pkcs12_data)
@@ -353,7 +355,7 @@ class ControlsController(BaseController):
                                 .format(c.cert.id),
                         level=u'success',
                         )
-            redirect(url(controller='controls', action='certificates'))
+            redirect(url(controller='controls', action='certificates'), code=303)
         return render('/account/controls/certificates_revoke.mako')
 
     @logged_in
@@ -364,7 +366,7 @@ class ControlsController(BaseController):
         c.need_confirmation = False
         c.confirm_form.validate()
         if c.confirm_form.cancel.data:
-            redirect(url.current())
+            redirect(url.current(), code=303)
         if request.POST and c.form.validate():
             c.form.populate_obj(c.user)
             # If the new authentication requirements will knock the
@@ -376,6 +378,6 @@ class ControlsController(BaseController):
                 meta.Session.commit()
                 helpers.flash(u'Authentication options updated.', level=u'success')
                 if not c.auth.authenticate():
-                    redirect(url(controller='account', action='login'))
-                redirect(url.current())
+                    redirect(url(controller='account', action='login'), code=303)
+                redirect(url.current(), code=303)
         return render('/account/controls/authentication.mako')
