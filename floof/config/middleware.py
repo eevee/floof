@@ -30,6 +30,23 @@ class HTTPOnlyCookieMiddleware(object):
 
         return res(environ, start_response)
 
+class HTTPSMiddleware(object):
+    """Middleware that hints to Pylons and Routes to serve https:// in URLs.
+
+    Only does this if ``use_https`` is set in the config.
+
+    There *must* be a better way of doing this.
+
+    """
+    def __init__(self, app, config):
+        self.app = app
+        self.https = config.get('https_always', None)
+
+    def __call__(self, environ, start_response):
+        if self.https:
+            environ['wsgi.url_scheme'] = 'https'
+        return self.app(environ, start_response)
+
 def make_app(global_conf, full_stack=True, static_files=True, **app_conf):
     """Create a Pylons WSGI application and return it
 
@@ -63,6 +80,7 @@ def make_app(global_conf, full_stack=True, static_files=True, **app_conf):
     app = RoutesMiddleware(app, config['routes.map'])
     app = SessionMiddleware(app, config)
     app = HTTPOnlyCookieMiddleware(app)
+    app = HTTPSMiddleware(app, config)
 
     # CUSTOM MIDDLEWARE HERE (filtered by error handling middlewares)
 

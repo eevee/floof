@@ -22,6 +22,7 @@ static_files = true
 cache_dir = %(here)s/data
 beaker.session.key = floof
 beaker.session.secret = ${app_instance_secret}
+#beaker.session.secure = true
 app_instance_uuid = ${app_instance_uuid}
 
 site_title = floof
@@ -56,6 +57,12 @@ set debug = false
 # powers, but will slow the whole thing down and laden them with a bunch of
 # debug crap.
 #super_debug = true
+
+# Force absolute URLs (such as are issued in redirects) to use the https://
+# scheme.  Also enforce the presence of the Secure flag on cookies.
+# This is intentded for use only when forcing all access to the application
+# via HTTPS, which it should be in production, and dev if you can bear it.
+#https_always = true
 
 # Enable client certificate authentication for users.
 # This may be dangerous if you don't understand the particulars, but
