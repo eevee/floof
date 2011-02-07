@@ -22,7 +22,6 @@ static_files = true
 cache_dir = %(here)s/data
 beaker.session.key = floof
 beaker.session.secret = ${app_instance_secret}
-#beaker.session.secure = true
 app_instance_uuid = ${app_instance_uuid}
 
 site_title = floof
@@ -45,6 +44,10 @@ rating_radius = 1
 #beaker.cache.data_dir = %(here)s/data/cache
 #beaker.session.data_dir = %(here)s/data/sessions
 
+# If you're only accessing the application over HTTPS connections, set this
+# to tue for some added security.
+#beaker.session.secure = true
+
 # SQLAlchemy database URL
 sqlalchemy.url = sqlite:///production.db
 
@@ -57,6 +60,9 @@ set debug = false
 # powers, but will slow the whole thing down and laden them with a bunch of
 # debug crap.
 #super_debug = true
+
+# Force a logout after an inactivity period of this many seconds.
+inactivity_expiry = 1800
 
 # Force absolute URLs (such as are issued in redirects) to use the https://
 # scheme.  Also enforce the presence of the Secure flag on cookies.

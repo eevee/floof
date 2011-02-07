@@ -1,9 +1,12 @@
+from datetime import datetime, timedelta
 from pylons import config, request
 from pylons.controllers.util import abort
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import NoResultFound
+import time
 
 from floof import model
+from floof.lib.helpers import flash
 from floof.model import meta
 
 # List methods in decreasing order of authoratativeness
@@ -111,6 +114,20 @@ class Auth():
 
         # Process mechanisms to determine user and other Auth attributes
         self.authenticate()
+
+        if session.last_accessed:
+            last_accessed = datetime.fromtimestamp(session.last_accessed)
+        else:
+            last_accessed = datetime.now()
+        inactivity_expiry = int(config.get('inactivity_expiry', 60 * 60))
+        max_age = last_accessed + timedelta(seconds=inactivity_expiry)
+        if (self.user or self.pending_user) and \
+                datetime.now() > max_age and \
+                self.can_purge:
+            self.purge(session)
+            self.authenticate()
+            flash(u'Your session has expired and you have been logged out.',
+                    icon='user-silhouette')
 
         # If testing, set the blunt user override
         if 'tests.user_id' in environ:
@@ -220,10 +237,17 @@ class Auth():
                 # New certificate presented
                 self.cert_serial = None
                 self.mechanisms['cert'] = None
-                cert = meta.Session.query(model.Certificate) \
-                        .options(joinedload('user')) \
-                        .filter_by(serial=serial) \
-                        .one()
+                try:
+                    cert = meta.Session.query(model.Certificate) \
+                            .options(joinedload('user')) \
+                            .filter_by(serial=serial) \
+                            .one()
+                except NoResultFound:
+                    # Should never happen in production
+                    # (Certificate records should stand eternal)
+                    abort(500, detail='Unable to find certificate in store.  '
+                            '(Has the certificate record been deleted?)  '
+                            'Try not sending your SSL client certificate.')
                 if cert and cert.valid:
                     self.cert_serial = serial.lower()
                     self.mechanisms['cert'] = cert.user.id
