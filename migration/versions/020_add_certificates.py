@@ -26,7 +26,7 @@ class User(TableBase):
         u'openid_only',
         u'cert_or_openid',
         u'cert_and_openid',
-        name='user_auth_method'), nullable=False, default=u'openid_only')
+        name='user_auth_method'), nullable=False)
 
 # New tables
 class Certificate(TableBase):
