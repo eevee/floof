@@ -93,6 +93,8 @@ class AccountController(BaseController):
 
             # Log the successful authentication
             if c.auth.auth_success(session, 'openid', user.id):
+                helpers.flash(u'Hello, {0}'.format(user.display_name),
+                        icon='user')
                 redirect(url('/'), code=303)
             redirect(url(controller='account', action='login'), code=303)
 
