@@ -49,6 +49,7 @@ def upgrade(migrate_engine):
     Certificate.__table__.create()
     auth_method = User.__table__.c.auth_method
     auth_method.server_default = DefaultClause(u'openid_only')
+    auth_method.type.create(migrate_engine)
     auth_method.create()
     auth_method.alter(server_default=None)
 
