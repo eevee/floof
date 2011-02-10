@@ -117,6 +117,8 @@ class User(TableBase):
     id = Column(Integer, primary_key=True, nullable=False)
     resource_id = Column(Integer, ForeignKey('resources.id'), nullable=False)
     name = Column(Unicode(24), nullable=False, index=True, unique=True)
+    display_name = Column(Unicode(24), nullable=True)
+    has_trivial_display_name = Column(Boolean, nullable=False, default=False)
     timezone = Column(Timezone, nullable=True)
     role_id = Column(Integer, ForeignKey('roles.id'), nullable=False)
     cert_auth = Column(Enum(
@@ -154,13 +156,6 @@ class User(TableBase):
         return []
 
     @property
-    def display_name(self):
-        """Returns a flavory string that should be used to present this user.
-        """
-
-        return self.name
-
-    @property
     def invalid_certificates(self):
         return [cert for cert in self.certificates if not cert.valid]
 
@@ -184,7 +179,7 @@ class User(TableBase):
         if self._profile is None:
             self._profile = UserProfile()
         self._profile.content = value
-    
+
 class IdentityURL(TableBase):
     __tablename__ = 'identity_urls'
     id = Column(Integer, primary_key=True, nullable=False)
