@@ -56,4 +56,6 @@ def upgrade(migrate_engine):
 def downgrade(migrate_engine):
     TableBase.metadata.bind = migrate_engine
     Certificate.__table__.drop()
-    User.__table__.c.auth_method.drop()
+    auth_method = User.__table__.c.auth_method
+    auth_method.drop()
+    auth_method.type.drop(migrate_engine)
