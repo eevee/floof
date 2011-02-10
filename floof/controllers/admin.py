@@ -1,11 +1,12 @@
 import logging
 
 from pylons import request, response, session, tmpl_context as c
-from pylons.controllers.util import abort, redirect
+from pylons.controllers.util import abort
 from sqlalchemy.orm import subqueryload
 
 from floof.lib.base import BaseController, render
 from floof.lib.decorators import user_must
+from floof.lib.helpers import redirect
 from floof.model import meta
 from floof import model
 

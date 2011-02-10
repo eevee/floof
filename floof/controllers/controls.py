@@ -3,12 +3,13 @@ import logging
 
 import OpenSSL.crypto as ssl
 from pylons import request, response, session, tmpl_context as c, url
-from pylons.controllers.util import abort, redirect
+from pylons.controllers.util import abort
 from sqlalchemy.exc import IntegrityError
 import wtforms
 
 from floof.forms import MultiCheckboxField
 from floof.lib import helpers
+from floof.lib.helpers import redirect
 from floof.lib.base import BaseController, render
 from floof.lib.decorators import logged_in
 from floof.lib.openid_ import OpenIDError, openid_begin, openid_end
@@ -148,7 +149,7 @@ class ControlsController(BaseController):
                         identifier=c.openid_form.new_openid.data,
                         return_url=url.current(host=request.headers['host']),
                         sreg=False,
-                        ), code=303)
+                        ))
             except OpenIDError as exc:
                 c.openid_form.new_openid.errors.append(exc.args[0])
                 return render('/account/controls/openid.mako')
@@ -243,7 +244,7 @@ class ControlsController(BaseController):
             u"Saved watch settings for {0}.".format(target_user.display_name),
             level=u'success',
         )
-        redirect(url('user', user=target_user), code=303)
+        redirect(url('user', user=target_user))
 
     # XXX does this need a permission
     @logged_in
@@ -263,7 +264,6 @@ class ControlsController(BaseController):
             )
             redirect(url.current(
                 action='relationships_watch', target_user=target_username),
-                code=303,
                 )
 
         meta.Session.query(model.UserWatch) \
@@ -276,7 +276,7 @@ class ControlsController(BaseController):
             u"Unwatched {0}.".format(target_user.display_name),
             level=u'success',
         )
-        redirect(url('user', user=target_user), code=303)
+        redirect(url('user', user=target_user))
 
     @logged_in
     def certificates(self):
@@ -293,7 +293,7 @@ class ControlsController(BaseController):
                     u'New certificate generated.',
                     level=u'success',
                     )
-            return redirect(url.current(), code=303)
+            return redirect(url.current())
         return render('/account/controls/certificates.mako')
 
     @logged_in
@@ -326,7 +326,7 @@ class ControlsController(BaseController):
         if cert not in c.user.certificates:
             abort(403, detail='That does not appear to be your certificate.')
         if not c.form.validate():
-            redirect(url(controller='controls', action='certificates_download_prep'), code=303)
+            redirect(url(controller='controls', action='certificates_download_prep'))
         response.content_type = "application/x-pkcs12"
         if c.form.passphrase.data:
             pkcs12 = ssl.load_pkcs12(cert.pkcs12_data)
@@ -355,7 +355,7 @@ class ControlsController(BaseController):
                                 .format(c.cert.id),
                         level=u'success',
                         )
-            redirect(url(controller='controls', action='certificates'), code=303)
+            redirect(url(controller='controls', action='certificates'))
         return render('/account/controls/certificates_revoke.mako')
 
     @logged_in
@@ -366,7 +366,7 @@ class ControlsController(BaseController):
         c.need_confirmation = False
         c.confirm_form.validate()
         if c.confirm_form.cancel.data:
-            redirect(url.current(), code=303)
+            redirect(url.current())
         if request.POST and c.form.validate():
             c.form.populate_obj(c.user)
             # If the new authentication requirements will knock the
@@ -378,6 +378,6 @@ class ControlsController(BaseController):
                 meta.Session.commit()
                 helpers.flash(u'Authentication options updated.', level=u'success')
                 if not c.auth.authenticate():
-                    redirect(url(controller='account', action='login'), code=303)
-                redirect(url.current(), code=303)
+                    redirect(url(controller='account', action='login'))
+                redirect(url.current())
         return render('/account/controls/authentication.mako')

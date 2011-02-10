@@ -1,9 +1,10 @@
 import logging
 
 from pylons import request, response, session, tmpl_context as c
-from pylons.controllers.util import abort, redirect
+from pylons.controllers.util import abort
 
 from floof.lib.base import BaseController, render
+from floof.lib.helpers import redirect
 from floof.lib.log import ADMIN
 from floof import model
 from floof.model import meta, Log

@@ -3,14 +3,15 @@ import logging
 import re
 
 from pylons import request, response, session, tmpl_context as c, url
-from pylons.controllers.util import abort, redirect
+from pylons.controllers.util import abort
 from sqlalchemy.orm.exc import NoResultFound
 from urllib2 import HTTPError, URLError
 import wtforms.form, wtforms.fields, wtforms.validators
 
-from floof.lib import auth, helpers
+from floof.lib import helpers
 from floof.lib.base import BaseController, render
 from floof.lib.decorators import logged_in, logged_out
+from floof.lib.helpers import redirect
 from floof.lib.openid_ import OpenIDError, openid_begin, openid_end
 from floof import model
 from floof.model import Discussion, UserProfileRevision, IdentityURL, User, Role, meta
@@ -53,7 +54,7 @@ class AccountController(BaseController):
         c.form = LoginForm(request.POST)
 
         if 'openid' in c.auth.satisfied_mechanisms:
-            redirect(url(controller='account', action='login'), code=303)
+            redirect(url(controller='account', action='login'))
         if not c.form.validate():
             return render('/account/login.mako')
 
@@ -64,7 +65,7 @@ class AccountController(BaseController):
                         controller='account',
                         action='login_finish',
                         )
-                    ), code=303)
+                    ))
         except OpenIDError as exc:
             c.form.openid_identifier.errors.append(exc.args[0])
             return render('/account/login.mako')
@@ -95,8 +96,8 @@ class AccountController(BaseController):
             if c.auth.auth_success(session, 'openid', user.id):
                 helpers.flash(u'Hello, {0}'.format(user.display_name),
                         icon='user')
-                redirect(url('/'), code=303)
-            redirect(url(controller='account', action='login'), code=303)
+                redirect(url('/'))
+            redirect(url(controller='account', action='login'))
 
         except NoResultFound:
             # Nope.  Give a (brief!) registration form instead
@@ -127,7 +128,7 @@ class AccountController(BaseController):
             # Not in the session or is already registered.  Neither makes
             # sense.  Bail.
             helpers.flash('Your session expired.  Please try logging in again.')
-            redirect(url(controller='account', action='login'), code=303)
+            redirect(url(controller='account', action='login'))
 
         c.identity_webfinger = session.get('pending_identity_webfinger', None)
         c.form = RegistrationForm(request.POST)
@@ -156,7 +157,7 @@ class AccountController(BaseController):
         c.auth.auth_success(session, 'openid', user.id)
 
         # And off we go
-        redirect(url('/'), code=303)
+        redirect(url('/'))
 
     @logged_in
     def logout(self):
@@ -166,13 +167,13 @@ class AccountController(BaseController):
             c.auth.purge(session)
             helpers.flash(u'Logged out.',
                   icon='user-silhouette')
-        redirect(url('/'), code=303)
+        redirect(url('/'))
 
     def purge_auth(self):
         c.auth.purge(session)
         helpers.flash(u'Authentication data purged.',
                 icon='user-silhouette')
-        redirect(url(controller='account', action='login'), code=303)
+        redirect(url(controller='account', action='login'))
 
     @logged_in
     def profile(self):

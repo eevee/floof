@@ -4,6 +4,7 @@ Consists of functions to typically be used within templates, but also
 available to Controllers. This module is available to templates as 'h'.
 """
 from pylons import url
+from pylons.controllers.util import redirect as orig_redirect
 from webhelpers.html import escape, HTML, literal, url_escape
 from webhelpers.html.tags import *
 from webhelpers.pylonslib import Flash
@@ -33,6 +34,9 @@ def flash(message, icon=None, level='notice', **extras):
     extras['level'] = level
 
     _flash((message, extras))
+
+def redirect(url, code=303):
+    orig_redirect(url, code)
 
 
 ### Helpers for complicated URLs

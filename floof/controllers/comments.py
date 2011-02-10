@@ -1,12 +1,13 @@
 import logging
 
 from pylons import request, response, session, tmpl_context as c, url
-from pylons.controllers.util import abort, redirect
+from pylons.controllers.util import abort
 from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 
 from floof.lib.base import BaseController, render
 from floof.lib.decorators import user_must
+from floof.lib.helpers import redirect
 from floof import model
 from floof.model import meta
 

@@ -7,7 +7,7 @@ import random
 
 import magic
 from pylons import config, request, response, session, tmpl_context as c, url
-from pylons.controllers.util import abort, redirect
+from pylons.controllers.util import abort
 from sqlalchemy.sql import and_
 from sqlalchemy.orm.exc import NoResultFound
 import wtforms.form, wtforms.fields, wtforms.validators
@@ -17,6 +17,7 @@ from floof.lib import helpers
 from floof.lib.base import BaseController, render
 from floof.lib.decorators import user_must
 from floof.lib.gallery import GalleryView
+from floof.lib.helpers import redirect
 from floof.lib.log import ADMIN, PRIV_ADMIN
 from floof.model import meta
 from floof import model

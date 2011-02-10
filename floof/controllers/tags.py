@@ -1,10 +1,11 @@
 import logging
 
 from pylons import request, response, session, tmpl_context as c, url
-from pylons.controllers.util import abort, redirect
+from pylons.controllers.util import abort
 
 from floof.lib.base import BaseController, render
 from floof.lib.gallery import GalleryView
+from floof.lib.helpers import redirect
 from floof.model import meta
 from floof import model
 from sqlalchemy.orm.exc import NoResultFound
