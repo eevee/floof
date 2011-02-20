@@ -54,10 +54,10 @@ class TestAccountController(TestController):
         response = self.app.get(url('/'))
         assert 'Log in or register' in response, 'Page does not appear logged out even when no auth data should be present.'
         response = self.app.post(
-                url(controller='controls', action='certificates'),
+                url(controller='controls', action='certificates_server', name=self.user.name),
                 params=[
                     ('days', 31),
-                    ('generate', u'Generate New Certificate'),
+                    ('generate_server', u'Generate On Server'),
                     ],
                 extra_environ={'tests.user_id': self.user.id},
                 )

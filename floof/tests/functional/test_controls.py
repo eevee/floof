@@ -140,20 +140,17 @@ class TestControlsController(TestController):
         assert 'Generate New Certificate' in response, 'Could not find the anticipated page title.'
         for days, time in [(31, '30 days, 23 hours'), (366, '365 days, 23 hours')]:
             response = self.app.post(
-                    url(controller='controls', action='certificates'),
+                    url(controller='controls', action='certificates_server', name=self.user.name),
                     params=[
                         ('days', days),
-                        ('generate', u'Generate New Certificate'),
+                        ('passphrase', u'1234'),
+                        ('generate_server', u'Generate On Server'),
                         ],
                     extra_environ={'tests.user_id': self.user.id},
                     )
-            response = self.app.get(
-                    response.headers['location'],
-                    extra_environ={'tests.user_id': self.user.id},
-                    )
-            assert time in response, 'Unable to find appropriate time to expiry for new certificate.'
-
-        assert url(controller='controls', action='certificates_details', id=2) in response, 'Could not find a link to a certificate details page.'
+            assert response.content_type == 'application/x-pkcs12', 'Anticipated a response MIME type of "application/x-pkcs12", got {0}'.format(response.content_type)
+            pkcs12 = ssl.load_pkcs12(response.response.content, u'1234')
+            # TODO: Test pkcs12 further... ?
 
         # Test viewing details
         response = self.app.get(
@@ -171,25 +168,6 @@ class TestControlsController(TestController):
                 Digital Signature
             X509v3 Extended Key Usage: critical
                 TLS Web Client Authentication\n""" in response, 'Unable to find anticipated X.509 extensions.'
-
-        # Test downloading PKCS12
-        response = self.app.get(
-                url(controller='controls', action='certificates_download_prep', id=2),
-                extra_environ={'tests.user_id': self.user.id},
-                )
-        assert 'Certificate ID 2' in response, 'Unable to find appropriate time to expiry for new certificate.'
-        assert 'Passphrase' in response, 'Unable to find passphrase prompt.'
-        response = self.app.post(
-                url(controller='controls', action='certificates_download', user=self.user.name, id=2),
-                params=[
-                    ('passphrase', u'1234'),
-                    ('download', u'Download Certificate')
-                    ],
-                extra_environ={'tests.user_id': self.user.id},
-                )
-        assert response.content_type == 'application/x-pkcs12', 'Anticipated a response MIME type of "application/x-pkcs12", got {0}'.format(response.content_type)
-        pkcs12 = ssl.load_pkcs12(response.response.content, u'1234')
-        # TODO: Test pkcs12 further... ?
 
         # Test revocation
         response = self.app.get(
@@ -231,10 +209,10 @@ class TestControlsController(TestController):
                 )
         assert 'selected="selected" value="openid_only"' in response, 'Allowed change to method requiring a certificate when user has no certificates.'
         response = self.app.post(
-                url(controller='controls', action='certificates'),
+                url(controller='controls', action='certificates_server', name=self.user.name),
                 params=[
                     ('days', 31),
-                    ('generate', u'Generate New Certificate'),
+                    ('generate_server', u'Generate On Server'),
                     ],
                 extra_environ={'tests.user_id': self.user.id},
                 )

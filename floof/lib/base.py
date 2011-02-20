@@ -21,8 +21,6 @@ from floof.model import AnonymousUser, User, meta
 from floof import model
 
 def render(*args, **kwargs):
-###    c.auth.save(session)
-
     if config['super_debug']:
         start_time = datetime.datetime.now()
         sql_start_time = c.timer.sql_time

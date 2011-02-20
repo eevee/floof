@@ -19,9 +19,9 @@ ${c.confirm_form.cancel()}
 <dl>
     ${lib.field(c.form.auth_method)}
 </dl>
-<p>This is intended for use by advanced users only.  There are important
-things to be aware of when choosing any non-default option.  Some of them
-are listed below.</p>
+<p>This is intended for use by <strong>advanced users</strong> only.
+There are important things to be aware of when choosing any non-default
+option.  Some of them are listed below.</p>
 <ol>
     <li>If you choose one of these Authentication Options and log in with
     just a certificate, it will not be possible to log out using the site's

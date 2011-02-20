@@ -224,6 +224,12 @@ h2 {
     border-bottom: 1px solid $header2-border;
 }
 
+h3 {
+    font-size: 1.2em;
+    font-weight: bold;
+    margin: 0 0 0.5em;
+}
+
 // -----------------------------------------------------------------------------
 // Forms
 
@@ -275,6 +281,28 @@ dl.standard-form {
     dt, dd {
         line-height: 1.5;
     }
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Globally useful div/span classes
+
+strong {
+    font-weight: bold;
+}
+
+em {
+    font-style: italic;
+}
+
+.halfsplit {
+    float: left;
+    padding: 1em;
+    width: 42%;
+}
+
+span.monospace {
+    font-family: monospace;
 }
 
 

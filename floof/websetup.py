@@ -1,6 +1,7 @@
 """Setup the floof application"""
 import logging
 import os
+import pytz
 
 import pylons.test
 
@@ -69,19 +70,35 @@ def setup_app(command, conf, vars):
             generate_ca = False
             break
     if generate_ca:
-        ca_cert, ca_key, serial, bits, begin, expire = model.Certificate.make_cert(
-                site_title=conf.local_conf['site_title'],
-                ca=True,
-                bits=2048,
-                days=10 * 365 + 3,
-                digest='sha1',
-                )
+        now = datetime.now(pytz.utc)
+        expire = now + timedelta(days=3653)
+        site_title = conf.local_conf['site_title']
+
+        ca_key = ssl.PKey()
+        ca_key.generate_key(ssl.TYPE_RSA, 2048)
+
+        ca = ssl.X509()
+        ca.set_version(2)  # Value 2 means v3
+        ca.set_serial_number(1)
+        ca.get_subject().organizationName = site_title
+        ca.get_subject().commonName = 'Client Certificate CA'
+        ca.set_notBefore(now.strftime('%Y%m%d%H%M%SZ'))
+        ca.set_notAfter(expire.strftime('%Y%m%d%H%M%SZ'))
+        ca.set_issuer(ca.get_subject())
+        ca.set_pubkey(ca_key)
+        ca.add_extensions([
+                ssl.X509Extension('subjectKeyIdentifier', False, 'hash', ca),
+                ssl.X509Extension('basicConstraints', True, 'CA:TRUE'),
+                ssl.X509Extension('keyUsage', True, 'cRLSign, keyCertSign'),
+                ])
+        ca.sign(ca_key, 'sha256')
+
         if not os.path.isdir(cert_dir):
             os.makedirs(cert_dir)
         with open(os.path.join(cert_dir, 'ca.key'), 'w') as f:
             f.write(ssl.dump_privatekey(ssl.FILETYPE_PEM, ca_key))
         with open(os.path.join(cert_dir, 'ca.pem'), 'w') as f:
-            f.write(ssl.dump_certificate(ssl.FILETYPE_PEM, ca_cert))
+            f.write(ssl.dump_certificate(ssl.FILETYPE_PEM, ca))
         print """  New SSL Client Certificate CA generated at {0}
   ENSURE that {1} has appropriately restrictive access permissions!""".format(
                 os.path.join(cert_dir, 'ca.pem'),

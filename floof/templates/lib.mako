@@ -92,3 +92,17 @@ ${"{0} days, {1} hours, {2} mins".format(td.days, hours, mins)}
 <p><a href="${h.art_url(c.discussion.resource.member)}">Return</a></p>
 % endif
 </%def>
+
+<%def name="cert_serial(serial)">
+<%
+id = ''
+i = 0
+for char in serial[:10]:
+    if i % 2 == 0:
+        id += char
+    else:
+        id += char + ':'
+    i += 1
+%>
+<span class="monospace">${id[:-1]}</span>
+</%def>

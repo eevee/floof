@@ -3,11 +3,14 @@ from pylons import config, request
 from pylons.controllers.util import abort
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import NoResultFound
-import time
 
 from floof import model
 from floof.lib.helpers import flash
-from floof.model import meta
+from floof.model import meta, Certificate
+
+import OpenSSL.crypto as ssl
+import os
+import time
 
 # List methods in decreasing order of authoratativeness
 auth_mechanisms = ['cert', 'openid']
@@ -255,3 +258,32 @@ class Auth():
             # Protect against stale data
             self.cert_serial = None
             self.mechanisms['cert'] = None
+
+def get_ca():
+    """Fetches the Certifiacte Authority certificate and key.
+
+    Returns a (ca_cert, ca_key) tuple, where ca_cert is a pyOpenSSL
+    X509 object and ca_key is a pyOpenSSL PKey object.
+
+    """
+    cert_dir = config['client_cert_dir']
+    ca_cert_file = os.path.join(cert_dir, 'ca.pem')
+    ca_key_file = os.path.join(cert_dir, 'ca.key')
+    with open(ca_cert_file, 'rU') as f:
+        ca_cert = ssl.load_certificate(ssl.FILETYPE_PEM, f.read())
+    with open(ca_key_file, 'rU') as f:
+        ca_key = ssl.load_privatekey(ssl.FILETYPE_PEM, f.read())
+    return ca_cert, ca_key
+
+def update_crl():
+    """Generates a new Certificate Revocation List and writes it to file."""
+    crl = ssl.CRL()
+    for cert in meta.Session.query(Certificate).filter_by(revoked=True).all():
+        r = ssl.Revoked()
+        r.set_serial(cert.serial)
+        r.set_rev_date(cert.revoked_time.strftime('%Y%m%d%H%M%SZ'))
+        crl.add_revoked(r)
+    ca_cert, ca_key = get_ca()
+    crl_file = os.path.join(config['client_cert_dir'], 'crl.pem')
+    with open(crl_file, 'w') as f:
+        f.write(crl.export(ca_cert, ca_key, ssl.FILETYPE_PEM))

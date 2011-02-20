@@ -1,5 +1,6 @@
 from collections import defaultdict
 import logging
+import random
 
 import OpenSSL.crypto as ssl
 from pylons import request, response, session, tmpl_context as c, url
@@ -7,16 +8,25 @@ from pylons.controllers.util import abort
 from sqlalchemy.exc import IntegrityError
 import wtforms
 
-from floof.forms import MultiCheckboxField
+from floof.forms import KeygenField, MultiCheckboxField
 from floof.lib import helpers
-from floof.lib.helpers import redirect
+from floof.lib.auth import get_ca, update_crl
 from floof.lib.base import BaseController, render
 from floof.lib.decorators import logged_in
+from floof.lib.helpers import redirect
 from floof.lib.openid_ import OpenIDError, openid_begin, openid_end
 import floof.model as model
 from floof.model import meta
 
 log = logging.getLogger(__name__)
+
+def check_cert(cert, user, check_validity=False):
+    if cert is None:
+        abort(404, detail='Certificate not found.')
+    if cert not in user.certificates:
+        abort(403, detail='That does not appear to be your certificate.')
+    if check_validity and not c.cert.valid:
+        abort(404, detail='That certificate has already expired or been revoked.')
 
 # XXX: Should add and delete be seperate forms?
 class OpenIDForm(wtforms.form.Form):
@@ -48,22 +58,29 @@ class WatchForm(wtforms.form.Form):
     watch_of = wtforms.fields.BooleanField(u'')
 
 class CertificateForm(wtforms.form.Form):
+    pubkey = KeygenField(u'Public Key')
     days = wtforms.fields.SelectField(u'New Certificate Validity Period',
             coerce=int,
             choices=[(31, '31 days'), (366, '1 year'), (1096, '3 years')]
             )
-    generate = wtforms.fields.SubmitField(u'Generate New Certificate')
+    name = wtforms.fields.TextField(u'PKCS12 Friendly Name', [
+            wtforms.validators.Length(max=64),
+            ])
+    passphrase = wtforms.fields.PasswordField(u'PKCS12 Passphrase', [
+            wtforms.validators.Length(max=64),
+            ])
+    generate_browser = wtforms.fields.SubmitField(u'Generate In Browser')
+    generate_server = wtforms.fields.SubmitField(u'Generate On Server')
+
+    def validate_pubkey(form, field):
+        if not field.data and form.generate_browser.data:
+            raise wtforms.ValidationError('It looks like your browser '
+                    'doesn\'t support this method.  Try &quot;Generate '
+                    'Certificate on Server&quot;.')
 
 class RevokeCertificateForm(wtforms.form.Form):
     ok = wtforms.fields.SubmitField(u'Revoke Certificate')
     cancel = wtforms.fields.SubmitField(u'Cancel')
-
-class DownloadCertificateForm(wtforms.form.Form):
-    passphrase = wtforms.fields.PasswordField(u'Passphrase', [
-            wtforms.validators.Optional(),
-            wtforms.validators.Length(max=64),
-            ])
-    download = wtforms.fields.SubmitField(u'Download Certificate')
 
 class AuthenticationForm(wtforms.form.Form):
     auth_method = wtforms.fields.SelectField(u'Authentication Method', choices=[
@@ -279,76 +296,79 @@ class ControlsController(BaseController):
         redirect(url('user', user=target_user))
 
     @logged_in
-    def certificates(self):
+    def certificates(selfi, err=None):
         c.current_action = 'certificates'
         c.form = CertificateForm(request.POST)
         if request.method == 'POST' and \
                 c.form.validate() and \
-                c.form.generate.data:
-            # Generate a new certificate.
-            cert = model.Certificate(c.user, days=c.form.days.data)
+                c.form.generate_browser.data:
+            # Generate a new certificate from UA-supplied key.
+            spkac = c.form.pubkey.data
+            cert = model.Certificate(
+                    c.user,
+                    *get_ca(),
+                    spkac=spkac,
+                    days=c.form.days.data
+                    )
             c.user.certificates.append(cert)
             meta.Session.commit()
             helpers.flash(
                     u'New certificate generated.',
                     level=u'success',
                     )
-            return redirect(url.current())
+            response.content_type = 'application/x-x509-user-cert'
+            return cert.public_data_der
         return render('/account/controls/certificates.mako')
+
+    @logged_in
+    def certificates_server(self):
+        c.form = CertificateForm(request.POST)
+        if request.method == 'POST' and \
+                c.form.validate() and \
+                c.form.generate_server.data:
+            # Generate a new certificate.
+            cert = model.Certificate(
+                    c.user,
+                    *get_ca(),
+                    days=c.form.days.data
+                    )
+            c.user.certificates.append(cert)
+            meta.Session.commit()
+            helpers.flash(
+                    u'New certificate generated.',
+                    level=u'success',
+                    )
+            response.content_type = "application/x-pkcs12"
+            return cert.pkcs12(c.form.passphrase.data, c.form.name.data, *get_ca())
+        redirect(url(controller='controls', action='certificates'))
 
     @logged_in
     def certificates_details(self, id=None):
         c.current_action = None
         c.cert = model.Certificate.get(meta.Session, id=id)
-        if c.cert is None:
-            abort(404)
-        if c.cert not in c.user.certificates:
-            abort(403)
+        check_cert(c.cert, c.user)
+        response.headers.add('Location', url(controller='controls', action='certificates'))
         return render('/account/controls/certificates_details.mako')
 
     @logged_in
-    def certificates_download_prep(self, id=None):
-        c.current_action = None
-        c.form = DownloadCertificateForm(request.POST)
-        c.cert = model.Certificate.get(meta.Session, id=id)
-        if c.cert is None:
-            abort(404, detail='Certificate not found.')
-        if c.cert not in c.user.certificates:
-            abort(403, detail='That does not appear to be your certificate.')
-        return render('/account/controls/certificates_download.mako')
-
-    @logged_in
     def certificates_download(self, id=None):
-        c.form = DownloadCertificateForm(request.POST)
         cert = model.Certificate.get(meta.Session, id=id)
-        if cert is None:
-            abort(404, detail='Certificate not found.')
-        if cert not in c.user.certificates:
-            abort(403, detail='That does not appear to be your certificate.')
-        if not c.form.validate():
-            redirect(url(controller='controls', action='certificates_download_prep'))
-        response.content_type = "application/x-pkcs12"
-        if c.form.passphrase.data:
-            pkcs12 = ssl.load_pkcs12(cert.pkcs12_data)
-            return pkcs12.export(c.form.passphrase.data)
-        return cert.pkcs12_data
+        check_cert(cert, c.user)
+        response.content_type = 'application/x-pem-file'
+        return cert.public_data
 
     @logged_in
     def certificates_revoke(self, id=None):
         c.current_action = 'certificates'
         c.form = RevokeCertificateForm(request.POST)
         c.cert = model.Certificate.get(meta.Session, id=id)
-        if c.cert is None:
-            abort(404, detail='Certificate not found.')
-        if c.cert not in c.user.certificates:
-            abort(403, detail='That does not appear to be your certificate.')
-        if not c.cert.valid:
-            abort(404, detail='That certificate has already expired or been revoked.')
+        check_cert(c.cert, c.user, check_validity=True)
         c.will_override_auth = len(c.user.valid_certificates) == 1 and \
                 c.user.auth_method in ['cert_only', 'cert_and_openid']
         if request.method == 'POST' and c.form.validate():
             if c.form.ok.data:
                 c.cert.revoke()
+                update_crl()
                 meta.Session.commit()
                 helpers.flash(
                         u'Certificate ID {0} revoked successfully.' \
@@ -371,7 +391,7 @@ class ControlsController(BaseController):
             c.form.populate_obj(c.user)
             # If the new authentication requirements will knock the
             # user out, give them an extra warning and then redirect
-            # them to the login screen
+            # them to the login screen.
             if not c.auth.authenticate() and not c.confirm_form.confirm.data:
                 c.need_confirmation = True
             else:

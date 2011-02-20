@@ -1,5 +1,14 @@
 from wtforms import fields, widgets
+import random
 import re
+
+class KeygenWidget(widgets.Input):
+    def __call__(self, field, **kwargs):
+        html = '<keygen name="pubkey" keytype="{0}" challenge="{1}" />'.format(
+                field.keytype,
+                field.challenge,
+                )
+        return widgets.HTMLString(u''.join(html))
 
 class PassthroughListWidget(widgets.ListWidget):
     """Just like a ListWidget, but passes rendering kwargs to its children."""
@@ -12,6 +21,17 @@ class PassthroughListWidget(widgets.ListWidget):
                 html.append(u'<li>%s %s</li>' % (subfield(**kwargs), subfield.label))
         html.append(u'</%s>' % self.html_tag)
         return widgets.HTMLString(u''.join(html))
+
+class KeygenField(fields.TextField):
+    widget = KeygenWidget()
+
+    def __init__(self, label='', validators=None, keytype='rsa', **kwargs):
+        super(KeygenField, self).__init__(label, validators, **kwargs)
+        self.keytype = keytype
+        # For SPKAC certificate generation.  AFAIK it does not need to be
+        # a cryptographically strong radom string, just unique.
+        self.challenge = random.getrandbits(128)
+
 
 # borrowed from spline
 class MultiCheckboxField(fields.SelectMultipleField):

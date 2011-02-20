@@ -27,9 +27,9 @@ ${c.form.cancel()}
 <h2>Certificate Details</h2>
 <dl>
     <dt>ID</dt>
-    <dd>${c.cert.id}</dd>
-    <dt>Certificate Serial</dt>
-    <dd>${c.cert.id}</dd>
+    <dd>${lib.cert_serial(c.cert.serial)}</dd>
+    <dt>Full Certificate Serial</dt>
+    <dd>${c.cert.serial}</dd>
     <dt>Key Bit Length</dt>
     <dd>${c.cert.bits}</dd>
     <dt>Creation Date</dt>
