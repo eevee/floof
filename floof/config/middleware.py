@@ -33,18 +33,17 @@ class HTTPOnlyCookieMiddleware(object):
 class HTTPSMiddleware(object):
     """Middleware that hints to Pylons and Routes to serve https:// in URLs.
 
-    Only does this if ``use_https`` is set in the config.
-
-    There *must* be a better way of doing this.
+    Only does this if the an X-Forwarded-Proto HTTP header is present and
+    has a value of "https".
 
     """
     def __init__(self, app, config):
         self.app = app
-        self.https = config.get('https_always', None)
 
     def __call__(self, environ, start_response):
-        if self.https:
-            environ['wsgi.url_scheme'] = 'https'
+        proto = webob.Request(environ).headers.get('X-Forwarded-Proto', None)
+        if proto:
+            environ['wsgi.url_scheme'] = proto
         return self.app(environ, start_response)
 
 def make_app(global_conf, full_stack=True, static_files=True, **app_conf):

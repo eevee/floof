@@ -64,12 +64,6 @@ set debug = false
 # Force a logout after an inactivity period of this many seconds.
 inactivity_expiry = 1800
 
-# Force absolute URLs (such as are issued in redirects) to use the https://
-# scheme.  Also enforce the presence of the Secure flag on cookies.
-# This is intentded for use only when forcing all access to the application
-# via HTTPS, which it should be in production, and dev if you can bear it.
-#https_always = true
-
 # Enable client certificate authentication for users.
 # This may be dangerous if you don't understand the particulars, but
 # the UI presently assumes that it is always "true".
