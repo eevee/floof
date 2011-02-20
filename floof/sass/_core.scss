@@ -236,6 +236,9 @@ h3 {
 input, button, select {
     vertical-align: middle;
 }
+input[type="radio"] {
+    margin: 0.25em;
+}
 input[type="submit"], input[type="button"], input[type="submit"], input[type="image"], button {
     cursor: pointer;
 }
@@ -400,6 +403,14 @@ span.monospace {
             0.1em 0.1em 0.1em -0.1em black inset,
             0 2em 1em -1em #{rgba(black, 0.1)} inset
         ");
+    }
+
+    &.selected {
+        @include box-shadow("
+            0 2em 1em -1em #{rgba(black, 0.1)} inset
+        ");
+        font-weight: bold;
+        color: inherit;
     }
 
     &.confirm {

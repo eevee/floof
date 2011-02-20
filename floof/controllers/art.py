@@ -1,3 +1,4 @@
+# encoding: utf8
 from __future__ import division
 
 import hashlib
@@ -106,6 +107,7 @@ class RemoveTagForm(wtforms.form.Form):
             for tag in field.data:
                 if tag not in form._artwork.tags:
                     raise ValueError(u"Not tagged with \"{0}\"".format(tag))
+
 
 class ArtController(BaseController):
     HASH_BUFFER_SIZE = 524288  # .5 MiB
@@ -251,9 +253,16 @@ class ArtController(BaseController):
 
     def gallery(self):
         """Main gallery; provides browsing through absolutely everything we've
-        got.
+        got.  Also implements arbitrary art filtering; any collection of art
+        across the entire site should be reproducible here.
         """
-        c.gallery_view = GalleryView()
+        c.gallery_view = GalleryView(user=c.user)
+        if not c.gallery_view.read_form_data(request.params):
+            abort(403)  # XXX
+
+        # TODO scrap this
+        c.form = c.gallery_view.form
+
         return render('/art/gallery.mako')
 
     def view(self, id):
