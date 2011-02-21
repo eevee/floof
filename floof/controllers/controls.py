@@ -1,6 +1,7 @@
 from collections import defaultdict
 import logging
 import random
+import re
 
 import OpenSSL.crypto as ssl
 from pylons import request, response, session, tmpl_context as c, url
@@ -27,6 +28,19 @@ def check_cert(cert, user, check_validity=False):
         abort(403, detail='That does not appear to be your certificate.')
     if check_validity and not c.cert.valid:
         abort(404, detail='That certificate has already expired or been revoked.')
+
+def reduce_display_name(name):
+    name = name.lower()
+    name = re.sub('\W+', '_', name)
+    return name
+
+class DisplayNameForm(wtforms.form.Form):
+    display_name = wtforms.fields.TextField(u'')
+    update_display_name = wtforms.SubmitField(u'Update')
+
+    def validate_display_name(form, field):
+        if not all(32 <= ord(char) <= 126 for char in field.data):
+            raise wtforms.ValidationError('Printable ASCII only.')
 
 # XXX: Should add and delete be seperate forms?
 class OpenIDForm(wtforms.form.Form):
@@ -116,6 +130,26 @@ class ControlsController(BaseController):
     def index(self):
         c.current_action = 'index'
         return render('/account/controls/index.mako')
+
+    @logged_in
+    def user_info(self):
+        c.current_action = 'user_info'
+        c.display_name_form = DisplayNameForm(request.POST)
+
+        if request.method == 'POST' and c.display_name_form.validate():
+            if not c.display_name_form.display_name.data:
+                c.user.display_name = None
+                c.user.has_trivial_display_name = False
+            else:
+                c.user.display_name = c.display_name_form.display_name.data
+                c.user.has_trivial_display_name = (c.user.name ==
+                    reduce_display_name(c.user.display_name))
+
+            meta.Session.commit()
+        elif request.method == 'GET':
+            c.display_name_form.display_name.data = c.user.display_name
+
+        return render('/account/controls/user_info.mako')
 
     @user_must('auth.openid')
     def openid(self):

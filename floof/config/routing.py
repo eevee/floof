@@ -38,7 +38,7 @@ def make_map(config):
 
     map.connect('/account/controls', controller='controls', action='index')
     map.connect('/account/controls/{action}', controller='controls',
-        requirements=dict(action='authentication|certificates|openid|relationships'))
+        requirements=dict(action='authentication|certificates|openid|relationships|user_info'))
     map.connect('/account/controls/certificates/gen/cert-{name}.p12', controller='controls',
         action='certificates_server', **require_POST)
     map.connect('/account/controls/certificates/details/{id}', controller='controls',
