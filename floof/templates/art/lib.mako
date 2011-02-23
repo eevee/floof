@@ -39,3 +39,56 @@ def media_icon(type):
     % endfor
 </ul>
 </%def>
+
+
+###### The following is all for dealing with floof.lib.gallery.GallerySieve
+## objects and the forms they create.  You probably just want to use
+## render_gallery_sieve().
+<%!
+    DISPLAY_ICONS = dict(
+        thumbnails=u'ui-scroll-pane-icon',
+        succinct=u'ui-scroll-pane-detail',
+        detailed=u'ui-scroll-pane-list',
+    )
+%>\
+<%def name="render_gallery_sieve(gallery_sieve, filters_open=False)">
+${gallery_sieve_form(gallery_sieve.wtform)}
+## TODO how do I deal with "no results" here
+${thumbnail_grid(gallery_sieve.sqla_query)}
+</%def>
+
+<%def name="gallery_sieve_form(form)">
+<div class="art-filter">
+    ${h.form(url.current(), method='GET')}
+    <div class="column-container">
+    <div class="column">
+        <dl class="standard-form">
+            ${lib.field(form.tags)}
+            ${lib.field(form.time_radius)}
+            ${lib.field(form.my_rating)}
+
+            <dd><button type="submit">Filter</button></dd>
+        </dl>
+    </div>
+    <div class="column">
+        <dl class="standard-form">
+            ${lib.field(form.sort)}
+            <dt>${form.display.label() | n}</dt>
+            <dd>
+                <ul>
+                    % for field in form.display:
+                    <li><label>
+                        ${field() | n}
+                        ${lib.icon(DISPLAY_ICONS[field.data])}
+                        ${field.label.text}
+                    </label></li>
+                    % endfor
+                </ul>
+                ${lib.field_errors(form.display)}
+            </dd>
+        </dl>
+    </div>
+    </div>
+    ${h.end_form()}
+</div>
+</%def>

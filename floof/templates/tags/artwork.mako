@@ -5,4 +5,4 @@
 
 <h1>${title()}</h1>
 
-${artlib.thumbnail_grid(c.gallery_view.get_query())}
+${artlib.render_gallery_sieve(c.gallery_sieve)}

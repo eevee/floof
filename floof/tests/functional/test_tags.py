@@ -21,4 +21,4 @@ class TestTagsController(TestController):
 
         # Ensure it shows in the tag's gallery
         res = self.app.get(url(controller='tags', action='artwork', name=tag.name))
-        assert artwork in res.tmpl_context.gallery_view.get_query()
+        assert artwork in res.tmpl_context.gallery_sieve.sqla_query

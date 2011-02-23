@@ -5,4 +5,4 @@
 <%def name="title()">${c.this_user.display_name}'s watchstream</%def>
 
 <h1>${lib.user_link(c.this_user)} » Watchstream</h1>
-${artlib.thumbnail_grid(c.artwork.get_query())}
+${artlib.render_gallery_sieve(c.artwork)}

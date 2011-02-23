@@ -17,7 +17,7 @@ from floof.forms import MultiCheckboxField, MultiTagField
 from floof.lib import helpers
 from floof.lib.base import BaseController, render
 from floof.lib.decorators import user_must
-from floof.lib.gallery import GalleryView
+from floof.lib.gallery import GallerySieve
 from floof.lib.helpers import redirect
 from floof.lib.log import ADMIN, PRIV_ADMIN
 from floof.model import meta
@@ -253,16 +253,9 @@ class ArtController(BaseController):
 
     def gallery(self):
         """Main gallery; provides browsing through absolutely everything we've
-        got.  Also implements arbitrary art filtering; any collection of art
-        across the entire site should be reproducible here.
+        got.
         """
-        c.gallery_view = GalleryView(user=c.user)
-        if not c.gallery_view.read_form_data(request.params):
-            abort(403)  # XXX
-
-        # TODO scrap this
-        c.form = c.gallery_view.form
-
+        c.gallery_sieve = GallerySieve(user=c.user, formdata=request.params)
         return render('/art/gallery.mako')
 
     def view(self, id):
