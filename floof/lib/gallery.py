@@ -5,6 +5,7 @@ of easy SQL wrappers.
 Intended to be used and usable from basically all over the place.  You probably
 want the `GallerySieve` class.
 """
+from collections import namedtuple
 from datetime import timedelta
 
 from sqlalchemy.orm import aliased
@@ -76,7 +77,8 @@ class GalleryForm(wtforms.form.Form):
     sort = wtforms.fields.SelectField(u'Sort by',
         choices=[
             (u'uploaded_time',  u'time uploaded'),
-            (u'rating',         u'rating (only shows the last 24h of art)'),
+            (u'rating',         u'rating (restricted to the last 24h)'),
+            (u'rating_count',   u'number of ratings'),
             # TODO implement me
             #(u'suggest',        u"how much I'd like it"),
         ],
@@ -103,9 +105,8 @@ TIME_RADII = {
 }
 
 
-bogus_form_data = object()
-
-class DuplicateFilterError(Exception): pass
+GalleryResults = namedtuple('GalleryResults',
+    ['artwork', 'wtform'])
 
 class GallerySieve(object):
     """Handles filtering art by various criteria.  Different places within the
@@ -146,18 +147,18 @@ class GallerySieve(object):
         self.session = session
         self.user = user
 
-        self._query = session.query(model.Artwork)
-        self._form = GalleryForm(formdata)
+        self.query = session.query(model.Artwork)
+        self.form = GalleryForm(formdata)
         self.order_clause = model.Artwork.uploaded_time.desc()
 
         self.use_form = formdata is not None
         if formdata:
-            if self._form.validate():
+            if self.form.validate():
                 self._apply_formdata()
 
     def _apply_formdata(self):
         # TODO auto-shorten?  oh no how would this even work
-        form = self._form
+        form = self.form
 
         if form.tags.data:
             self.filter_by_tag_query(form.tags.data)
@@ -180,31 +181,33 @@ class GallerySieve(object):
             if rating_spec == u'none':
                 # Filtering by NO rating is a little different.  Need to
                 # left-join to my ratings and filter on NULLs
-                self._query = self._query \
+                self.query = self.query \
                     .outerjoin((my_rating_subq,
                         model.Artwork.id == my_rating_subq.c.artwork_id)) \
                     .filter(my_rating_subq.c.artwork_id == None)
 
             else:
                 # Otherwise, regular-join to my ratings
-                self._query = self._query \
+                self.query = self.query \
                     .join((my_rating_subq,
                         model.Artwork.id == my_rating_subq.c.artwork_id))
 
                 if rating_spec == u'good':
-                    self._query = self._query.filter(
+                    self.query = self.query.filter(
                         my_rating_subq.c.rating > 0.0)
                 elif rating_spec == u'ok':
-                    self._query = self._query.filter(
+                    self.query = self.query.filter(
                         my_rating_subq.c.rating == 0.0)
                 elif rating_spec == u'bad':
-                    self._query = self._query.filter(
+                    self.query = self.query.filter(
                         my_rating_subq.c.rating < 0.0)
                 # Only other option is 'any', which is taken care of by the
                 # join alone
 
         self.order_by(form.sort.data)
-        # TODO: rating sort should force last 24h or less
+        if form.sort.data == u'rating':
+            # Only allow the past 24 hours when sorting by absolute rating
+            self.filter_by_timedelta(timedelta(hours=24))
         # TODO: suggestion sort???
 
 
@@ -216,7 +219,7 @@ class GallerySieve(object):
         Must be one of the values allowed in the form, above, and so is not
         really suited for purely from-code use.
         """
-        self._query = self._query.filter(
+        self.query = self.query.filter(
             model.Artwork.uploaded_time >= model.now() - delta)
 
     ### Tag filter methods
@@ -224,7 +227,7 @@ class GallerySieve(object):
     def filter_by_user(self, rel, user):
         """Filter the gallery by a user relationship: by/for/of.
         """
-        self._query = self._query.filter(
+        self.query = self.query.filter(
             model.Artwork.user_artwork.any(
                 relationship_type=rel,
                 user_id=user.id,
@@ -246,7 +249,7 @@ class GallerySieve(object):
             # XXX
             raise
 
-        self._query = self._query.filter(
+        self.query = self.query.filter(
             model.Artwork.tag_objs.any(id=tag.id)
             )
 
@@ -273,7 +276,7 @@ class GallerySieve(object):
     def filter_by_watches(self, user):
         """Filter the gallery down to only things `user` is watching."""
         # XXX make this work for multiple users
-        self._query = self._query.filter(or_(
+        self.query = self.query.filter(or_(
             # Check for by/for/of watching
             # XXX need an index on relationship_type, badly!
             model.Artwork.id.in_(
@@ -314,6 +317,8 @@ class GallerySieve(object):
             self.order_clause = model.Artwork.uploaded_time.desc()
         elif order == 'rating':
             self.order_clause = model.Artwork.rating_score.desc()
+        elif order == 'rating_count':
+            self.order_clause = model.Artwork.rating_count.desc()
         else:
             raise ValueError("No such ordering {0}".format(order))
 
@@ -326,9 +331,9 @@ class GallerySieve(object):
         Loading this form's data into a new `GallerySieve` should produce
         exactly the same search.
         """
-        if self._form:
+        if self.form:
             # Already got the form from read_form_data
-            return self._form
+            return self.form
 
         # XXX implement this asap
         return GalleryForm()
@@ -336,7 +341,9 @@ class GallerySieve(object):
     @property
     def sqla_query(self):
         """The constructed SQLAlchemy query."""
-        print self._query
-        return self._query.order_by(self.order_clause)
+        return self.query.order_by(
+            self.order_clause,
+            model.Artwork.uploaded_time.desc(),
+        )
 
     def get_query(self): return self.sqla_query

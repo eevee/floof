@@ -108,7 +108,7 @@ class AnonymousUser(object):
         permission.
         """
         return False
-    
+
     def logged_privs(self):
         return []
 
