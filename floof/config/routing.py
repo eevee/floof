@@ -64,6 +64,7 @@ def make_map(config):
     map.connect('/users/{name}/{action}', controller='users')
 
     map.connect('/', controller='main', action='index')
+    map.connect('/cookies_disabled', controller='main', action='cookies_disabled')
 
     map.connect('/art', controller='art', action='gallery')
     map.connect('/art/upload', controller='art', action='upload')

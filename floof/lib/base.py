@@ -4,21 +4,17 @@ Provides the BaseController class for subclassing.
 """
 import datetime
 
-from pylons import config, request, session, tmpl_context as c
+from pylons import config, request, session, tmpl_context as c, url
 from pylons.controllers import WSGIController
-from pylons.controllers.util import abort
+from pylons.controllers.util import abort, redirect
 from pylons.templating import render_mako
 from pylons.decorators.secure import authenticated_form
-from sqlalchemy.orm import joinedload
-from sqlalchemy.orm.exc import NoResultFound
-import webhelpers.pylonslib.secure_form as secure_form
 import wtforms.fields, wtforms.form
 
 from floof.lib import auth
 from floof.lib.debugging import ResponseTimer
 from floof.lib.helpers import flash
-from floof.model import AnonymousUser, User, meta
-from floof import model
+from floof.model import meta
 
 def render(*args, **kwargs):
     if config['super_debug']:
@@ -42,12 +38,14 @@ class BaseController(WSGIController):
 
     def __before__(self, action, environ, **params):
         c.timer = ResponseTimer()
-        
+
         c.auth = auth.Auth(session, environ)
         c.user = c.auth.get_user()
 
         # Check CSRF token on POST requests.  Ignore during test runs
         if request.method == 'POST' and not 'paste.testing' in environ:
+            if not request.cookies:
+                redirect(url(controller='main', action='cookies_disabled'))
             if not authenticated_form(request.POST):
                 abort(400, detail='Possible cross-site request forgery detected.')
 

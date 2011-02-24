@@ -10,7 +10,6 @@ from floof.model import meta, Certificate
 
 import OpenSSL.crypto as ssl
 import os
-import time
 
 # List methods in decreasing order of authoratativeness
 auth_mechanisms = ['cert', 'openid']
