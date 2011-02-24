@@ -35,10 +35,17 @@ def reduce_display_name(name):
     return name
 
 class DisplayNameForm(wtforms.form.Form):
-    display_name = wtforms.fields.TextField(u'')
+    display_name = wtforms.fields.TextField(u'Display Name')
     update_display_name = wtforms.SubmitField(u'Update')
 
+    # n.b. model.User.display_name is a mapper, not a column, hence __table__
+    _max_length = model.User.__table__.c.display_name.type.length
+
     def validate_display_name(form, field):
+        if len(field.data) > form._max_length:
+            raise wtforms.ValidationError(
+                '{0} characters maximum.'.format(form._max_length))
+
         if not all(32 <= ord(char) <= 126 for char in field.data):
             raise wtforms.ValidationError('Printable ASCII only.')
 

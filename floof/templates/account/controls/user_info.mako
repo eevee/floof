@@ -6,6 +6,11 @@
 
 ${h.secure_form(url.current())}
 <h2>Display name</h2>
-${lib.field(c.display_name_form.display_name)}
+${c.display_name_form.display_name(
+    size=c.display_name_form._max_length,
+    maxlength=c.display_name_form._max_length
+)}
 ${c.display_name_form.update_display_name()}
+
+${lib.field_errors(c.display_name_form.display_name)}
 ${h.end_form()}
