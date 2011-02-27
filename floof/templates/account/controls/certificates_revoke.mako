@@ -9,14 +9,14 @@ ${h.secure_form(url.current())}
 <p>Are you absolutely sure that you wish to <strong>permanently revoke</strong>
 the certificate below?  You will no longer be able to log in with this
 certificate.<p>
-% if c.cert.serial == c.auth.cert_serial and 'cert' in c.auth.satisfied_mechanisms:
-<p>You are currently using this certificate.  Revoking it will
+% if c.cert.serial == c.auth.cert_serial and 'cert' in c.auth.satisfied:
+<p>You are currently using this certificate.  Revoking it may
 automatically log you out.  If you still wish to continue, please
 ensure that you have an alternate way of logging in.</p>
     % if c.will_override_auth == 1:
     <p>This is your last valid certificate.  If you revoke it, then your
-    choice of authentication mechanism will be overwritten to
-    &quot;Certificate OR OpenID&quot; at next login.</p>
+    client certificate authentication method will be overwritten from
+    ${c.user.cert_auth} to &quot;Allowed&quot; at next login.</p>
     % endif
 % endif
 <p>This action cannot be undone.</p>

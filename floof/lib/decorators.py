@@ -5,6 +5,7 @@ from pylons import tmpl_context as c
 from pylons.controllers.util import abort
 from decorator import decorator
 
+from floof.lib.helpers import flash
 from floof.model import meta
 from floof import model
 
@@ -28,6 +29,14 @@ def user_must(priv):
     def deco(f, *a, **kw):
         if not c.user.can(priv, log=True):
             abort(403, detail="User does not have permission to perform this action")
+        sensitive_privs = ('auth.', 'money.')
+        print priv, c.auth.confidence_level
+        if (priv.startswith('admin.') and c.auth.confidence_level < 2) or \
+                (priv.startswith(sensitive_privs) and c.auth.confidence_level < 1):
+            flash('You would have been denied as your assurance level '
+                    'is only {0}'.format(c.auth.confidence_level),
+                    level='error'
+                    )
         return f(*a, **kw)
     return deco
 

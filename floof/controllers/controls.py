@@ -12,7 +12,7 @@ from floof.forms import KeygenField, MultiCheckboxField
 from floof.lib import helpers
 from floof.lib.auth import get_ca, update_crl
 from floof.lib.base import BaseController, render
-from floof.lib.decorators import logged_in
+from floof.lib.decorators import logged_in, user_must
 from floof.lib.helpers import redirect
 from floof.lib.openid_ import OpenIDError, openid_begin, openid_end
 import floof.model as model
@@ -83,27 +83,27 @@ class RevokeCertificateForm(wtforms.form.Form):
     cancel = wtforms.fields.SubmitField(u'Cancel')
 
 class AuthenticationForm(wtforms.form.Form):
-    auth_method = wtforms.fields.SelectField(u'Authentication Method', choices=[
-            (u'openid_only', u'OpenID Only (default)'),
-            (u'cert_or_openid', u'Certificate OR OpenID (1)'),
-            (u'cert_and_openid', u'Certificate AND OpenID (2)'),
-            (u'cert_only', u'Certificate Only (1) (2)'),
+    cert_auth = wtforms.fields.SelectField(u'Certificate Authentication Control', choices=[
+            (u'disabled', u'Disallow using client certificates for login (default)'),
+            (u'allowed', u'Allow using client certificates for login'),
+            (u'sensitive_required', u'Allow using client certificates for login; Require for Sensitive Operations'),
+            (u'required', u'Require using client certificates for login'),
             ])
 
-    def validate_auth_method(form, field):
-        if field.data in ['cert_only', 'cert_and_openid']:
+    def validate_cert_auth(form, field):
+        if field.data in ['required', 'sensitive_required']:
             if not c.user.valid_certificates:
                 raise wtforms.ValidationError('You cannot make a selection '
-                        'that requires an SSL certificate to log in '
-                        'while you have no valid SSL certificates '
-                        'registered against your account.')
-            if not c.auth.mechanisms['cert']:
+                        'that requires an SSL certificate to log in or to '
+                        'change this setting while you have no valid SSL '
+                        'certificates registered against your account.')
+            if not 'cert' in c.auth.satisfied:
                 raise wtforms.ValidationError('To prevent locking yourself '
                         'out, you cannot make a selection that requires an '
-                        'SSL certificate to log in without first loading '
-                        'this page while the certificate is installed in '
-                        'your browser and being successfully sent to the '
-                        'site.')
+                        'SSL certificate to log in or to change this '
+                        'setting without first loading this page while the '
+                        'certificate is installed in your browser and being '
+                        'successfully sent to the site.')
 
 class AuthenticationConfirmationForm(wtforms.form.Form):
     confirm = wtforms.fields.SubmitField(u'Confirm Authentication Method Change')
@@ -117,7 +117,7 @@ class ControlsController(BaseController):
         c.current_action = 'index'
         return render('/account/controls/index.mako')
 
-    @logged_in
+    @user_must('auth.openid')
     def openid(self):
         c.current_action = 'openid'
         c.openid_form = OpenIDForm(request.POST)
@@ -301,7 +301,9 @@ class ControlsController(BaseController):
         c.form = CertificateForm(request.POST)
         if request.method == 'POST' and \
                 c.form.validate() and \
-                c.form.generate_browser.data:
+                c.form.generate_browser.data and \
+                c.user.can('auth.certificates'):
+            # TODO: Check c.auth.confidence_level > 0
             # Generate a new certificate from UA-supplied key.
             spkac = c.form.pubkey.data
             cert = model.Certificate(
@@ -320,7 +322,7 @@ class ControlsController(BaseController):
             return cert.public_data_der
         return render('/account/controls/certificates.mako')
 
-    @logged_in
+    @user_must('auth.certificates')
     def certificates_server(self):
         c.form = CertificateForm(request.POST)
         if request.method == 'POST' and \
@@ -357,14 +359,14 @@ class ControlsController(BaseController):
         response.content_type = 'application/x-pem-file'
         return cert.public_data
 
-    @logged_in
+    @user_must('auth.certificates')
     def certificates_revoke(self, id=None):
         c.current_action = 'certificates'
         c.form = RevokeCertificateForm(request.POST)
         c.cert = model.Certificate.get(meta.Session, id=id)
         check_cert(c.cert, c.user, check_validity=True)
         c.will_override_auth = len(c.user.valid_certificates) == 1 and \
-                c.user.auth_method in ['cert_only', 'cert_and_openid']
+                c.user.cert_auth in ['required', 'sensitive_required']
         if request.method == 'POST' and c.form.validate():
             if c.form.ok.data:
                 c.cert.revoke()
@@ -378,7 +380,7 @@ class ControlsController(BaseController):
             redirect(url(controller='controls', action='certificates'))
         return render('/account/controls/certificates_revoke.mako')
 
-    @logged_in
+    @user_must('auth.method')
     def authentication(self):
         c.current_action = 'authentication'
         c.form = AuthenticationForm(request.POST, c.user)

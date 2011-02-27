@@ -188,18 +188,18 @@ class TestControlsController(TestController):
         assert url(controller='controls', action='certificates_revoke', id=1) not in response, 'Revocation link found for supposedly revoked certificate.'
 
 
-    def test_auth_method_change(self):
-        """Test changing the user authentication method."""
+    def test_cert_auth_change(self):
+        """Test changing the user certificate authentication option."""
         response = self.app.get(
                 url(controller='controls', action='authentication'),
                 extra_environ={'tests.user_id': self.user.id},
                 )
-        assert 'selected="selected" value="openid_only"' in response, 'Could not find evidence of anticipated default value.'
+        assert 'selected="selected" value="disabled"' in response, 'Could not find evidence of anticipated default value.'
         response = self.app.post(
                 url(controller='controls', action='authentication'),
                 params=[
                     ('confirm', u'Confirm Authentication Method Change'),
-                    ('auth_method', u'cert_and_openid')
+                    ('cert_auth', u'required')
                     ],
                 extra_environ={'tests.user_id': self.user.id},
                 )
@@ -207,7 +207,7 @@ class TestControlsController(TestController):
                 url(controller='controls', action='authentication'),
                 extra_environ={'tests.user_id': self.user.id},
                 )
-        assert 'selected="selected" value="openid_only"' in response, 'Allowed change to method requiring a certificate when user has no certificates.'
+        assert 'selected="selected" value="disabled"' in response, 'Allowed change to method requiring a certificate when user has no certificates.'
         response = self.app.post(
                 url(controller='controls', action='certificates_server', name=self.user.name),
                 params=[
@@ -220,7 +220,7 @@ class TestControlsController(TestController):
                 url(controller='controls', action='authentication'),
                 params=[
                     ('confirm', u'Confirm Authentication Method Change'),
-                    ('auth_method', u'cert_and_openid')
+                    ('cert_auth', u'required')
                     ],
                 extra_environ={'tests.user_id': self.user.id},
                 )
@@ -228,7 +228,7 @@ class TestControlsController(TestController):
                 url(controller='controls', action='authentication'),
                 extra_environ={'tests.user_id': self.user.id},
                 )
-        assert 'selected="selected" value="openid_only"' in response, 'Allowed change to method requiring a certificate when user did not present one in request.'
+        assert 'selected="selected" value="disabled"' in response, 'Allowed change to method requiring a certificate when user did not present one in request.'
         user = meta.Session.query(model.User).filter_by(id=self.user.id).one()
         assert len(user.valid_certificates) > 0, 'User does not appear to have any valid certificates, even though we just created one.'
         serial = user.valid_certificates[0].serial
@@ -236,7 +236,7 @@ class TestControlsController(TestController):
                 url(controller='controls', action='authentication'),
                 params=[
                     ('confirm', u'Confirm Authentication Method Change'),
-                    ('auth_method', u'cert_and_openid')
+                    ('cert_auth', u'required')
                     ],
                 extra_environ={'tests.user_id': self.user.id, 'tests.auth_cert_serial': serial},
                 )
@@ -244,4 +244,4 @@ class TestControlsController(TestController):
                 url(controller='controls', action='authentication'),
                 extra_environ={'tests.user_id': self.user.id},
                 )
-        assert 'selected="selected" value="cert_and_openid"' in response, 'The authentication method did not appear to update.'
+        assert 'selected="selected" value="required"' in response, 'The authentication method did not appear to update.'

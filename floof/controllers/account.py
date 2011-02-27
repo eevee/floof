@@ -53,7 +53,7 @@ class AccountController(BaseController):
         """Step one of logging in with OpenID; redirect to the provider."""
         c.form = LoginForm(request.POST)
 
-        if 'openid' in c.auth.satisfied_mechanisms:
+        if 'openid' in c.auth.satisfied:
             redirect(url(controller='account', action='login'))
         if not c.form.validate():
             return render('/account/login.mako')
@@ -93,7 +93,7 @@ class AccountController(BaseController):
                     .format(user.id, user.name, identity_url))
 
             # Log the successful authentication
-            if c.auth.auth_success(session, 'openid', user.id):
+            if c.auth.openid_success(session, user.id, identity_url):
                 helpers.flash(u'Hello, {0}'.format(user.display_name),
                         icon='user')
                 redirect(url('/'))
@@ -154,12 +154,11 @@ class AccountController(BaseController):
 
         # Log 'em in
         del session['pending_identity_url']
-        c.auth.auth_success(session, 'openid', user.id)
+        c.auth.openid_success(session, user.id, identity_url)
 
         # And off we go
         redirect(url('/'))
 
-    @logged_in
     def logout(self):
         """Logs the user out, if possible."""
 
@@ -168,12 +167,6 @@ class AccountController(BaseController):
             helpers.flash(u'Logged out.',
                   icon='user-silhouette')
         redirect(url('/'))
-
-    def purge_auth(self):
-        c.auth.purge(session)
-        helpers.flash(u'Authentication data purged.',
-                icon='user-silhouette')
-        redirect(url(controller='account', action='login'))
 
     @logged_in
     def profile(self):

@@ -32,7 +32,7 @@
             ${h.end_form()}
             % elif c.auth.pending_user:
             <p><a href="${url(controller='account', action='login')}">Complete log in for ${c.auth.pending_user.name}</a></p>
-            ${h.secure_form(url(controller='account', action='purge_auth'), class_='compact')}
+            ${h.secure_form(url(controller='account', action='logout'), class_='compact')}
                 % if c.auth.can_purge:
                 <p><input type="submit" value="Purge Authentication" /></p>
                 % else:
