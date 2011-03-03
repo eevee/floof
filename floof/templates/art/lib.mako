@@ -52,9 +52,48 @@ def media_icon(type):
     )
 %>\
 <%def name="render_gallery_sieve(gallery_sieve, filters_open=False)">
-${gallery_sieve_form(gallery_sieve.wtform)}
-## TODO how do I deal with "no results" here
-${thumbnail_grid(gallery_sieve.sqla_query)}
+${gallery_sieve_form(gallery_sieve.form)}
+<% pager = gallery_sieve.evaluate() %>\
+
+
+% if pager.items:
+${thumbnail_grid(pager)}
+% else:
+<p>Nothing found.</p>
+% endif
+
+##% if pager.skip:
+##<p>Showing from ${lib.time(pager.skip)}...</p>
+##% endif
+% if pager.items and pager.item_count:
+<p>
+    % if pager.item_count > pager.skip + 1:
+    ${pager.skip + 1}–${min(pager.skip + pager.page_size, pager.item_count)}
+    % else:
+    ${pager.item_count}
+    % endif
+    of ${pager.item_count}
+</p>
+% elif pager.items:
+<p>
+    ${pager.skip + 1}–${pager.skip + pager.page_size} of some number...
+</p>
+% endif
+% for page in pager.pages():
+% if page is None:
+<li>…</li>
+% elif page == pager.current_page:
+<li>
+    % if page == int(page):
+    ${int(page + 1)}
+    % else:
+    ${int(page + 1)}½
+    % endif
+</li>
+% else:
+<li><a href="${url.current(**dict(pager.formdata.items() + [('skip', page * pager.page_size)]))}">${page + 1}</a></li>
+% endif
+% endfor
 </%def>
 
 <%def name="gallery_sieve_form(form)">

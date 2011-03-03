@@ -8,14 +8,15 @@ want the `GallerySieve` class.
 from collections import namedtuple
 from datetime import timedelta
 
+import pytz
 from sqlalchemy.orm import aliased
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.sql import and_, case, or_
 import wtforms.form, wtforms.fields
 
+from floof.lib import pager
 from floof import model
 
-# TODO: tag filter; does this have a ticket?
 # TODO: labels (is there a favorites ticket?)
 # TODO: "art like this" on art page
 # TODO: another special search, elsewhere, for friend-of-friends (watches of everyone in label x)
@@ -105,8 +106,7 @@ TIME_RADII = {
 }
 
 
-GalleryResults = namedtuple('GalleryResults',
-    ['artwork', 'wtform'])
+PAGE_SIZE = 4  # XXX
 
 class GallerySieve(object):
     """Handles filtering art by various criteria.  Different places within the
@@ -124,7 +124,9 @@ class GallerySieve(object):
     combined arbitrarily; they'll be ANDed together.
     """
 
-    def __init__(self, session=None, user=None, formdata=None):
+    default_order_clause = model.Artwork.uploaded_time.desc()
+
+    def __init__(self, session=None, user=None, formdata=None, countable=False):
         """Parameters:
 
         `session`
@@ -140,18 +142,36 @@ class GallerySieve(object):
             Form data.  If provided, it'll be loaded into the wtforms object
             and appropriate filters will be applied.  If this is omitted
             entirely, the rendered gallery won't have a filter form at all.
+        `countable`
+            If set to True, the gallery display will include a count of the
+            total number of items (even when filtered!), and the page list will
+            run from first to last.  If set to False (the default), the page
+            list will instead trail off after the current page, only showing a
+            next page link if there are more items to see.  The intention is
+            that this be set to True only for "real" gallery, such as the
+            artwork a single user owns.
         """
         if not session:
             session = model.meta.Session
 
         self.session = session
         self.user = user
+        self.countable = countable
 
-        self.query = session.query(model.Artwork)
+        self.query = session.query(model.Artwork) \
+            .order_by(self.default_order_clause)
         self.form = GalleryForm(formdata)
-        self.order_clause = model.Artwork.uploaded_time.desc()
 
-        self.use_form = formdata is not None
+        try:
+            self.skip = int(formdata['skip'])
+            #self.use_form = formdata is not None
+        except (KeyError, ValueError, TypeError):
+            self.skip = 0
+        if self.skip < 0:
+            # XXX or 404?
+            self.skip = 0
+
+        self.original_formdata = formdata or {}
         if formdata:
             if self.form.validate():
                 self._apply_formdata()
@@ -166,7 +186,7 @@ class GallerySieve(object):
         # TODO: allow "popular per day" a la e621?
         # TODO: or for "popular recently", use popularity * age for falloff?
         if form.time_radius.data != u'all':
-            self.filter_by_timedelta(
+            self.filter_by_recency(
                 timedelta(**TIME_RADII[form.time_radius.data]))
 
         # TODO: only show this field at all when user exists
@@ -207,18 +227,19 @@ class GallerySieve(object):
         self.order_by(form.sort.data)
         if form.sort.data == u'rating':
             # Only allow the past 24 hours when sorting by absolute rating
-            self.filter_by_timedelta(timedelta(hours=24))
+            self.filter_by_recency(timedelta(hours=24))
         # TODO: suggestion sort???
 
 
     ### Independent filter methods
 
-    def filter_by_timedelta(self, delta):
-        """Find art uploaded no earlier than `delta` before now.
+    def filter_by_age(self, dt):
+        """Find art uploaded at or before `dt`."""
+        print dt
+        self.query = self.query.filter(model.Artwork.uploaded_time <= dt)
 
-        Must be one of the values allowed in the form, above, and so is not
-        really suited for purely from-code use.
-        """
+    def filter_by_recency(self, delta):
+        """Find art uploaded no earlier than `delta` before now."""
         self.query = self.query.filter(
             model.Artwork.uploaded_time >= model.now() - delta)
 
@@ -309,41 +330,34 @@ class GallerySieve(object):
 
 
     def order_by(self, order):
-        """Changes the sort order.  May be one of "uploaded_time", "rating".
+        """Changes the sort order.  May be one of "uploaded_time", "rating",
+        "rating_count".
 
         The default is "uploaded_time".
         """
         if order == 'uploaded_time':
-            self.order_clause = model.Artwork.uploaded_time.desc()
+            order_column = model.Artwork.uploaded_time
         elif order == 'rating':
-            self.order_clause = model.Artwork.rating_score.desc()
+            order_column = model.Artwork.rating_score
         elif order == 'rating_count':
-            self.order_clause = model.Artwork.rating_count.desc()
+            order_column = model.Artwork.rating_count
         else:
             raise ValueError("No such ordering {0}".format(order))
+
+        self.query = self.query.order_by(None) \
+            .order_by(order_column.desc(), self.default_order_clause)
 
 
     ### The fruits of our labors
 
-    @property
-    def wtform(self):
-        """A wtforms `Form` representing the current state of the view.
-        Loading this form's data into a new `GallerySieve` should produce
-        exactly the same search.
-        """
-        if self.form:
-            # Already got the form from read_form_data
-            return self.form
+    def evaluate(self):
+        """Executes the query.  Returns a pager object."""
+        # TODO: perhaps show a count when appropriate; when caller requests it and there's no filter?
 
-        # XXX implement this asap
-        return GalleryForm()
-
-    @property
-    def sqla_query(self):
-        """The constructed SQLAlchemy query."""
-        return self.query.order_by(
-            self.order_clause,
-            model.Artwork.uploaded_time.desc(),
+        return pager.Pager(
+            query=self.query,
+            page_size=PAGE_SIZE,
+            skip=self.skip,
+            formdata=self.original_formdata,
+            count_pages=self.countable,
         )
-
-    def get_query(self): return self.sqla_query

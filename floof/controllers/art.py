@@ -255,7 +255,7 @@ class ArtController(BaseController):
         """Main gallery; provides browsing through absolutely everything we've
         got.
         """
-        c.gallery_sieve = GallerySieve(user=c.user, formdata=request.params)
+        c.gallery_sieve = GallerySieve(user=c.user, formdata=request.GET)
         return render('/art/gallery.mako')
 
     def view(self, id):
