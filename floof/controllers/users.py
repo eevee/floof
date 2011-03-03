@@ -34,3 +34,17 @@ class UsersController(BaseController):
         c.artwork.filter_by_watches(user)
 
         return render('/users/watchstream.mako')
+
+    @user_action
+    def art_label(self, user, label):
+        if label in model.user_artwork_types:
+            return self._art_relationship(user, label)
+
+        raise NotImplementedError
+
+    def _art_relationship(self, user, rel):
+        c.rel = rel
+        c.gallery_sieve = GallerySieve(user=c.user, formdata=request.GET, countable=True)
+        c.gallery_sieve.filter_by_user(rel, user)
+
+        return render('/users/label.mako')
