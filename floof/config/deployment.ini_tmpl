@@ -61,9 +61,6 @@ set debug = false
 # debug crap.
 #super_debug = true
 
-# Force a logout after an inactivity period of this many seconds.
-inactivity_expiry = 1800
-
 # Enable client certificate authentication for users.
 # This may be dangerous if you don't understand the particulars, but
 # the UI presently assumes that it is always "true".
@@ -108,10 +105,10 @@ qualname = floof
 
 
 [handler_console]
-class = StreamHandler
+class = floof.lib.log.FloofStreamHandler
 args = (sys.stderr,)
 level = NOTSET
-formatter = generic
+formatter = flooffile
 
 [handler_floofdb]
 class = floof.lib.log.FloofDBHandler
