@@ -21,7 +21,6 @@ from floof import model
 # TODO: "art like this" on art page
 # TODO: another special search, elsewhere, for friend-of-friends (watches of everyone in label x)
 
-# TODO: Fixed things: any (viewable) userlabel, any (viewable) artlabel, friend-of-friend...?
 class GalleryForm(wtforms.form.Form):
     """Form used all over the place for "searching" (really filtering) through
     art.
@@ -29,16 +28,9 @@ class GalleryForm(wtforms.form.Form):
     # TODO paging!
     # - when sorting by date, do this by "skipping" to a certain date, to avoid
     #   problems with LIMIT...OFFSET
-    # - otherwise, you'll need to actually use LIMIT and do pages as normal.
-    #   boo.
     # - when doing date skipping, perhaps instead of jumping back by 2/3/4
     #   pages, offer to skip back by increasing chunks of time?  and/or allow
     #   just outright typing in a custom place to jump to
-    # - when doing date skipping, does jumping backwards need to be a concern,
-    #   or can we just rely on the back button?
-    # TODO counts of results?  blech.  if nothing else, select one more than
-    #   necessary, and only show a "next" button if it's useful.
-    # TODO handle no results
     # TODO replace me with a special tag filter field that somehow interacts
     # correctly with the function below.  syntax should include:
     # - arbitrary boolean queries
@@ -161,15 +153,6 @@ class GallerySieve(object):
         self.query = session.query(model.Artwork) \
             .order_by(self.default_order_clause)
         self.form = GalleryForm(formdata)
-
-        try:
-            self.skip = int(formdata['skip'])
-            #self.use_form = formdata is not None
-        except (KeyError, ValueError, TypeError):
-            self.skip = 0
-        if self.skip < 0:
-            # XXX or 404?
-            self.skip = 0
 
         self.original_formdata = formdata or {}
         if formdata:
@@ -351,13 +334,30 @@ class GallerySieve(object):
     ### The fruits of our labors
 
     def evaluate(self):
-        """Executes the query.  Returns a pager object."""
-        # TODO: perhaps show a count when appropriate; when caller requests it and there's no filter?
+        """Executes the query.  Returns a pager object.
 
-        return pager.Pager(
+        A word on how the paging works:
+        - If the sieve is created with countable=True, you'll get a regular
+          numeric pager, regardless of anything else.
+        - If the sieve is created with countable=False, you'll get a numeric
+          pager that trails off at the end.
+        - If the sieve is created with countable=False AND is sorted by time
+          AND the user has gone back "too far", the "next" link will switch to
+          time-based paging instead.
+        """
+        common_kw = dict(
             query=self.query,
             page_size=PAGE_SIZE,
-            skip=self.skip,
             formdata=self.original_formdata,
-            count_pages=self.countable,
         )
+
+        if self.countable:
+            return pager.DiscretePager(
+                countable=True,
+                **common_kw
+            )
+        else:
+            return pager.TemporalPager(
+                column_name='uploaded_time',
+                **common_kw
+            )
