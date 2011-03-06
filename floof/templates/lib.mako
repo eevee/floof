@@ -113,9 +113,10 @@ for char in serial[:10]:
 
 
 ## Rendering for lib.pager.Pager objects
-<%def name="discrete_pager(pager, hybrid=False)">
-## When `hybrid` is True, discrete pagers that have reached their maximum
-## allowed limit will switch to temporal pagers.  Used for GallerySieve
+<%def name="discrete_pager(pager, temporal_column_name=None)">
+## When `temporal_column_name` is given, discrete pagers that have reached
+## their maximum allowed limit will switch to temporal pagers.  Used for
+## GallerySieve
 <div class="pager">
     ## TODO: perhaps merge this block with the current page in the below block?
     % if pager.items:
@@ -146,6 +147,12 @@ for char in serial[:10]:
         % endif
         </li>
     % endfor
+    % if temporal_column_name and pager.is_last_allowable_page:
+    <li>
+        <a href="${h.update_params(url.current(), \
+            **pager.formdata_for_temporal(temporal_column_name))}">More →</a>
+    </li>
+    % endif
     </ol>
 </div>
 </%def>

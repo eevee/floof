@@ -26,8 +26,6 @@ class GalleryForm(wtforms.form.Form):
     art.
     """
     # TODO paging!
-    # - when sorting by date, do this by "skipping" to a certain date, to avoid
-    #   problems with LIMIT...OFFSET
     # - when doing date skipping, perhaps instead of jumping back by 2/3/4
     #   pages, offer to skip back by increasing chunks of time?  and/or allow
     #   just outright typing in a custom place to jump to
@@ -117,6 +115,7 @@ class GallerySieve(object):
     """
 
     default_order_clause = model.Artwork.uploaded_time.desc()
+    temporal_column_name = 'uploaded_time'
 
     def __init__(self, session=None, user=None, formdata=None, countable=False):
         """Parameters:
@@ -318,8 +317,11 @@ class GallerySieve(object):
 
         The default is "uploaded_time".
         """
+        self.temporal_column_name = None
+
         if order == 'uploaded_time':
             order_column = model.Artwork.uploaded_time
+            self.temporal_column_name = 'uploaded_time'
         elif order == 'rating':
             order_column = model.Artwork.rating_score
         elif order == 'rating_count':
@@ -357,7 +359,17 @@ class GallerySieve(object):
                 **common_kw
             )
         else:
-            return pager.TemporalPager(
-                column_name='uploaded_time',
+            # Only use temporal paging if we actually can, AND if the formdata
+            # has a timeskip key already
+            if self.temporal_column_name and \
+                'timeskip' in self.original_formdata:
+
+                return pager.TemporalPager(
+                    column_name='uploaded_time',
+                    **common_kw
+                )
+
+            return pager.DiscretePager(
+                countable=False,
                 **common_kw
             )

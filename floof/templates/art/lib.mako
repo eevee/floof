@@ -62,7 +62,7 @@ ${thumbnail_grid(pager)}
 % endif
 
 % if pager.pager_type == 'discrete':
-${lib.discrete_pager(pager)}
+${lib.discrete_pager(pager, temporal_column_name=gallery_sieve.temporal_column_name)}
 % elif pager.pager_type == 'temporal':
 ${lib.temporal_pager(pager)}
 % endif
