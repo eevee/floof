@@ -9,6 +9,7 @@ from urllib2 import HTTPError, URLError
 import wtforms.form, wtforms.fields, wtforms.validators
 
 from floof.lib import helpers
+from floof.lib.auth import CONFIDENCE_EXPIRY_TIME, fetch_stash_url, stash_keys
 from floof.lib.base import BaseController, render
 from floof.lib.decorators import logged_in, logged_out
 from floof.lib.helpers import redirect
@@ -24,6 +25,7 @@ class LoginForm(wtforms.form.Form):
     openid_identifier = wtforms.fields.TextField(u'OpenID URL or Webfinger-enabled email address',
             validators=[wtforms.validators.Required(u'Gotta enter an OpenID to log in.')]
             )
+    return_key = wtforms.fields.HiddenField(u'Return Stash Key')
 
 class RegistrationForm(wtforms.form.Form):
     username = wtforms.fields.TextField(u'Username', [
@@ -43,45 +45,97 @@ class ProfileForm(wtforms.form.Form):
 
 class AccountController(BaseController):
 
-    @logged_out
     def login(self):
         c.form = LoginForm()
+        c.form.openid_identifier.data = c.auth.openid_url
+        c.form.return_key.data = request.GET.get('return_key', None)
         return render('/account/login.mako')
 
-    @logged_out
     def login_begin(self):
         """Step one of logging in with OpenID; redirect to the provider."""
         c.form = LoginForm(request.POST)
 
-        if 'openid' in c.auth.satisfied:
-            redirect(url(controller='account', action='login'))
         if not c.form.validate():
             return render('/account/login.mako')
+
+        # Ensure the return key, if present and valid, will be passed
+        # to openid_finish()
+        if c.form.return_key.data in stash_keys(session):
+            return_url=url(host=request.headers['host'],
+                    controller='account',
+                    action='login_finish',
+                    return_key=c.form.return_key.data,
+                    )
+        else:
+            return_url=url(host=request.headers['host'],
+                    controller='account',
+                    action='login_finish',
+                    )
+
+        if c.user:
+            # Logged-in user trying to update their OpenID expiry time
+            max_auth_age = CONFIDENCE_EXPIRY_TIME
+            sreg = False
+        else:
+            # Logged-out user; may be about to register
+            max_auth_age = False
+            sreg = True
 
         try:
             redirect(openid_begin(
                     identifier=c.form.openid_identifier.data,
-                    return_url=url(host=request.headers['host'],
-                        controller='account',
-                        action='login_finish',
-                        )
+                    return_url=return_url,
+                    max_auth_age=max_auth_age,
+                    sreg=sreg,
                     ))
         except OpenIDError as exc:
             c.form.openid_identifier.errors.append(exc.args[0])
             return render('/account/login.mako')
 
-    @logged_out
     def login_finish(self):
         """Step two of logging in; the OpenID provider redirects back here."""
+        return_key = request.GET.get('return_key', None)
+        if return_key:
+            if return_key not in stash_keys(session):
+                abort(400, detail='Unknown return_key value')
+            return_url=url(host=request.headers['host'],
+                    controller='account',
+                    action='login_finish',
+                    return_key=return_key,
+                    )
+        else:
+            return_url=url(host=request.headers['host'],
+                    controller='account',
+                    action='login_finish',
+                    )
 
         try:
-            identity_url, identity_webfinger, sreg_res = openid_end(
-                    return_url=url(host=request.headers['host'],
-                        controller='account',
-                        action='login_finish',
-                    ))
+            identity_url, identity_webfinger, auth_time, sreg_res = openid_end(
+                    return_url=return_url,
+                    )
         except OpenIDError as exc:
             return exc.args[0]
+
+        if c.user:
+            # An existing user is trying to re-auth
+            if c.auth.openid_success(session, c.user.id, identity_url, auth_time):
+                helpers.flash(u'Re-authentication successful', icon='user')
+                if return_key:
+                    # Fetch a stashed POST request
+                    old_url = fetch_stash_url(session, return_key)
+                    if old_url:
+                        log.debug('Following Return Key \'{0}\' to URL: {1}' \
+                                .format(return_key, old_url))
+                        redirect('{0}?return_key={1}'.format(old_url, return_key))
+                redirect(url('/'))
+            helpers.flash(u'Re-authentication unsuccessful.  Was \'{0}\' a '
+                    'valid OpenID URL registered against your account?' \
+                    .format(identity_url),
+                    level='error',
+                    )
+            if return_key:
+                redirect(url(controller='account', action='login', return_key=return_key))
+            redirect(url(controller='account', action='login'))
 
         try:
             # Grab an existing user record, if one exists

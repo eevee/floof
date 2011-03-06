@@ -3,6 +3,8 @@ from floof.model import meta
 from floof.tests import *
 import floof.tests.sim as sim
 
+import time
+
 class TestAccountController(TestController):
     
     @classmethod
@@ -14,6 +16,12 @@ class TestAccountController(TestController):
         # Force a refresh of the user, to get id populated
         # XXX surely there's a better way!
         meta.Session.refresh(cls.user)
+
+        cls.default_environ = {
+                'tests.user_id': cls.user.id,
+                'tests.auth_openid_uid': cls.user.id,
+                'tests.auth_openid_time': time.time(),
+                }
 
     def test_login(self):
         """Test display of login page."""
@@ -58,7 +66,7 @@ class TestAccountController(TestController):
                     ('days', 31),
                     ('generate_server', u'Generate On Server'),
                     ],
-                extra_environ={'tests.user_id': self.user.id},
+                extra_environ=self.default_environ,
                 )
         user = meta.Session.query(model.User).filter_by(id=self.user.id).one()
         assert len(user.certificates) == 1, 'Expected user to have exactly one certificate, found {0}'.format(len(user.certificates))

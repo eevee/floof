@@ -10,14 +10,29 @@ from floof.model import meta, Certificate
 
 import OpenSSL.crypto as ssl
 import os
+import random
+import time
 
 persistant_variables = [
         'openid_uid',
         'openid_url',
-        'openid_age',
+        'openid_time',
         'cert_uid',
         'cert_serial',
         ]
+
+req_confidence_levels = {
+        1: ['auth', 'money'],
+        2: ['admin']
+        }
+
+CONFIDENCE_EXPIRY_TIME = 60 * 1  # Seconds
+CERT_CONFIDENCE_EXPIRY_TIME = 60 * 30  # Seconds
+
+sensitive_privs = []
+for lvl in req_confidence_levels:
+    for priv in req_confidence_levels[lvl]:
+        sensitive_privs.append(priv)
 
 class Auth():
     """
@@ -73,40 +88,25 @@ class Auth():
         for var in persistant_variables:
             setattr(self, var, session.get(var, None))
 
-        # If testing, override the serial as requested
-        cert_serial_override = None
-        if 'tests.auth_cert_serial' in environ:
-            cert_serial_override = environ['tests.auth_cert_serial']
-
         # Grab the client certificate, if any
-        self._load_certificate(override=cert_serial_override)
+        # If testing, override the serial as requested
+        self._load_certificate(override=environ.get('tests.auth_cert_serial', None))
 
         # If testing, override mechanism states as requested
-        for mech in ['cert', 'openid']:
-            if 'tests.auth_{0}_uid'.format(mech) in environ:
-                setattr(self, '{0}_uid'.format(mech), environ['tests.auth_{0}_uid'.format(mech)])
+        for var in persistant_variables:
+            if 'tests.auth_{0}'.format(var) in environ:
+                setattr(self, var, environ['tests.auth_{0}'.format(var)])
 
         # Process mechanisms to determine user and other Auth attributes
         self.authenticate()
 
-        # Perform session expiry
+        # Determine session idle time
         if session.last_accessed:
-            last_accessed = datetime.fromtimestamp(session.last_accessed)
+            self.idle_time = datetime.now() - datetime.fromtimestamp(session.last_accessed)
         else:
-            last_accessed = datetime.now()
-        if self.openid_age is not None:
-            self.openid_age += datetime.now() - last_accessed
-###        inactivity_expiry = int(config.get('inactivity_expiry', 60 * 60))
-###        max_age = last_accessed + timedelta(seconds=inactivity_expiry)
-###        if (self.user or self.pending_user) and \
-###                datetime.now() > max_age and \
-###                self.can_purge:
-###            self.purge(session)
-###            self.authenticate()
-###            flash(u'Your session has expired and you have been logged out.',
-###                    icon='user-silhouette')
+            self.idle_time = timedelta()
 
-        # If testing, set the blunt user override
+        # If testing, set the blunt user override as requested
         if 'tests.user_id' in environ:
             self.user = meta.Session.query(model.User) \
                     .options(joinedload('role')) \
@@ -139,7 +139,7 @@ class Auth():
                     .one()
             if user.cert_auth in ['required', 'sensitive_required'] and \
                     not user.valid_certificates:
-                # Drop auth level if user's certs have all expired
+                # Temporarily drop auth level if user's certs have all expired
                 user.cert_auth = 'allowed'
             if (user.cert_auth != 'disabled' and self.cert_uid) or \
                     (user.cert_auth != 'required' and self.openid_uid):
@@ -147,19 +147,48 @@ class Auth():
                 self.user = user
             else:
                 self.pending_user = user
-        print self.satisfied
         self.can_purge = len(self.satisfied) == 1 and self.satisfied[0] == 'openid'
         return bool(self.user)
+
+    def can(self, priv, log):
+        if not self.user:
+            return False, 'no_user'
+        if not self.user.can(priv, log=log):
+            return False, 'no_privilege'
+        req_confidence = 0
+        for lvl in req_confidence_levels:
+            for key in req_confidence_levels[lvl]:
+                if priv.startswith(key + '.'):
+                    req_confidence = lvl
+                    break
+        if self.confidence_level >= req_confidence:
+            return True, ''
+        if req_confidence > 1 or (
+                req_confidence > 0 and
+                self.user.cert_auth in ['required', 'sensitive_required']
+                ):
+            if not 'cert' in self.satisfied:
+                return False, 'cert_auth_required'
+            elif self.user.cert_auth not in ['required', 'sensitive required']:
+                return False, 'cert_auth_option_too_weak'
+        return False, 'openid_reauth_required'
+
+    def get_openid_age(self):
+        if self.openid_time:
+            return datetime.now() - datetime.fromtimestamp(self.openid_time)
+        return None
+
+    openid_age = property(get_openid_age)
 
     def get_confidence_level(self):
         if not self.user:
             return -1
-        if not self.openid_age:
+        if not self.openid_uid or not self.openid_time:
             return 0
         if self.user.cert_auth in ['required', 'sensitive_required']:
-            if self.cert_uid and self.openid_age <= timedelta(minutes=30):
+            if self.cert_uid and self.openid_age <= timedelta(seconds=CERT_CONFIDENCE_EXPIRY_TIME):
                 return 2
-        elif self.openid_age <= timedelta(minutes=10):
+        elif self.openid_age <= timedelta(seconds=CONFIDENCE_EXPIRY_TIME):
             return 1
         return 0
 
@@ -169,10 +198,15 @@ class Auth():
         """Convenience method: will return the authed user or AnonymousUser()."""
         return self.user if self.user else model.AnonymousUser()
 
-    def openid_success(self, session, uid, url):
+    def openid_success(self, session, uid, url, auth_time=None):
+        if self.user and (
+                uid != self.user.id or
+                url not in [id.url for id in self.user.identity_urls]
+                ):
+            return False
         self.openid_uid = uid
         self.openid_url = url
-        self.openid_age = timedelta(0)
+        self.openid_time = time.time()
         is_sufficient_for_login = self.authenticate()
         self.save(session)
         return is_sufficient_for_login
@@ -216,6 +250,39 @@ class Auth():
             # Protect against stale data
             self.cert_serial = None
             self.cert_uid = None
+
+def stash_request(session, url, post_data=None):
+    stashes = session.get('post_stashes', dict())
+    # Clean any old pending stashes against this url
+    duplicates = [k for k in stashes if stashes[k].get('url', None) == url]
+    for k in duplicates:
+        del stashes[k]
+    key = str(random.getrandbits(64))
+    stashes[key] = dict(url=url, post_data=post_data)
+    session['post_stashes'] = stashes
+    session.save()
+    return key
+
+def stash_keys(session):
+    return session.get('post_stashes', dict()).keys()
+
+def fetch_stash(session, key):
+    stashes = session.get('post_stashes', dict())
+    return stashes.get(key, None)
+
+def fetch_stash_url(session, key):
+    stash = fetch_stash(session, key)
+    return stash.get('url', None) if stash else None
+
+def fetch_post(session, request):
+    if request.method == 'GET' and 'return_key' in request.GET:
+        key = request.GET.get('return_key', None)
+        stash_item = fetch_stash(session, key)
+        if stash_item:
+            return stash_item.get('post_data', None)
+        else:
+            flash(u'Unrecognised return key.  Timeout?', level='warning')
+    return request.POST
 
 def get_ca():
     """Fetches the Certifiacte Authority certificate and key.

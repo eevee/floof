@@ -10,7 +10,7 @@ import wtforms
 
 from floof.forms import KeygenField, MultiCheckboxField
 from floof.lib import helpers
-from floof.lib.auth import get_ca, update_crl
+from floof.lib.auth import fetch_post, get_ca, update_crl
 from floof.lib.base import BaseController, render
 from floof.lib.decorators import logged_in, user_must
 from floof.lib.helpers import redirect
@@ -120,7 +120,7 @@ class ControlsController(BaseController):
     @user_must('auth.openid')
     def openid(self):
         c.current_action = 'openid'
-        c.openid_form = OpenIDForm(request.POST)
+        c.openid_form = OpenIDForm(fetch_post(session, request))
         c.openid_form.openids.choices = [(oid.id, oid.url) for oid in c.user.identity_urls]
 
         # Process a returning OpenID check
@@ -128,7 +128,7 @@ class ControlsController(BaseController):
         if 'openid.assoc_handle' in request.params:
             c.openid_form.validate()  # Ensure new_openid.errors is an appendable list
             try:
-                identity_url, identity_webfinger, sreg_res = openid_end(url.current(host=request.headers['host']))
+                identity_url, identity_webfinger, auth_time, sreg_res = openid_end(url.current(host=request.headers['host']))
             except OpenIDError as exc:
                 c.openid_form.new_openid.errors.append(exc.args[0])
                 return render('/account/controls/openid.mako')
@@ -295,15 +295,13 @@ class ControlsController(BaseController):
         )
         redirect(url('user', user=target_user))
 
-    @logged_in
+    @user_must('auth.certificates')
     def certificates(selfi, err=None):
         c.current_action = 'certificates'
-        c.form = CertificateForm(request.POST)
+        c.form = CertificateForm(fetch_post(session, request))
         if request.method == 'POST' and \
                 c.form.validate() and \
-                c.form.generate_browser.data and \
-                c.user.can('auth.certificates'):
-            # TODO: Check c.auth.confidence_level > 0
+                c.form.generate_browser.data:
             # Generate a new certificate from UA-supplied key.
             spkac = c.form.pubkey.data
             cert = model.Certificate(
@@ -315,7 +313,8 @@ class ControlsController(BaseController):
             c.user.certificates.append(cert)
             meta.Session.commit()
             helpers.flash(
-                    u'New certificate generated.',
+                    u'New certificate generated.  You may need to restart '
+                    'your browser to begin authenticating with it.',
                     level=u'success',
                     )
             response.content_type = 'application/x-x509-user-cert'
@@ -344,18 +343,18 @@ class ControlsController(BaseController):
             return cert.pkcs12(c.form.passphrase.data, c.form.name.data, *get_ca())
         redirect(url(controller='controls', action='certificates'))
 
-    @logged_in
+    @user_must('auth.certificates')
     def certificates_details(self, id=None):
         c.current_action = None
         c.cert = model.Certificate.get(meta.Session, id=id)
         check_cert(c.cert, c.user)
-        response.headers.add('Location', url(controller='controls', action='certificates'))
         return render('/account/controls/certificates_details.mako')
 
-    @logged_in
+    @user_must('auth.certificates')
     def certificates_download(self, id=None):
         cert = model.Certificate.get(meta.Session, id=id)
         check_cert(cert, c.user)
+        # TODO: Redirect to the cert overview page.  Somehow.
         response.content_type = 'application/x-pem-file'
         return cert.public_data
 
@@ -383,13 +382,13 @@ class ControlsController(BaseController):
     @user_must('auth.method')
     def authentication(self):
         c.current_action = 'authentication'
-        c.form = AuthenticationForm(request.POST, c.user)
-        c.confirm_form = AuthenticationConfirmationForm(request.POST)
+        c.form = AuthenticationForm(fetch_post(session, request), c.user)
+        c.confirm_form = AuthenticationConfirmationForm(fetch_post(session, request))
         c.need_confirmation = False
         c.confirm_form.validate()
         if c.confirm_form.cancel.data:
             redirect(url.current())
-        if request.POST and c.form.validate():
+        if request.method =='POST' and c.form.validate():
             c.form.populate_obj(c.user)
             # If the new authentication requirements will knock the
             # user out, give them an extra warning and then redirect
