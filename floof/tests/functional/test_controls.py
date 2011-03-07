@@ -8,6 +8,7 @@ import copy
 from openid import oidutil
 import OpenSSL.crypto as ssl
 import time
+from urlparse import parse_qs, urlparse
 
 PORT = 19614
 DATA_PATH = '/tmp'
@@ -35,6 +36,12 @@ class TestControlsController(TestController):
                 'tests.auth_openid_time': time.time(),
                 }
 
+        cls.spoofer = oidspoof.OpenIDSpoofer('localhost', PORT, DATA_PATH)
+
+    @classmethod
+    def teardown_class(cls):
+        del cls.spoofer
+
     def test_index(self):
         """Test display of user controls index."""
         response = self.app.get(
@@ -59,7 +66,7 @@ class TestControlsController(TestController):
                 ]
         responses = []
 
-        spoofer = oidspoof.OpenIDSpoofer('localhost', PORT, DATA_PATH)
+        spoofer = self.spoofer
 
         # Test adding two OpenID identities
         for user in test_openids:
@@ -254,3 +261,79 @@ class TestControlsController(TestController):
                 extra_environ=environ,
                 )
         assert 'selected="selected" value="required"' in response, 'The authentication method did not appear to update.'
+
+    def test_reauth(self):
+        """Test re-authentication redirection sequence."""
+        environ = copy.deepcopy(self.default_environ)
+        environ['tests.auth_openid_time'] = 0.0  # Set it to the epoch; definitely invalid
+        response = self.app.get(
+                url(controller='controls', action='authentication'),
+                extra_environ=self.default_environ,
+                status=200,
+                )
+        assert 'selected="selected" value="disabled"' in response, 'Expected existing cert_auth value of "disabled" not found.'
+
+        # Pretend to try to change our cert_auth options while our auth is too old
+        response = self.app.post(
+                url(controller='controls', action='authentication'),
+                params=[('cert_auth', u'allowed')],
+                extra_environ=environ,
+                status=303,
+                )
+        # We should be redirected to the login/re-auth page
+        try:
+            return_key = parse_qs(urlparse(response.headers['location'])[4])['return_key'][0]
+        except ValueError:
+            raise AssertionError('Return key not in login GET request.')
+        response = self.app.get(response.headers['location'], extra_environ=environ)
+        assert 'you need to re-authenticate' in response, 'Did not appear to give a message about the need to re-authenticate.'
+        assert 'name="openid_identifier"' in response, 'Did not appear to prompt for OpenID URL.'
+        assert 'value="{0}"'.format(return_key) in response, 'Could not find the return key hidden input in the login page.'
+
+        # Spoof a successful OpenID login
+        spoofer = self.spoofer
+        spoofer.update(user=u'user', accept=True)
+        user = meta.Session.query(model.User).filter_by(id=self.user.id).one()
+        idurl = model.IdentityURL()
+        idurl.url = spoofer.url
+        user.identity_urls.append(idurl)
+        meta.Session.commit()
+        response = self.app.post(
+                url(controller='account', action='login_begin'),
+                params=[
+                    ('return_key', return_key),
+                    ('openid_identifier', idurl.url),
+                ],
+                extra_environ=environ,
+                status=303,
+                )
+        location = response.headers['location']
+        try:
+            return_url = parse_qs(urlparse(location)[4])['openid.return_to'][0]
+        except ValueError:
+            raise AssertionError('Return URL not in OpenID OP login request.')
+        path, params = spoofer.spoof(location)
+        assert path == url(controller='account', action='login_finish'), 'Unexpected redirect path: {0}'.format(path)
+        assert 'return_key={0}'.format(return_key) in params, 'Return key did not appear in the OpenID redirect URL.'
+        del environ['tests.auth_openid_time']  # Allow c.auth.openid_time to be reset by the re-auth
+        response = self.app.get(
+                path,
+                params=params,
+                extra_environ=environ,
+                status=303,
+                )
+
+        # We should now be redirected to the Authentication Options page,
+        # with the contents of our original POST set as the
+        # default/selected parameters.
+        pu = urlparse(response.headers['location'])
+        path, params = pu[2], pu[4]
+        assert path == url(controller='controls', action='authentication'), 'Unexpected redirect path: {0}'.format(path)
+        assert 'return_key={0}'.format(return_key) in params, 'Return key did not appear in the post-re-auth redirect URL.'
+        response = self.app.get(
+                path,
+                params=params,
+                extra_environ=environ,
+                status=200,
+                )
+        assert 'selected="selected" value="allowed"' in response, 'POST\'d choice prior to re-auth did not appear to persist.'
