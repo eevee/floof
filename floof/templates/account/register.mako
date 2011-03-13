@@ -12,6 +12,7 @@ ${h.secure_form(url(controller='account', action='register'))}
         <dd><tt>${c.identity_url}</tt></dd>
     % endif
     ${lib.field(c.form.username)}
+    ${lib.field(c.form.timezone)}
 
     <dd><button type="submit">OK, register!</button></dd>
 </dl>

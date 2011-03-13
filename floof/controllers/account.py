@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
+import pytz
 import re
 
 from pylons import request, response, session, tmpl_context as c, url
@@ -34,6 +35,10 @@ class RegistrationForm(wtforms.form.Form):
             u'lowercase letters, numbers, and underscores.'
             ),
         ])
+    timezone = wtforms.fields.SelectField(u'Timezone',
+            choices=[(tz, tz) for tz in pytz.common_timezones],
+            default='UTC',
+            )
 
     def validate_username(form, field):
         if meta.Session.query(User).filter_by(name=field.data).count():
@@ -163,14 +168,11 @@ class AccountController(BaseController):
             c.identity_url = identity_url
             c.identity_webfinger = session.get('pending_identity_webfinger', None)
 
-            # Try to pull a name out of the SReg response
-            try:
-                username = sreg_res['nickname'].lower()
-            except (KeyError, TypeError):
-                # KeyError if sreg has no nickname; TypeError if sreg is None
-                username = u''
-
-            c.form = RegistrationForm(username=username)
+            # Try to pull a name and email addraess out of the SReg response
+            c.form = RegistrationForm(
+                    username=sreg_res.get('nickname', u''),
+                    timezone=sreg_res.get('timezone', ''),
+                    )
             c.form.validate()
             return render('/account/register.mako')
 
@@ -200,6 +202,7 @@ class AccountController(BaseController):
             name=c.form.username.data,
             role=base_user,
             resource=resource,
+            timezone=pytz.timezone(c.form.timezone.data),
         )
         meta.Session.add_all([user, resource, discussion])
 
