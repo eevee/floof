@@ -2,6 +2,7 @@ from collections import defaultdict
 import logging
 import random
 import re
+import unicodedata
 
 import OpenSSL.crypto as ssl
 from pylons import request, response, session, tmpl_context as c, url
@@ -30,8 +31,16 @@ def check_cert(cert, user, check_validity=False):
         abort(404, detail='That certificate has already expired or been revoked.')
 
 def reduce_display_name(name):
+    """Return a reduced version of a display name for comparison with a
+    username.
+    """
+    # Strip out diacritics
+    name = ''.join(char for char in unicodedata.normalize('NFD', name)
+                   if not unicodedata.combining(char))
+
+    name = re.sub(r'\s+', '_', name)
     name = name.lower()
-    name = re.sub('\W+', '_', name)
+
     return name
 
 class DisplayNameForm(wtforms.form.Form):
@@ -42,12 +51,27 @@ class DisplayNameForm(wtforms.form.Form):
     _max_length = model.User.__table__.c.display_name.type.length
 
     def validate_display_name(form, field):
+        field.data = field.data.strip()
+
         if len(field.data) > form._max_length:
             raise wtforms.ValidationError(
                 '{0} characters maximum.'.format(form._max_length))
 
-        if not all(32 <= ord(char) <= 126 for char in field.data):
-            raise wtforms.ValidationError('Printable ASCII only.')
+        for char in field.data:
+            # Allow printable ASCII
+            # XXX Is there a better way than checking ord(char)?
+            if 32 <= ord(char) <= 126:
+                continue
+
+            # Disallow combining characters regardless of category
+            if unicodedata.combining(char):
+                raise wtforms.ValidationError('No combining characters.')
+
+            # Allow anything non-ASCII categorized as a letter
+            if unicodedata.category(char).startswith('L'):
+                continue
+
+            raise wtforms.ValidationError(u'Invalid character: {0}'.format(char))
 
 # XXX: Should add and delete be seperate forms?
 class OpenIDForm(wtforms.form.Form):
