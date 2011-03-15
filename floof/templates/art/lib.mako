@@ -40,6 +40,47 @@ def media_icon(type):
 </ul>
 </%def>
 
+## Shows a bigger grid of "panels", with a bit more detail about artwork
+<%def name="detailed_grid(artworks)">
+<ul class="detailed-thumbnail-grid">
+% for artwork in artworks:
+<li class="detailed-thumbnail">
+    <a class="thumbnail" href="${h.art_url(artwork)}">
+        <img src="${url('filestore', key=artwork.hash + '.thumbnail')}" alt="">
+    </a>
+    <a href="${h.art_url(artwork)}">${artwork.title}</a>
+</li>
+% endfor
+</ul>
+</%def>
+
+## Shows a detailed table of the artwork, with more focus on details than space
+## constraints
+<%def name="detailed_table(artworks)">
+<table class="detailed-artwork-table">
+<thead>
+<tr>
+    <th><!-- thumbnail --></th>
+    <th>Title</th>
+    <th>Numbers</th>
+</tr>
+% for artwork in artworks:
+<tr>
+    <td class="-thumbnail">
+        <a class="thumbnail" href="${h.art_url(artwork)}">
+            <img src="${url('filestore', key=artwork.hash + '.thumbnail')}" alt="">
+        </a>
+    </td>
+    <td><a href="${h.art_url(artwork)}">${artwork.title}</a></td>
+    <td>
+        Comments: ${artwork.discussion.comment_count} <br>
+        Ratings: ${artwork.rating_count}
+    </td>
+</tr>
+% endfor
+</table>
+</%def>
+
 
 ###### The following is all for dealing with floof.lib.gallery.GallerySieve
 ## objects and the forms they create.  You probably just want to use
@@ -55,10 +96,14 @@ def media_icon(type):
 ${gallery_sieve_form(gallery_sieve.form)}
 <% pager = gallery_sieve.evaluate() %>\
 
-% if pager.items:
-${thumbnail_grid(pager)}
-% else:
+% if not pager.items:
 <p>Nothing found.</p>
+% elif gallery_sieve.display_mode == 'thumbnails':
+${thumbnail_grid(pager)}
+% elif gallery_sieve.display_mode == 'succinct':
+${detailed_grid(pager)}
+% elif gallery_sieve.display_mode == 'detailed':
+${detailed_table(pager)}
 % endif
 
 % if pager.pager_type == 'discrete':

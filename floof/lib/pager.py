@@ -55,7 +55,7 @@ class DiscretePager(object):
     `discrete_page` in lib.mako.
     """
     pager_type = 'discrete'
-    maximum_skip = 10
+    maximum_skip = 1000  # XXX?
 
     def __init__(self, query, page_size, formdata={}, radius=3, countable=False):
         """Create a pager.  The current page is taken from 'skip' in the given
@@ -107,6 +107,7 @@ class DiscretePager(object):
         # Get one extra, for figuring out where the next page starts, and
         # whether one exists
         self.items = query.limit(page_size + 1).offset(self.skip).all()
+        self.visible_count = len(self.items)
         self.next_item = None
         if len(self.items) > page_size:
             self.next_item = self.items.pop()
@@ -200,7 +201,6 @@ class DiscretePager(object):
 
         # If we have 10-item pages, the max limit is 40, and we've skipped 38,
         # it's still okay to see the next (integral) page
-        print int(self.current_page + 1) * self.page_size
         if int(self.current_page + 1) * self.page_size > self.maximum_skip:
             return True
 
@@ -246,12 +246,12 @@ class TemporalPager(object):
         # Get one extra, for figuring out where the next page starts, and
         # whether one exists
         self.items = query.limit(page_size + 1).all()
+        self.visible_count = len(self.items)
         self.next_item = None
         self.next_item_timeskip = None
         if len(self.items) > page_size:
             self.next_item = self.items.pop()
             self.next_item_timeskip = getattr(self.next_item, column_name)
-            print self.next_item_timeskip
 
         self.page_size = page_size
 

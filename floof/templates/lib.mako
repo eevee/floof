@@ -132,7 +132,7 @@ for char in serial[:10]:
         % endif
         of ${pager.item_count}
       % else:
-        #${pager.skip + 1}–${pager.skip + pager.page_size}
+        #${pager.skip + 1}–${pager.skip + pager.visible_count}
       % endif
     </li>
     % else:

@@ -96,7 +96,7 @@ TIME_RADII = {
 }
 
 
-PAGE_SIZE = 4  # XXX
+PAGE_SIZE = 64  # XXX
 
 class GallerySieve(object):
     """Handles filtering art by various criteria.  Different places within the
@@ -148,6 +148,7 @@ class GallerySieve(object):
         self.session = session
         self.user = user
         self.countable = countable
+        self.display_mode = 'thumbnails'
 
         self.query = session.query(model.Artwork) \
             .order_by(self.default_order_clause)
@@ -161,6 +162,8 @@ class GallerySieve(object):
     def _apply_formdata(self):
         # TODO auto-shorten?  oh no how would this even work
         form = self.form
+
+        self.display_mode = form.display.data
 
         if form.tags.data:
             self.filter_by_tag_query(form.tags.data)
@@ -217,7 +220,6 @@ class GallerySieve(object):
 
     def filter_by_age(self, dt):
         """Find art uploaded at or before `dt`."""
-        print dt
         self.query = self.query.filter(model.Artwork.uploaded_time <= dt)
 
     def filter_by_recency(self, delta):
