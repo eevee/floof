@@ -121,7 +121,10 @@ ${lib.temporal_pager(pager)}
         <dl class="standard-form">
             ${lib.field(form.tags)}
             ${lib.field(form.time_radius)}
+            % if c.user:
+            ## Don't show a user-specific field for a non-user
             ${lib.field(form.my_rating)}
+            % endif
 
             <dd><button type="submit">Filter</button></dd>
         </dl>

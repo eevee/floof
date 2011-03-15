@@ -46,7 +46,8 @@ def _datetime_from_query(ts):
         dt = dt.replace(microsecond=int(microseconds))
         return dt
     except TypeError:
-        # XXX ????
+        # Nothing reasonable to do, since this is supposed to be a value just
+        # for us.  If someone has been dicking with it...  ignore it
         return None
 
 
@@ -55,7 +56,7 @@ class DiscretePager(object):
     `discrete_page` in lib.mako.
     """
     pager_type = 'discrete'
-    maximum_skip = 1000  # XXX?
+    maximum_skip = 1000
 
     def __init__(self, query, page_size, formdata={}, radius=3, countable=False):
         """Create a pager.  The current page is taken from 'skip' in the given

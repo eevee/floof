@@ -25,20 +25,17 @@ class GalleryForm(wtforms.form.Form):
     """Form used all over the place for "searching" (really filtering) through
     art.
     """
-    # TODO paging!
-    # - when doing date skipping, perhaps instead of jumping back by 2/3/4
-    #   pages, offer to skip back by increasing chunks of time?  and/or allow
-    #   just outright typing in a custom place to jump to
     # TODO replace me with a special tag filter field that somehow interacts
     # correctly with the function below.  syntax should include:
     # - arbitrary boolean queries
     #   a | b?  a OR b?  OR(a b)??
-    # - what to do with bogus syntax or nonexistent tags?
+    # - then bogus tags can just error back to the form, if that makes sense.
+    #   or just show nothing, with a warning.  not sure which is less useful.
     # TODO this includes user searchin.  so what to do about uploader, if
     # anything?
     tags = wtforms.fields.TextField(u'Tags')
     # TODO maybe arbitrary-ish date search here?  center+radius.  I often find
-    # I don't remember when something was made  :V
+    # myself wanting to look for stuff that's "about six months old"
     time_radius = wtforms.fields.SelectField(u'Uploaded within',
         choices=[
             (u'all',    u'—'),
@@ -64,7 +61,6 @@ class GalleryForm(wtforms.form.Form):
         ],
         default=u'all',
     )
-    # TODO: sort by similarity-to-artwork-x?
     sort = wtforms.fields.SelectField(u'Sort by',
         choices=[
             (u'uploaded_time',  u'time uploaded'),
@@ -152,8 +148,8 @@ class GallerySieve(object):
 
         self.query = session.query(model.Artwork) \
             .order_by(self.default_order_clause)
-        self.form = GalleryForm(formdata)
 
+        self.form = GalleryForm(formdata)
         self.original_formdata = formdata or {}
         if formdata:
             if self.form.validate():
@@ -174,7 +170,6 @@ class GallerySieve(object):
             self.filter_by_recency(
                 timedelta(**TIME_RADII[form.time_radius.data]))
 
-        # TODO: only show this field at all when user exists
         if form.my_rating.data != u'all' and self.user:
             # This is done here instead of via a method until someone comes up
             # with a decent method interface.
@@ -213,7 +208,6 @@ class GallerySieve(object):
         if form.sort.data == u'rating':
             # Only allow the past 24 hours when sorting by absolute rating
             self.filter_by_recency(timedelta(hours=24))
-        # TODO: suggestion sort???
 
 
     ### Independent filter methods
@@ -248,11 +242,9 @@ class GallerySieve(object):
         if tag.startswith(('by:', 'for:', 'of:')):
             raise ValueError("Cannot filter by special tags; use filter_by_user instead")
 
-        try:
-            tag = self.session.query(model.Tag).filter_by(name=tag).one()
-        except NoResultFound:
-            # XXX
-            raise
+        # This will raise NoResultFound with a bogus tag -- as it should, since
+        # this is called from our code, not directly on user input
+        tag = self.session.query(model.Tag).filter_by(name=tag).one()
 
         self.query = self.query.filter(
             model.Artwork.tag_objs.any(id=tag.id)
