@@ -1,14 +1,17 @@
 from wtforms import fields, widgets
+from wtforms.widgets import HTMLString, html_params
 import random
 import re
 
 class KeygenWidget(widgets.Input):
     def __call__(self, field, **kwargs):
-        html = '<keygen name="pubkey" keytype="{0}" challenge="{1}" />'.format(
-                field.keytype,
-                field.challenge,
-                )
-        return widgets.HTMLString(u''.join(html))
+        kwargs.setdefault('id', field.id)
+        return HTMLString(u'<keygen {0} />'.format(html_params(
+                name=field.name,
+                challenge=field.challenge,
+                keytype=field.keytype,
+                **kwargs
+                )))
 
 class PassthroughListWidget(widgets.ListWidget):
     """Just like a ListWidget, but passes rendering kwargs to its children."""
@@ -20,7 +23,7 @@ class PassthroughListWidget(widgets.ListWidget):
             else:
                 html.append(u'<li>%s %s</li>' % (subfield(**kwargs), subfield.label))
         html.append(u'</%s>' % self.html_tag)
-        return widgets.HTMLString(u''.join(html))
+        return HTMLString(u''.join(html))
 
 class KeygenField(fields.TextField):
     widget = KeygenWidget()

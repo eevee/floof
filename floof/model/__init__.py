@@ -119,12 +119,12 @@ class User(TableBase):
     name = Column(Unicode(24), nullable=False, index=True, unique=True)
     timezone = Column(Timezone, nullable=True)
     role_id = Column(Integer, ForeignKey('roles.id'), nullable=False)
-    auth_method = Column(Enum(
-        u'cert_only',
-        u'openid_only',
-        u'cert_or_openid',
-        u'cert_and_openid',
-        name='user_auth_method'), nullable=False, default=u'openid_only')
+    cert_auth = Column(Enum(
+        u'disabled',
+        u'allowed',
+        u'sensitive_required',
+        u'required',
+        name='user_cert_auth'), nullable=False, default=u'disabled')
 
     def localtime(self, dt):
         """Return a datetime localized to this user's preferred timezone."""

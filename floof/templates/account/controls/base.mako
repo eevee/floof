@@ -8,8 +8,8 @@
 <ul id="control-panel-navigation">
     % for action, icon, title in [ \
         ('index',           'fruit',        u'Index??'), \
-        ('openid',          'user',         u'OpenID Identities'), \
         ('relationships',   'users',        u'Watches'), \
+        ('openid',          'user',         u'OpenID Identities'), \
         ('certificates',    'key',          u'SSL Certificates'), \
         ('authentication',  'key',          u'Authentication Options'), \
     ]:

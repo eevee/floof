@@ -10,9 +10,9 @@ import wtforms
 
 from floof.forms import KeygenField, MultiCheckboxField
 from floof.lib import helpers
-from floof.lib.auth import get_ca, update_crl
+from floof.lib.auth import fetch_post, get_ca, update_crl
 from floof.lib.base import BaseController, render
-from floof.lib.decorators import logged_in
+from floof.lib.decorators import logged_in, user_must
 from floof.lib.helpers import redirect
 from floof.lib.openid_ import OpenIDError, openid_begin, openid_end
 import floof.model as model
@@ -83,27 +83,27 @@ class RevokeCertificateForm(wtforms.form.Form):
     cancel = wtforms.fields.SubmitField(u'Cancel')
 
 class AuthenticationForm(wtforms.form.Form):
-    auth_method = wtforms.fields.SelectField(u'Authentication Method', choices=[
-            (u'openid_only', u'OpenID Only (default)'),
-            (u'cert_or_openid', u'Certificate OR OpenID (1)'),
-            (u'cert_and_openid', u'Certificate AND OpenID (2)'),
-            (u'cert_only', u'Certificate Only (1) (2)'),
+    cert_auth = wtforms.fields.SelectField(u'Certificate Authentication Control', choices=[
+            (u'disabled', u'Disallow using client certificates for login (default)'),
+            (u'allowed', u'Allow using client certificates for login'),
+            (u'sensitive_required', u'Allow using client certificates for login; Require for Sensitive Operations'),
+            (u'required', u'Require using client certificates for login'),
             ])
 
-    def validate_auth_method(form, field):
-        if field.data in ['cert_only', 'cert_and_openid']:
+    def validate_cert_auth(form, field):
+        if field.data in ['required', 'sensitive_required']:
             if not c.user.valid_certificates:
                 raise wtforms.ValidationError('You cannot make a selection '
-                        'that requires an SSL certificate to log in '
-                        'while you have no valid SSL certificates '
-                        'registered against your account.')
-            if not c.auth.mechanisms['cert']:
+                        'that requires an SSL certificate to log in or to '
+                        'change this setting while you have no valid SSL '
+                        'certificates registered against your account.')
+            if not 'cert' in c.auth.satisfied:
                 raise wtforms.ValidationError('To prevent locking yourself '
                         'out, you cannot make a selection that requires an '
-                        'SSL certificate to log in without first loading '
-                        'this page while the certificate is installed in '
-                        'your browser and being successfully sent to the '
-                        'site.')
+                        'SSL certificate to log in or to change this '
+                        'setting without first loading this page while the '
+                        'certificate is installed in your browser and being '
+                        'successfully sent to the site.')
 
 class AuthenticationConfirmationForm(wtforms.form.Form):
     confirm = wtforms.fields.SubmitField(u'Confirm Authentication Method Change')
@@ -117,10 +117,10 @@ class ControlsController(BaseController):
         c.current_action = 'index'
         return render('/account/controls/index.mako')
 
-    @logged_in
+    @user_must('auth.openid')
     def openid(self):
         c.current_action = 'openid'
-        c.openid_form = OpenIDForm(request.POST)
+        c.openid_form = OpenIDForm(fetch_post(session, request))
         c.openid_form.openids.choices = [(oid.id, oid.url) for oid in c.user.identity_urls]
 
         # Process a returning OpenID check
@@ -128,7 +128,7 @@ class ControlsController(BaseController):
         if 'openid.assoc_handle' in request.params:
             c.openid_form.validate()  # Ensure new_openid.errors is an appendable list
             try:
-                identity_url, identity_webfinger, sreg_res = openid_end(url.current(host=request.headers['host']))
+                identity_url, identity_webfinger, auth_time, sreg_res = openid_end(url.current(host=request.headers['host']))
             except OpenIDError as exc:
                 c.openid_form.new_openid.errors.append(exc.args[0])
                 return render('/account/controls/openid.mako')
@@ -295,10 +295,10 @@ class ControlsController(BaseController):
         )
         redirect(url('user', user=target_user))
 
-    @logged_in
+    @user_must('auth.certificates')
     def certificates(selfi, err=None):
         c.current_action = 'certificates'
-        c.form = CertificateForm(request.POST)
+        c.form = CertificateForm(fetch_post(session, request))
         if request.method == 'POST' and \
                 c.form.validate() and \
                 c.form.generate_browser.data:
@@ -313,14 +313,15 @@ class ControlsController(BaseController):
             c.user.certificates.append(cert)
             meta.Session.commit()
             helpers.flash(
-                    u'New certificate generated.',
+                    u'New certificate generated.  You may need to restart '
+                    'your browser to begin authenticating with it.',
                     level=u'success',
                     )
             response.content_type = 'application/x-x509-user-cert'
             return cert.public_data_der
         return render('/account/controls/certificates.mako')
 
-    @logged_in
+    @user_must('auth.certificates')
     def certificates_server(self):
         c.form = CertificateForm(request.POST)
         if request.method == 'POST' and \
@@ -342,29 +343,29 @@ class ControlsController(BaseController):
             return cert.pkcs12(c.form.passphrase.data, c.form.name.data, *get_ca())
         redirect(url(controller='controls', action='certificates'))
 
-    @logged_in
+    @user_must('auth.certificates')
     def certificates_details(self, id=None):
         c.current_action = None
         c.cert = model.Certificate.get(meta.Session, id=id)
         check_cert(c.cert, c.user)
-        response.headers.add('Location', url(controller='controls', action='certificates'))
         return render('/account/controls/certificates_details.mako')
 
-    @logged_in
+    @user_must('auth.certificates')
     def certificates_download(self, id=None):
         cert = model.Certificate.get(meta.Session, id=id)
         check_cert(cert, c.user)
+        # TODO: Redirect to the cert overview page.  Somehow.
         response.content_type = 'application/x-pem-file'
         return cert.public_data
 
-    @logged_in
+    @user_must('auth.certificates')
     def certificates_revoke(self, id=None):
         c.current_action = 'certificates'
         c.form = RevokeCertificateForm(request.POST)
         c.cert = model.Certificate.get(meta.Session, id=id)
         check_cert(c.cert, c.user, check_validity=True)
         c.will_override_auth = len(c.user.valid_certificates) == 1 and \
-                c.user.auth_method in ['cert_only', 'cert_and_openid']
+                c.user.cert_auth in ['required', 'sensitive_required']
         if request.method == 'POST' and c.form.validate():
             if c.form.ok.data:
                 c.cert.revoke()
@@ -378,16 +379,16 @@ class ControlsController(BaseController):
             redirect(url(controller='controls', action='certificates'))
         return render('/account/controls/certificates_revoke.mako')
 
-    @logged_in
+    @user_must('auth.method')
     def authentication(self):
         c.current_action = 'authentication'
-        c.form = AuthenticationForm(request.POST, c.user)
-        c.confirm_form = AuthenticationConfirmationForm(request.POST)
+        c.form = AuthenticationForm(fetch_post(session, request), c.user)
+        c.confirm_form = AuthenticationConfirmationForm(fetch_post(session, request))
         c.need_confirmation = False
         c.confirm_form.validate()
         if c.confirm_form.cancel.data:
             redirect(url.current())
-        if request.POST and c.form.validate():
+        if request.method =='POST' and c.form.validate():
             c.form.populate_obj(c.user)
             # If the new authentication requirements will knock the
             # user out, give them an extra warning and then redirect

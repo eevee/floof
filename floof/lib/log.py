@@ -88,3 +88,11 @@ class FloofFileHandler(FileHandler):
     def __init__(self, *args):
         FileHandler.__init__(self, *args)
         self.addFilter(FloofFilter())
+
+class FloofStreamHandler(StreamHandler):
+    """Simply adds a FloofFilter to a StreamHandler.  Alas, this can't be done
+    via the paster config file.
+    """
+    def __init__(self, *args):
+        StreamHandler.__init__(self, *args)
+        self.addFilter(FloofFilter())

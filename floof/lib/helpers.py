@@ -18,7 +18,7 @@ _flash = Flash()
 _default_flash_icons = dict(
     error='exclamation-red-frame',
     warning='exclamation-diamond-frame',
-    notice='finger',
+    notice='hand-point-090',
     success='tick-circle',
 )
 def flash(message, icon=None, level='notice', **extras):

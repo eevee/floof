@@ -36,6 +36,9 @@ def setup_app(command, conf, vars):
         (name, model.Privilege(name=name, description=description))
         for name, description in [
             (u'admin.view',         u'Can view administrative tools/panel'),
+            (u'auth.certificates',  u'Can manage own client certificates'),
+            (u'auth.method',        u'Can manage own authentication method'),
+            (u'auth.openid',        u'Can manage own OpenID URLs'),
             (u'art.upload',         u'Can upload art'),
             (u'art.rate',           u'Can rate art'),
             (u'comments.add',       u'Can post comments'),
@@ -48,7 +51,9 @@ def setup_app(command, conf, vars):
         name=u'user',
         description=u'Basic user',
         privileges=[privileges[priv] for priv in [
-            u'art.upload', u'art.rate', u'comments.add', u'tags.add', u'tags.remove',
+            u'auth.certificates', u'auth.method', u'auth.openid',
+            u'art.upload', u'art.rate', u'comments.add', u'tags.add',
+            u'tags.remove',
         ]],
     )
     admin_user = model.Role(

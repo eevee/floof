@@ -33,7 +33,7 @@ def make_map(config):
     map.connect('/account/{action}', controller='account',
         requirements=dict(action='login|login_finish|profile'))
     map.connect('/account/{action}', controller='account',
-        requirements=dict(action='login_begin|register|logout|profile|purge_auth'),
+        requirements=dict(action='login_begin|register|logout|profile'),
         **require_POST)
 
     map.connect('/account/controls', controller='controls', action='index')

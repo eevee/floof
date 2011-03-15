@@ -10,24 +10,29 @@ from floof.model import meta, Certificate
 
 import OpenSSL.crypto as ssl
 import os
+import random
+import time
 
-# List methods in decreasing order of authoratativeness
-auth_mechanisms = ['cert', 'openid']
-auth_mechanism_names = dict(
-        cert='SSL Certificate',
-        openid='OpenID',
-        )
-nonpersistent_auth_mechanisms = ['cert']
-persistent_auth_mechanisms = [m for m in auth_mechanisms if m not in nonpersistent_auth_mechanisms]
+persistant_variables = [
+        'openid_uid',
+        'openid_url',
+        'openid_time',
+        'cert_uid',
+        'cert_serial',
+        ]
 
-# Similar to PAM.  Unable to model all grouping options if the number
-# of available mechanisms >= 4
-auth_methods = dict(
-        cert_only=[('required', 'cert')],
-        openid_only=[('required', 'openid')],
-        cert_or_openid=[('sufficient', 'cert'), ('sufficient', 'openid')],
-        cert_and_openid=[('required', 'cert'), ('required', 'openid')],
-        )
+req_confidence_levels = {
+        1: ['auth', 'money'],
+        2: ['admin']
+        }
+
+CONFIDENCE_EXPIRY_TIME = 60 * 1  # Seconds
+CERT_CONFIDENCE_EXPIRY_TIME = 60 * 30  # Seconds
+
+sensitive_privs = []
+for lvl in req_confidence_levels:
+    for priv in req_confidence_levels[lvl]:
+        sensitive_privs.append(priv)
 
 class Auth():
     """
@@ -40,22 +45,6 @@ class Auth():
         instance has sufficient authentication mechanisms satisfied
         to meet the requirements of the user's ``User.auth_method``,
         else None.
-
-    pending_user: model.User() or None
-        Instance of a user that has satisfied at least one authentication
-        mechanism (and hence can be identified) but has not satisfied all
-        the mechanisms required by their ``User.auth_method``.
-        ``pending_user`` and ``user`` are mutually exclusive -- if one is
-        a User() instance then the other is None -- although both may be
-        None if no authentication mechanisms have been satisfied at all.
-
-    mechanisms: dict { str:mechanism_name : int:authenticate_user_id or None }
-        Dictionary mapping all known authentication mechanisms to their
-        state.  If they are satisfied, the mapped-to value will be an
-        integer representing the user id of the authenticated user, else
-        it will be None.
-        Its state persists between requests by setting values in the
-        session on save() and loading them on class instantiation.
 
     satisfied_mechanisms: list [ str:mechanism_name ]
         List of mechansims that have successfully authenticated a user
@@ -95,131 +84,137 @@ class Auth():
     """
 
     def __init__(self, session, environ):
-        # Load stateful mechanisms states
-        self.mechanisms = dict()
-        for mech in auth_mechanisms:
-            self.mechanisms[mech] = session.get('auth_{0}_user_id'.format(mech), None)
-        self.cert_serial = session.get('auth_cert_serial', None)
+        # Load OpenID state and certificate cache values
+        for var in persistant_variables:
+            setattr(self, var, session.get(var, None))
 
-        # If testing, override the serial
-        cert_serial_override = None
-        if 'tests.auth_cert_serial' in environ:
-            cert_serial_override = environ['tests.auth_cert_serial']
-
-        # Determine stateless mechanisms states
-        self._load_certificate(override=cert_serial_override)
+        # Grab the client certificate, if any
+        # If testing, override the serial as requested
+        self._load_certificate(override=environ.get('tests.auth_cert_serial', None))
 
         # If testing, override mechanism states as requested
-        for mech in self.mechanisms:
-            if 'tests.auth_{0}_user_id'.format(mech) in environ:
-                self.mechanisms[mech] = environ['tests.auth_{0}_user_id'.format(mech)]
+        for var in persistant_variables:
+            if 'tests.auth_{0}'.format(var) in environ:
+                setattr(self, var, environ['tests.auth_{0}'.format(var)])
 
         # Process mechanisms to determine user and other Auth attributes
         self.authenticate()
 
+        # Determine session idle time
         if session.last_accessed:
-            last_accessed = datetime.fromtimestamp(session.last_accessed)
+            self.idle_time = datetime.now() - datetime.fromtimestamp(session.last_accessed)
         else:
-            last_accessed = datetime.now()
-        inactivity_expiry = int(config.get('inactivity_expiry', 60 * 60))
-        max_age = last_accessed + timedelta(seconds=inactivity_expiry)
-        if (self.user or self.pending_user) and \
-                datetime.now() > max_age and \
-                self.can_purge:
-            self.purge(session)
-            self.authenticate()
-            flash(u'Your session has expired and you have been logged out.',
-                    icon='user-silhouette')
+            self.idle_time = timedelta()
 
-        # If testing, set the blunt user override
+        # If testing, set the blunt user override as requested
         if 'tests.user_id' in environ:
             self.user = meta.Session.query(model.User) \
                     .options(joinedload('role')) \
                     .filter_by(id=environ['tests.user_id']) \
                     .one()
 
-        # Save any changes to stateful mechanism states or stateless
-        # mechanism staleness indicators made during initialization and
-        # self.authenticate().
+        # Save any changes made during initialization and self.authenticate()
         self.save(session)
 
     def save(self, session):
-        """Save the status of the auth mechanisms to the given session."""
-        for mech in auth_mechanisms:
-            if mech in self.satisfied_mechanisms:
-                session['auth_{0}_user_id'.format(mech)] = self.mechanisms[mech]
-            elif 'auth_{0}_user_id'.format(mech) in session:
-                del session['auth_{0}_user_id'.format(mech)]
-        session['auth_cert_serial'] = self.cert_serial
+        """Save the authentication status to the given session."""
+        for var in persistant_variables:
+            session[var] = getattr(self, var)
         session.save()
 
-    def auth_success(self, session, mech, uid):
-        """
-        Declare the success of the mechanism mech at authenticating UID uid.
-
-        Indicates to Auth that the given mechanism ``mech`` is satisfied
-        that the user of the current session owns the account with id
-        ``uid`` and immediately saves this to the ``session`` object.
-
-        Returns True if the Auth object now has sufficient authentication
-        data to constitute a login, else False.
-
-        """
-        self.mechanisms[mech] = uid
-        is_sufficient_for_login = self.authenticate()
-        self.save(session)
-        return is_sufficient_for_login
-
     def authenticate(self):
-        # Derive from the auth_mechanisms list to provide for deterministic
-        # precedence between potentially disaperate mechanisms.
-        self.pending_id = None
-        for mech in auth_mechanisms:
-            if self.mechanisms.get(mech, None):
-                self.pending_id = self.mechanisms[mech]
-                break
         self.user = None
         self.pending_user = None
-        self.required_mechanisms = []
-        self.satisfied_mechanisms = []
-        if self.pending_id:
-            self.satisfied_mechanisms = [m for m in self.mechanisms if self.mechanisms[m] == self.pending_id]
+        if self.cert_uid and self.cert_uid != self.openid_uid:
+            self.openid_uid = None
+        self.satisfied = []
+        for auth in ['cert', 'openid']:
+            if getattr(self, '{0}_uid'.format(auth)):
+                self.satisfied.append(auth)
+        if self.satisfied:
+            uid = self.cert_uid or self.openid_uid
             user = meta.Session.query(model.User) \
                     .options(joinedload('role'), joinedload('certificates')) \
-                    .filter_by(id=self.pending_id) \
+                    .filter_by(id=uid) \
                     .one()
-            if user.auth_method in ['cert_only', 'cert_and_openid'] and \
+            if user.cert_auth in ['required', 'sensitive_required'] and \
                     not user.valid_certificates:
-                user.auth_method = 'cert_or_openid'
-            successful_mechs = []
-            for req in auth_methods[user.auth_method]:
-                if req[0] == 'sufficient' and req[1] in self.satisfied_mechanisms:
-                    successful_mechs.append(req[1])
-                    break
-                elif req[0] == 'required' and req[1] in self.satisfied_mechanisms:
-                    successful_mechs.append(req[1])
-                elif req[0] == 'required' and req[1] not in self.satisfied_mechanisms:
-                    successful_mechs = []
-                    break
-            if successful_mechs:
+                # Temporarily drop auth level if user's certs have all expired
+                user.cert_auth = 'allowed'
+            if (user.cert_auth != 'disabled' and self.cert_uid) or \
+                    (user.cert_auth != 'required' and self.openid_uid):
+                # Successful login
                 self.user = user
-                # Drop any cached authentication successes that are not
-                # necessary for the current log in.
-                self.satisfied_mechanisms = successful_mechs
             else:
                 self.pending_user = user
-                self.required_mechanisms = [(auth_mechanism_names[m[1]], m[0], m[1] in self.satisfied_mechanisms) for m in auth_methods[self.pending_user.auth_method]]
-        self.can_purge = reduce(lambda p, m: p or m in persistent_auth_mechanisms, self.satisfied_mechanisms, False)
+        self.can_purge = len(self.satisfied) == 1 and self.satisfied[0] == 'openid'
         return bool(self.user)
+
+    def can(self, priv, log):
+        if not self.user:
+            return False, 'no_user'
+        if not self.user.can(priv, log=log):
+            return False, 'no_privilege'
+        req_confidence = 0
+        for lvl in req_confidence_levels:
+            for key in req_confidence_levels[lvl]:
+                if priv.startswith(key + '.'):
+                    req_confidence = lvl
+                    break
+        if self.confidence_level >= req_confidence:
+            return True, ''
+        if req_confidence > 1 or (
+                req_confidence > 0 and
+                self.user.cert_auth in ['required', 'sensitive_required']
+                ):
+            if not 'cert' in self.satisfied:
+                return False, 'cert_auth_required'
+            elif self.user.cert_auth not in ['required', 'sensitive required']:
+                return False, 'cert_auth_option_too_weak'
+        return False, 'openid_reauth_required'
+
+    def get_openid_age(self):
+        if self.openid_time:
+            return datetime.now() - datetime.fromtimestamp(self.openid_time)
+        return None
+
+    openid_age = property(get_openid_age)
+
+    def get_confidence_level(self):
+        if not self.user:
+            return -1
+        if not self.openid_uid or not self.openid_time:
+            return 0
+        if self.user.cert_auth in ['required', 'sensitive_required']:
+            if self.cert_uid and self.openid_age <= timedelta(seconds=CERT_CONFIDENCE_EXPIRY_TIME):
+                return 2
+        elif self.openid_age <= timedelta(seconds=CONFIDENCE_EXPIRY_TIME):
+            return 1
+        return 0
+
+    confidence_level = property(get_confidence_level)
 
     def get_user(self):
         """Convenience method: will return the authed user or AnonymousUser()."""
         return self.user if self.user else model.AnonymousUser()
 
+    def openid_success(self, session, uid, url, auth_time=None):
+        if self.user and (
+                uid != self.user.id or
+                url not in [id.url for id in self.user.identity_urls]
+                ):
+            return False
+        self.openid_uid = uid
+        self.openid_url = url
+        self.openid_time = time.time()
+        is_sufficient_for_login = self.authenticate()
+        self.save(session)
+        return is_sufficient_for_login
+
     def purge(self, session):
-        """Removes all the cached authentications it can from the session."""
-        for mech in persistent_auth_mechanisms:
-            self.mechanisms[mech] = None
+        """Removes all the cached authentication data it can from the session."""
+        for var in persistant_variables:
+            setattr(self, var, None)
         self.save(session)
 
     def _load_certificate(self, override=None):
@@ -235,28 +230,59 @@ class Auth():
                         'but Secret header invalid.  Misconfiguration or attack.')
 
         if serial and config.get('client_cert_auth', '').lower() == 'true':
-            if self.cert_serial != serial or not self.mechanisms['cert']:
-                # New certificate presented
-                self.cert_serial = None
-                self.mechanisms['cert'] = None
-                try:
-                    cert = meta.Session.query(model.Certificate) \
-                            .options(joinedload('user')) \
-                            .filter_by(serial=serial) \
-                            .one()
-                except NoResultFound:
-                    # Should never happen in production
-                    # (Certificate records should stand eternal)
-                    abort(500, detail='Unable to find certificate in store.  '
-                            '(Has the certificate record been deleted?)  '
-                            'Try not sending your SSL client certificate.')
-                if cert and cert.valid:
-                    self.cert_serial = serial.lower()
-                    self.mechanisms['cert'] = cert.user.id
+            self.cert_serial = None
+            self.cert_uid = None
+            try:
+                cert = meta.Session.query(model.Certificate) \
+                        .options(joinedload('user')) \
+                        .filter_by(serial=serial) \
+                        .one()
+            except NoResultFound:
+                # Should never happen in production
+                # (Certificate records should stand eternal)
+                abort(500, detail='Unable to find certificate in store.  '
+                        '(Has the certificate record been deleted?)  '
+                        'Try not sending your SSL client certificate.')
+            if cert and cert.valid:
+                self.cert_serial = serial.lower()
+                self.cert_uid = cert.user.id
         else:
             # Protect against stale data
             self.cert_serial = None
-            self.mechanisms['cert'] = None
+            self.cert_uid = None
+
+def stash_request(session, url, post_data=None):
+    stashes = session.get('post_stashes', dict())
+    # Clean any old pending stashes against this url
+    duplicates = [k for k in stashes if stashes[k].get('url', None) == url]
+    for k in duplicates:
+        del stashes[k]
+    key = str(random.getrandbits(64))
+    stashes[key] = dict(url=url, post_data=post_data)
+    session['post_stashes'] = stashes
+    session.save()
+    return key
+
+def stash_keys(session):
+    return session.get('post_stashes', dict()).keys()
+
+def fetch_stash(session, key):
+    stashes = session.get('post_stashes', dict())
+    return stashes.get(key, None)
+
+def fetch_stash_url(session, key):
+    stash = fetch_stash(session, key)
+    return stash.get('url', None) if stash else None
+
+def fetch_post(session, request):
+    if request.method == 'GET' and 'return_key' in request.GET:
+        key = request.GET.get('return_key', None)
+        stash_item = fetch_stash(session, key)
+        if stash_item:
+            return stash_item.get('post_data', None)
+        else:
+            flash(u'Unrecognised return key.  Timeout?', level='warning')
+    return request.POST
 
 def get_ca():
     """Fetches the Certifiacte Authority certificate and key.
