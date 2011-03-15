@@ -31,6 +31,8 @@
 <%def name="levelname(level)">${level_icons[level][0]}</%def>
 <%def name="levelicon(level)">${icon(level_icons[level][1], level_icons[level][0])}</%def>
 
+
+## User handling
 <%def name="time(t)">
 ${c.user.localtime(t).strftime('%A, %d %B %Y at %H:%M %Z')}
 </%def>
@@ -64,6 +66,8 @@ ${"{0} days, {1} hours, {2} mins".format(td.days, hours, mins)}
 </a>
 </%def>
 
+
+## Standard form rendering
 <%def name="field(form_field, **kwargs)">
 % if isinstance(form_field.widget, wtforms.widgets.CheckboxInput):
 <dd>
@@ -105,4 +109,81 @@ for char in serial[:10]:
     i += 1
 %>
 <span class="monospace">${id[:-1]}</span>
+</%def>
+
+
+## Rendering for lib.pager.Pager objects
+<%def name="discrete_pager(pager, temporal_column_name=None)">
+## When `temporal_column_name` is given, discrete pagers that have reached
+## their maximum allowed limit will switch to temporal pagers.  Used for
+## GallerySieve
+<ol class="pager">
+% for page in pager.pages():
+    % if page is None:
+    <li class="elided">…</li>
+    % elif page == pager.current_page:
+    <li class="current">
+        page ${int(page + 1)}${u'½' if page != int(page) else u''} <br>
+      % if pager.item_count:
+        % if pager.item_count > pager.skip + 1:
+        #${pager.skip + 1}–${min(pager.skip + pager.page_size, pager.item_count)}
+        % else:
+        ${pager.item_count}
+        % endif
+        of ${pager.item_count}
+      % else:
+        #${pager.skip + 1}–${pager.skip + pager.visible_count}
+      % endif
+    </li>
+    % else:
+    <li>
+        <a href="${h.update_params(url.current(), \
+            **pager.formdata_for(page * pager.page_size))}">
+            % if page == 0:
+            ⇤
+            % elif 0 < pager.current_page - page <= 1:
+            ←
+            % endif
+            ${page + 1}
+            % if pager.last_page and page == pager.last_page:
+            ⇥
+            % elif -1 <= pager.current_page - page < 0:
+            →
+            % endif
+        </a>
+    </li>
+    % endif
+% endfor
+% if temporal_column_name and pager.is_last_allowable_page:
+<li>
+    <a href="${h.update_params(url.current(), \
+        **pager.formdata_for_temporal(temporal_column_name))}">More →</a>
+</li>
+% endif
+</ol>
+</%def>
+
+<%def name="temporal_pager(pager)">
+<ol class="pager">
+    % if pager.timeskip:
+    <li>
+        <a href="${h.update_params(url.current(), \
+            **pager.formdata_for(None))}">⇤ Newest</a>
+    </li>
+    <li class="elided">…</li>
+    <li class="current">
+        ${time(pager.timeskip)}<br>
+        and earlier
+    </li>
+    % else:
+    <li>Newest</li>
+    % endif
+
+    % if not pager.is_last_page:
+    <li>
+        <a href="${h.update_params(url.current(), \
+            **pager.formdata_for(pager.next_item_timeskip))}">More →</a>
+    </li>
+    % endif
+</ol>
 </%def>

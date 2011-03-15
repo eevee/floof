@@ -4,7 +4,7 @@ from pylons import request, response, session, tmpl_context as c, url
 from pylons.controllers.util import abort
 
 from floof.lib.base import BaseController, render
-from floof.lib.gallery import GalleryView
+from floof.lib.gallery import GallerySieve
 from floof.lib.helpers import redirect
 from floof.model import meta
 from floof import model
@@ -30,7 +30,7 @@ class TagsController(BaseController):
     def artwork(self, name):
         """Show a gallery of artwork for this tag."""
         c.tag = name
-        c.gallery_view = GalleryView()
-        c.gallery_view.filter_by_tag(name)
+        c.gallery_sieve = GallerySieve(user=c.user, formdata=request.params)
+        c.gallery_sieve.filter_by_tag(name)
 
         return render('/tags/artwork.mako')

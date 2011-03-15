@@ -39,3 +39,115 @@ def media_icon(type):
     % endfor
 </ul>
 </%def>
+
+## Shows a bigger grid of "panels", with a bit more detail about artwork
+<%def name="detailed_grid(artworks)">
+<ul class="detailed-thumbnail-grid">
+% for artwork in artworks:
+<li class="detailed-thumbnail">
+    <a class="thumbnail" href="${h.art_url(artwork)}">
+        <img src="${url('filestore', key=artwork.hash + '.thumbnail')}" alt="">
+    </a>
+    <a href="${h.art_url(artwork)}">${artwork.title}</a>
+</li>
+% endfor
+</ul>
+</%def>
+
+## Shows a detailed table of the artwork, with more focus on details than space
+## constraints
+<%def name="detailed_table(artworks)">
+<table class="detailed-artwork-table">
+<thead>
+<tr>
+    <th><!-- thumbnail --></th>
+    <th>Title</th>
+    <th>Numbers</th>
+</tr>
+% for artwork in artworks:
+<tr>
+    <td class="-thumbnail">
+        <a class="thumbnail" href="${h.art_url(artwork)}">
+            <img src="${url('filestore', key=artwork.hash + '.thumbnail')}" alt="">
+        </a>
+    </td>
+    <td><a href="${h.art_url(artwork)}">${artwork.title}</a></td>
+    <td>
+        Comments: ${artwork.discussion.comment_count} <br>
+        Ratings: ${artwork.rating_count}
+    </td>
+</tr>
+% endfor
+</table>
+</%def>
+
+
+###### The following is all for dealing with floof.lib.gallery.GallerySieve
+## objects and the forms they create.  You probably just want to use
+## render_gallery_sieve().
+<%!
+    DISPLAY_ICONS = dict(
+        thumbnails=u'ui-scroll-pane-icon',
+        succinct=u'ui-scroll-pane-detail',
+        detailed=u'ui-scroll-pane-list',
+    )
+%>\
+<%def name="render_gallery_sieve(gallery_sieve, filters_open=False)">
+${gallery_sieve_form(gallery_sieve.form)}
+<% pager = gallery_sieve.evaluate() %>\
+
+% if not pager.items:
+<p>Nothing found.</p>
+% elif gallery_sieve.display_mode == 'thumbnails':
+${thumbnail_grid(pager)}
+% elif gallery_sieve.display_mode == 'succinct':
+${detailed_grid(pager)}
+% elif gallery_sieve.display_mode == 'detailed':
+${detailed_table(pager)}
+% endif
+
+% if pager.pager_type == 'discrete':
+${lib.discrete_pager(pager, temporal_column_name=gallery_sieve.temporal_column_name)}
+% elif pager.pager_type == 'temporal':
+${lib.temporal_pager(pager)}
+% endif
+</%def>
+
+<%def name="gallery_sieve_form(form)">
+<div class="art-filter">
+    ${h.form(url.current(), method='GET')}
+    <div class="column-container">
+    <div class="column">
+        <dl class="standard-form">
+            ${lib.field(form.tags)}
+            ${lib.field(form.time_radius)}
+            % if c.user:
+            ## Don't show a user-specific field for a non-user
+            ${lib.field(form.my_rating)}
+            % endif
+
+            <dd><button type="submit">Filter</button></dd>
+        </dl>
+    </div>
+    <div class="column">
+        <dl class="standard-form">
+            ${lib.field(form.sort)}
+            <dt>${form.display.label() | n}</dt>
+            <dd>
+                <ul>
+                    % for field in form.display:
+                    <li><label>
+                        ${field() | n}
+                        ${lib.icon(DISPLAY_ICONS[field.data])}
+                        ${field.label.text}
+                    </label></li>
+                    % endfor
+                </ul>
+                ${lib.field_errors(form.display)}
+            </dd>
+        </dl>
+    </div>
+    </div>
+    ${h.end_form()}
+</div>
+</%def>

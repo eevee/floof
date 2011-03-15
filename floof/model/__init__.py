@@ -52,7 +52,7 @@ class Resource(TableBase):
     global full-text search, or whatever.
 
     Kudos to zzzeek for the idea and example implementation:
-    http://techspot.zzzeek.org/?p=13
+    http://techspot.zzzeek.org/2007/05/29/polymorphic-associations-with-sqlalchemy/
     """
     __tablename__ = 'resources'
     id = Column(Integer, primary_key=True, nullable=False)
@@ -108,7 +108,7 @@ class AnonymousUser(object):
         permission.
         """
         return False
-    
+
     def logged_privs(self):
         return []
 

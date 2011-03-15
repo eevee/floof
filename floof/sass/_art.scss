@@ -68,6 +68,59 @@ ul.thumbnail-grid {
     }
 }
 
+// Detailed thumbnail grid, a display option for gallery sieves
+ul.detailed-thumbnail-grid {
+    position: relative;
+
+    li.detailed-thumbnail {
+        z-index: 0;
+        display: inline-block;
+        position: relative;
+        min-height: 80px;
+        width: 15em;
+        margin: 0.5em;
+        padding-left: 90px;
+        vertical-align: top;
+
+        a.thumbnail {
+            z-index: 10;
+            display: block;
+            float: left;
+            height: 80px;
+            width: 80px;
+            margin-left: -90px;  // boo, pixel alignment
+            line-height: 80px;
+            text-align: center;
+
+            img {
+                vertical-align: top;
+                @include box-shadow(1px 1px 3px rgba(0, 0, 0, 0.5));
+                max-width: 80px;
+                max-height: 80px;
+            }
+        }
+    }
+}
+
+// Detailed table, the final display option for gallery sieves
+table.detailed-artwork-table {
+    width: 100%;
+
+    th, td {
+        line-height: 1.33;
+        vertical-align: top;
+    }
+
+    .-thumbnail {
+        img {
+            vertical-align: top;
+            @include box-shadow(1px 1px 3px rgba(0, 0, 0, 0.5));
+            max-width: 80px;
+            max-height: 80px;
+        }
+    }
+}
+
 // Container for a work of art as displayed on its own page
 .artwork {
     margin: 2em 0;
@@ -75,5 +128,16 @@ ul.thumbnail-grid {
 
     img {
         max-width: 100%;
+    }
+}
+
+// Generic filters for art displays
+.art-filter {
+    margin: 1em -1em;
+    padding: 1em;
+    background: $header2-bg;
+
+    .column-container {
+        margin-top: 0;
     }
 }

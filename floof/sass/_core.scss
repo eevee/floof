@@ -236,6 +236,9 @@ h3 {
 input, button, select {
     vertical-align: middle;
 }
+input[type="radio"] {
+    margin: 0.25em;
+}
 input[type="submit"], input[type="button"], input[type="submit"], input[type="image"], button {
     cursor: pointer;
 }
@@ -339,6 +342,38 @@ span.monospace {
     margin-top: 0;
 }
 
+// Pager
+ol.pager {
+    margin: 1em -1em -1em -1em;
+    padding: 0.25em 0;
+    text-align: center;
+    background: $header2-bg;
+
+    > li {
+        display: inline-block;
+        line-height: 1.33;
+        vertical-align: middle;
+
+        > a {
+            display: block;
+            @include border-radius(0.33em);
+
+            &:hover {
+                background: $content-bg;
+            }
+        }
+        > a, &.elided {
+            font-size: 1.66em;
+            padding: 0.33em 0.5em;
+            line-height: 1;
+        }
+        &.current {
+            //font-size: 0.8em;
+            padding: 0 1.2em;
+        }
+    }
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // App-specific components
@@ -400,6 +435,14 @@ span.monospace {
             0.1em 0.1em 0.1em -0.1em black inset,
             0 2em 1em -1em #{rgba(black, 0.1)} inset
         ");
+    }
+
+    &.selected {
+        @include box-shadow("
+            0 2em 1em -1em #{rgba(black, 0.1)} inset
+        ");
+        font-weight: bold;
+        color: inherit;
     }
 
     &.confirm {

@@ -1,3 +1,4 @@
+# encoding: utf8
 from __future__ import division
 
 import hashlib
@@ -16,7 +17,7 @@ from floof.forms import MultiCheckboxField, MultiTagField
 from floof.lib import helpers
 from floof.lib.base import BaseController, render
 from floof.lib.decorators import user_must
-from floof.lib.gallery import GalleryView
+from floof.lib.gallery import GallerySieve
 from floof.lib.helpers import redirect
 from floof.lib.log import ADMIN, PRIV_ADMIN
 from floof.model import meta
@@ -106,6 +107,7 @@ class RemoveTagForm(wtforms.form.Form):
             for tag in field.data:
                 if tag not in form._artwork.tags:
                     raise ValueError(u"Not tagged with \"{0}\"".format(tag))
+
 
 class ArtController(BaseController):
     HASH_BUFFER_SIZE = 524288  # .5 MiB
@@ -253,7 +255,7 @@ class ArtController(BaseController):
         """Main gallery; provides browsing through absolutely everything we've
         got.
         """
-        c.gallery_view = GalleryView()
+        c.gallery_sieve = GallerySieve(user=c.user, formdata=request.GET)
         return render('/art/gallery.mako')
 
     def view(self, id):

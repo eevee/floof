@@ -34,6 +34,8 @@ True when you use c.user.can.  e.g.:
 
 """
 
+import pytz
+
 # Between INFO (20) and WARNING (30).
 ADMIN = 25
 PRIV_ADMIN = 26
@@ -65,7 +67,7 @@ class FloofDBHandler(Handler):
 
     def emit(self, record):
         entry = Log(
-                timestamp=datetime.fromtimestamp(record.created),
+                timestamp=datetime.fromtimestamp(record.created, pytz.utc),
                 logger=record.name,
                 level=record.levelno,
                 url=record.url,

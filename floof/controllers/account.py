@@ -90,7 +90,7 @@ class AccountController(BaseController):
             user = q.one()
 
             log.debug('User {0} (#{1}) authenticated with OpenID URL "{2}"'
-                    .format(user.id, user.name, identity_url)) 
+                    .format(user.id, user.name, identity_url))
 
             # Log the successful authentication
             if c.auth.auth_success(session, 'openid', user.id):
