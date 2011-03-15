@@ -26,8 +26,8 @@ req_confidence_levels = {
         2: ['admin']
         }
 
-CONFIDENCE_EXPIRY_TIME = 60 * 1  # Seconds
-CERT_CONFIDENCE_EXPIRY_TIME = 60 * 30  # Seconds
+CONFIDENCE_EXPIRY_SECONDS = int(config.get('auth_confidence_expiry_seconds', 60 * 10))
+CERT_CONFIDENCE_EXPIRY_SECONDS = int(config.get('cert_auth_confidence_expiry_seconds', 60 * 30))
 
 sensitive_privs = []
 for lvl in req_confidence_levels:
@@ -147,10 +147,16 @@ class Auth():
                 self.user = user
             else:
                 self.pending_user = user
-        self.can_purge = len(self.satisfied) == 1 and self.satisfied[0] == 'openid'
         return bool(self.user)
 
     def can(self, priv, log):
+        """Return (True, '') if the current user has the permission priv and
+        a sufficient session confidence level to exercise if.  Else return
+        a (False, error_string) tuple.
+
+        If log is True, ask the user object to log the privilege exercise.
+
+        """
         if not self.user:
             return False, 'no_user'
         if not self.user.can(priv, log=log):
@@ -169,36 +175,58 @@ class Auth():
                 ):
             if not 'cert' in self.satisfied:
                 return False, 'cert_auth_required'
-            elif self.user.cert_auth not in ['required', 'sensitive required']:
+            elif self.user.cert_auth not in ['required', 'sensitive_required']:
                 return False, 'cert_auth_option_too_weak'
         return False, 'openid_reauth_required'
 
+    def get_can_purge(self):
+        """Convenience method: Ccheck if the auth session may be sensibly
+        logged out.
+        """
+        return len(self.satisfied) == 1 and self.satisfied[0] == 'openid'
+
+    can_purge = property(get_can_purge)
+
+    def get_confidence_level(self):
+        """Return the current confidence level of the session.
+
+        Based on:
+          - Whether the is a user logged in
+            (-1 if not).
+          - How recently an OpenID authentication was made
+            (1 if recently enough, else 0).
+          - Whether a certificate required for sensitive actions and one
+            is being used to authenticate this session
+            (2 if so and the OpenID check passed).
+
+        """
+        if not self.user:
+            return -1
+        if not self.openid_uid or not self.openid_time:
+            return 0
+        if self.user.cert_auth in ['required', 'sensitive_required']:
+            if self.cert_uid and self.openid_age <= timedelta(seconds=CERT_CONFIDENCE_EXPIRY_SECONDS):
+                return 2
+        elif self.openid_age <= timedelta(seconds=CONFIDENCE_EXPIRY_SECONDS):
+            return 1
+        return 0
+
+    confidence_level = property(get_confidence_level)
+
     def get_openid_age(self):
+        """Return how long ago the OpenID auth, if any, was refreshed."""
         if self.openid_time:
             return datetime.now() - datetime.fromtimestamp(self.openid_time)
         return None
 
     openid_age = property(get_openid_age)
 
-    def get_confidence_level(self):
-        if not self.user:
-            return -1
-        if not self.openid_uid or not self.openid_time:
-            return 0
-        if self.user.cert_auth in ['required', 'sensitive_required']:
-            if self.cert_uid and self.openid_age <= timedelta(seconds=CERT_CONFIDENCE_EXPIRY_TIME):
-                return 2
-        elif self.openid_age <= timedelta(seconds=CONFIDENCE_EXPIRY_TIME):
-            return 1
-        return 0
-
-    confidence_level = property(get_confidence_level)
-
     def get_user(self):
         """Convenience method: will return the authed user or AnonymousUser()."""
         return self.user if self.user else model.AnonymousUser()
 
     def openid_success(self, session, uid, url, auth_time=None):
+        """Log the success of an OpenID authentication attempt."""
         if self.user and (
                 uid != self.user.id or
                 url not in [id.url for id in self.user.identity_urls]
@@ -252,6 +280,14 @@ class Auth():
             self.cert_uid = None
 
 def stash_request(session, url, post_data=None):
+    """Stash the given url and, optionlly, post_data MultiDict, in the given
+    session.  Returns a key that may be used to retrieve the stash later.
+
+    The url must be unique among all stashes within a single session.  A new
+    stash request with a conflicting url will silently clobber the existing
+    stash with that url.
+
+    """
     stashes = session.get('post_stashes', dict())
     # Clean any old pending stashes against this url
     duplicates = [k for k in stashes if stashes[k].get('url', None) == url]
@@ -264,17 +300,23 @@ def stash_request(session, url, post_data=None):
     return key
 
 def stash_keys(session):
+    """Return all valid stash keys for the given session."""
     return session.get('post_stashes', dict()).keys()
 
 def fetch_stash(session, key):
+    """Return the stash associated with the given key if it exists, else None."""
     stashes = session.get('post_stashes', dict())
     return stashes.get(key, None)
 
 def fetch_stash_url(session, key):
+    """Return the return URL from the stash associated with the given key if
+    it exists, else None."""
     stash = fetch_stash(session, key)
     return stash.get('url', None) if stash else None
 
 def fetch_post(session, request):
+    """Return the POST data MultiDict from the stash associated with the given
+    key if it exists, else None."""
     if request.method == 'GET' and 'return_key' in request.GET:
         key = request.GET.get('return_key', None)
         stash_item = fetch_stash(session, key)

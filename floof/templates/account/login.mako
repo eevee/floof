@@ -11,7 +11,10 @@
         <span class="monospace">${str(c.auth.openid_age).split('.')[0]}</span>.
         </p>
     % else:
-        <h1>Authenticate with OpenID</h1>
+        <h1>Re-Authenticate with OpenID</h1>
+        <p>Authenticate with OpenID to increase the security level of your
+        current session.  This is necessary to perfom certain sensitive or
+        administrative actions.</p>
     % endif
     <p>Logged in as ${c.user.display_name}.</p>
 % elif c.auth.pending_user:

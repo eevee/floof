@@ -45,7 +45,7 @@ rating_radius = 1
 #beaker.session.data_dir = %(here)s/data/sessions
 
 # If you're only accessing the application over HTTPS connections, set this
-# to tue for some added security.
+# to true for some added security.
 #beaker.session.secure = true
 
 # SQLAlchemy database URL
@@ -61,6 +61,13 @@ set debug = false
 # debug crap.
 #super_debug = true
 
+# The expiry time, in seconds, for OpenID authentications for most users.
+auth_confidence_expiry_seconds = 600
+# The expiry time, in seconds, for OpenID authentications for users with
+# a restrictive Authentication Method option and who are currently
+# authenticating with a certificate.
+cert_auth_confidence_expiry_seconds = 1800
+
 # Enable client certificate authentication for users.
 # This may be dangerous if you don't understand the particulars, but
 # the UI presently assumes that it is always "true".
@@ -72,7 +79,7 @@ client_cert_auth = true
 # May be: 'http_headers'
 client_cert_transport = http_headers
 
-# Required in a 'X-Floof-Secret' HTTP header for certificate authentication
+# Required in an 'X-Floof-Secret' HTTP header for certificate authentication
 # via HTTP headers to work.
 # During normal operation, this provides no actual security benefit, but
 # it provides some fallback securty should access to the raw HTTP application

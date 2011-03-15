@@ -9,7 +9,7 @@ from urllib2 import HTTPError, URLError
 import wtforms.form, wtforms.fields, wtforms.validators
 
 from floof.lib import helpers
-from floof.lib.auth import CONFIDENCE_EXPIRY_TIME, fetch_stash_url, stash_keys
+from floof.lib.auth import CERT_CONFIDENCE_EXPIRY_SECONDS, CONFIDENCE_EXPIRY_SECONDS, fetch_stash_url, stash_keys
 from floof.lib.base import BaseController, render
 from floof.lib.decorators import logged_in, logged_out
 from floof.lib.helpers import redirect
@@ -74,7 +74,10 @@ class AccountController(BaseController):
 
         if c.user:
             # Logged-in user trying to update their OpenID expiry time
-            max_auth_age = CONFIDENCE_EXPIRY_TIME
+            if 'cert' in c.auth.satisfied:
+                max_auth_age = CERT_CONFIDENCE_EXPIRY_SECONDS
+            else:
+                max_auth_age = CONFIDENCE_EXPIRY_SECONDS
             sreg = False
         else:
             # Logged-out user; may be about to register
