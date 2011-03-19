@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
+from datetime import datetime
 import logging
+import math
 import pytz
 import re
 
@@ -20,6 +22,21 @@ from floof.model import Discussion, UserProfileRevision, IdentityURL, User, Role
 
 log = logging.getLogger(__name__)
 
+def gen_timezone_choices():
+    #XXX: Perfect for caching; the list is unlikely to change more than hourly.
+    tzs = []
+    now = datetime.now()
+    for tz_name in pytz.common_timezones:
+        offset = pytz.timezone(tz_name).utcoffset(now)
+        offset_real_secs = offset.seconds + offset.days * 24 * 60**2
+        offset_hours, remainder = divmod(abs(offset_real_secs), 3600)
+        offset_minutes, _ = divmod(remainder, 60)
+        offset_txt = '(UTC {0:0=+2d}:{1:0>2d}) {2}'.format(
+                offset_hours, offset_minutes, tz_name)
+        tzs.append((offset_real_secs, tz_name, offset_txt))
+    tzs.sort()
+    return [tz[1:] for tz in tzs]
+
 class LoginForm(wtforms.form.Form):
     # n.b.: This is actually a name recommended by the OpenID spec, for ease of
     # client identification
@@ -36,7 +53,7 @@ class RegistrationForm(wtforms.form.Form):
             ),
         ])
     timezone = wtforms.fields.SelectField(u'Timezone',
-            choices=[(tz, tz) for tz in pytz.common_timezones],
+            choices=gen_timezone_choices(),
             default='UTC',
             )
 
