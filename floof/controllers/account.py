@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime
 import logging
-import math
 import pytz
 import re
 
@@ -29,9 +28,9 @@ def gen_timezone_choices():
     for tz_name in pytz.common_timezones:
         offset = pytz.timezone(tz_name).utcoffset(now)
         offset_real_secs = offset.seconds + offset.days * 24 * 60**2
-        offset_hours, remainder = divmod(abs(offset_real_secs), 3600)
+        offset_hours, remainder = divmod(offset_real_secs, 3600)
         offset_minutes, _ = divmod(remainder, 60)
-        offset_txt = '(UTC {0:0=+2d}:{1:0>2d}) {2}'.format(
+        offset_txt = '(UTC {0:0=+3d}:{1:0>2d}) {2}'.format(
                 offset_hours, offset_minutes, tz_name)
         tzs.append((offset_real_secs, tz_name, offset_txt))
     tzs.sort()
@@ -54,7 +53,6 @@ class RegistrationForm(wtforms.form.Form):
         ])
     timezone = wtforms.fields.SelectField(u'Timezone',
             choices=gen_timezone_choices(),
-            default='UTC',
             )
 
     def validate_username(form, field):
@@ -188,7 +186,7 @@ class AccountController(BaseController):
             # Try to pull a name and email addraess out of the SReg response
             c.form = RegistrationForm(
                     username=sreg_res.get('nickname', u''),
-                    timezone=sreg_res.get('timezone', ''),
+                    timezone=sreg_res.get('timezone', 'UTC'),
                     )
             c.form.validate()
             return render('/account/register.mako')
