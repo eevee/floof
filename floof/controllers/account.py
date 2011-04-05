@@ -151,8 +151,9 @@ class AccountController(BaseController):
 
             # Log the successful authentication
             if c.auth.openid_success(session, user.id, identity_url):
-                helpers.flash(u'Hello, {0}'.format(user.display_name),
-                        icon='user')
+                helpers.flash(
+                    u'Hello, {0}'.format(user.display_name or user.name),
+                    icon='user')
                 redirect(url('/'))
             redirect(url(controller='account', action='login'))
 

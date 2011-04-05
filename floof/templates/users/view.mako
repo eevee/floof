@@ -4,7 +4,12 @@
 
 <%def name="title()">${c.this_user.display_name}</%def>
 
-<h1>${lib.icon('user-nude')} <a href="${url.current(action='profile')}">${c.this_user.name}</a></h1>
+<h1>
+    ${lib.icon('user-nude')} <a href="${url.current(action='profile')}">${c.this_user.name}</a>
+    % if c.this_user.display_name is not None:
+    (${c.this_user.display_name})
+    % endif
+</h1>
 
 ## this is kinda grody until there are enough bits to flesh it out
 % if c.user and c.user != c.this_user:
@@ -26,6 +31,6 @@
     if not arts:
         continue
 %>
-<h2>Art ${rel} ${c.this_user.name}</h2>
+<h2>Art ${rel} ${c.this_user.display_name or c.this_user.name}</h2>
 ${artlib.thumbnail_grid(arts)}
 % endfor
