@@ -14,7 +14,7 @@ class User(TableBase):
     resource_id = Column(Integer, ForeignKey('resources.id'), nullable=False)
     name = Column(Unicode(24), nullable=False, index=True, unique=True)
     display_name = Column(Unicode(24), nullable=True)
-    has_trivial_display_name = Column(Boolean, nullable=False, default=False)
+    has_trivial_display_name = Column(Boolean, nullable=False, default=False, server_default=u'f')
     timezone = Column(Timezone, nullable=True)
     role_id = Column(Integer, ForeignKey('roles.id'), nullable=False)
     auth_method = Column(Enum(
@@ -28,9 +28,9 @@ class User(TableBase):
 def upgrade(migrate_engine):
     TableBase.metadata.bind = migrate_engine
     User.__table__.c.display_name.create()
-    User.__table__.c.has_trivial_display_name.create()
+    User.__table__.c.has_trivial_display_name.create(populate_default=False)
+    User.__table__.c.has_trivial_display_name.alter(server_default=None)
 
 def downgrade(migrate_engine):
-    TableBase.metadata.bind = migrate_engine
-    User.__table__.c.display_name.drop()
-    User.__table__.c.has_trivial_display_name.drop()
+    User.__table__.c.display_name.drop(migrate_engine)
+    User.__table__.c.has_trivial_display_name.drop(migrate_engine)
