@@ -34,13 +34,18 @@ def get_storage(pylons_config, prefix='filestore'):
     return package.FileStorage(**kwargs)
 
 
+# TODO: several steps here
+# 1. make mogile work
+# 2. make reproxying work, one way or another!!
+# 3. add notion of file class for all filestorages; local can either ignore or use subdirectories
+# fix this impl-per-module nonsense
+# don't use pylons.url; have a get-the-file action in the app
+# improve whatever I was going to write here
 class FileStorage(object):
     def put(self, key, fileobj):
         """Stores the data in the given fileobj under the given key."""
         raise NotImplementedError
 
-    def url(self, key, maxsize=None):
-        """Returns a URL for accessing this file.
-
-        `maxsize` may be used for generating thumbnails, halfviews, etc."""
+    def url(self, key):
+        """Returns a URL for accessing this file."""
         raise NotImplementedError
