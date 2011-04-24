@@ -38,10 +38,20 @@ class MainController(BaseController):
         whole file.  The latter puts a terrible strain on the app and will spew
         warnings if not in debug mode.
         """
-        # TODO: probably cache the response from mogilefs, or whatever
-        # TODO: mimetype!
         storage = config['filestore']
         storage_url = storage.url(key)
+        if not storage_url:
+            # No such file, oh dear
+            log.warn("File {0} is missing".format(key))
+            abort(404)
+
+        if storage_url.startswith(u'/'):
+            # Absolute paths are relative to the application
+            storage_url = url(storage_url)
+
+        # TODO this is totally wrong, but at least less so.  how can we
+        # reliably get the mimetype for any file hash?  new table?
+        response.headers['Content-Type'] = 'image/png'
 
         if 'X-Forwarded-For' in request.headers:
             # Reproxy to upstream.
@@ -59,15 +69,16 @@ class MainController(BaseController):
             return None
 
         # Otherwise, we need to stream the whole file ourselves.  Ick.
-        # TODO warn about this in production
+        if not config['super_debug']:
+            log.warn("Manually serving a file from storage; "
+                "this is not what you want in production!")
         return wsgi_reproxy(storage_url)
 
     def reproxy(self):
         """This is a bogus URL used for nginx reproxying.  Clients should never
         land here!
         """
-        warnings.warn(
-            "Client landed on /reproxy; your upstream is misconfigured!")
+        log.warn("Client landed on /reproxy; your upstream is misconfigured!")
         return "our apologies; app misconfiguration"
 
     def cookies_disabled(self):

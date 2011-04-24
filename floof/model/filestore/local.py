@@ -6,12 +6,8 @@ import os
 import os.path
 import shutil
 
-from pylons import url
-
 from . import FileStorage as BaseFileStorage
 
-# XXX how on earth will this handle mimetypes correctly?!
-# do files need to actually be separate database objects?  :(
 class FileStorage(BaseFileStorage):
     def __init__(self, directory, url_prefix, **kwargs):
         if not os.path.isdir(directory):
@@ -25,4 +21,4 @@ class FileStorage(BaseFileStorage):
         shutil.copyfileobj(fileobj, dest)
 
     def url(self, key):
-        return url("{0}/{1}".format(self.url_prefix, key))
+        return "{0}/{1}".format(self.url_prefix, key)
