@@ -222,6 +222,38 @@ class Artwork(TableBase):
     def resource_title(self):
         return self.title or 'Untitled'
 
+    @property
+    def filename(self):
+        """Returns a suitable filename for the associated file."""
+        # Current format looks like: artist1.artist2.artist3.title.id.ext
+        filename_parts = []
+
+        # User names have a minimal set of characters, so they should be safe
+        # to put directly in filenames
+        # TODO: when there's a concept of primary artist, use that first
+        for user_artwork in self.user_artwork:
+            if user_artwork.relationship_type == u'by':
+                filename_parts.append(user_artwork.user.name)
+        if not filename_parts:
+            # Should always have at least one username
+            filename_parts.append(u'unknown')
+
+        filename_parts.append(
+            # Convert everything not a nice character to dashes
+            re.sub(u'[^A-Za-z0-9]+', u'-', self.title).strip(u'-')
+            or u'untitled')
+        filename_parts.append(unicode(self.id))
+
+        if self.mime_type == u'image/png':
+            filename_parts.append(u'png')
+        elif self.mime_type == u'image/jpeg':
+            filename_parts.append(u'jpg')
+        elif self.mime_type == u'image/gif':
+            filename_parts.append(u'gif')
+
+        return u'.'.join(filename_parts)
+
+
 # Dynamic subclasses of the 'artwork' table for storing metadata for different
 # types of media
 class MediaImage(Artwork):

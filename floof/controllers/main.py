@@ -1,9 +1,11 @@
 import logging
+import re
 import urllib2
 import warnings
 
 from pylons import config, request, response, session, tmpl_context as c, url
 from pylons.controllers.util import abort
+from sqlalchemy.orm.exc import NoResultFound
 
 from floof.lib.base import BaseController, render
 from floof.lib.helpers import redirect
@@ -29,7 +31,7 @@ class MainController(BaseController):
     def index(self):
         return render('/index.mako')
 
-    def filestore(self, key):
+    def filestore(self, class_, key):
         """Serve a file from storage.
 
         If we appear to be downstream from a proxy and the storage supports it,
@@ -39,19 +41,34 @@ class MainController(BaseController):
         warnings if not in debug mode.
         """
         storage = config['filestore']
-        storage_url = storage.url(key)
+        storage_url = storage.url(class_, key)
         if not storage_url:
             # No such file, oh dear
             log.warn("File {0} is missing".format(key))
             abort(404)
 
-        if storage_url.startswith(u'/'):
-            # Absolute paths are relative to the application
-            storage_url = url(storage_url)
+        # Get the MIME type and a filename
+        # TODO this is surely not the most reliable way of doing this.
+        if class_ in (u'thumbnail', u'artwork'):
+            try:
+                artwork = meta.Session.query(model.Artwork) \
+                    .filter_by(hash=key) \
+                    .one()
+            except NoResultFound:
+                abort(404)
 
-        # TODO this is totally wrong, but at least less so.  how can we
-        # reliably get the mimetype for any file hash?  new table?
-        response.headers['Content-Type'] = 'image/png'
+            response.headers['Content-Type'] = artwork.mime_type
+
+            # Don't bother setting disposition for thumbnails
+            if class_ == u'artwork':
+                mtime_rfc822 = artwork.uploaded_time.strftime(
+                    "%a, %d %b %Y %H:%M:%S %Z")
+                response.headers['Content-Disposition'] = \
+                    'inline; filename={0}; modification-date="{1}";'.format(
+                        artwork.filename.encode('utf8'), mtime_rfc822)
+        else:
+            # Unknown class
+            abort(404)
 
         if 'X-Forwarded-For' in request.headers:
             # Reproxy to upstream.

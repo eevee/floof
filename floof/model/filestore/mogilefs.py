@@ -16,13 +16,21 @@ class FileStorage(BaseFileStorage):
 
         self.client = pymogile.Client(domain=domain, trackers=trackers)
 
-    def put(self, key, fileobj):
-        class_ = 'artwork'
-        self.client.store_file(key, fileobj, cls=class_)
+    def _identifier(self, class_, key):
+        """Use class:key as the identifier within mogile."""
+        return u':'.join((class_, key))
 
-    def url(self, key):
-        class_ = 'artwork'
-        paths = self.client.get_paths(key, pathcount=1)
+    def put(self, class_, key, fileobj):
+        # Can't use store_file here; it very rudely closes the file when it's done
+        with self.client.new_file(
+            self._identifier(class_, key), cls=class_) as f:
+
+            shutil.copyfileobj(fileobj, f)
+
+    def url(self, class_, key):
+        paths = self.client.get_paths(
+            self._identifier(class_, key), pathcount=1)
+
         if paths:
             return paths[0]
         else:

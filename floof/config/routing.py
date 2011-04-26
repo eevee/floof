@@ -26,7 +26,7 @@ def make_map(config):
     map.connect('/error/{action}', controller='error')
     map.connect('/error/{action}/{id}', controller='error')
 
-    map.connect('filestore', '/filestore/{key}', controller='main', action='filestore')
+    map.connect('filestore', '/filestore/{class_}/{key}', controller='main', action='filestore')
     map.connect('/reproxy', controller='main', action='reproxy')
 
     map.connect('/account/{action}', controller='account',
