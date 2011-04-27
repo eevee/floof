@@ -1,0 +1,48 @@
+floof is a communal art gallery Web site.  It's powered by Python and runs atop
+Pylons.
+
+* http://www.python.org/
+* http://www.pylonshq.com/
+
+
+# Installation
+
+Use the setuptools setup script:
+
+    python setup.py install
+
+If you're a developer, you probably want `develop` instead of `install`, and
+you may wish to consider using virtualenv to keep floof's Python environment
+separate from the rest of your system.
+
+Create a configuration file:
+
+    paster make-config floof config.ini
+
+You may call this file whatever you want, for example `development.ini` or
+`production.ini`.
+
+Configure as appropriate, then run the setup to populate the database:
+
+    paster setup-app config.ini
+
+## File storage
+
+You have two options for storing files, controlled by the `filestore` setting:
+
+* **local** stores files in the filesystem normally.
+
+    The `filestore.directory` setting specifies the root of the storage.  This
+    directory must already exist and be writable by the Python process.
+
+* **mogilefs** stores files in the MogileFS distributed filesystem.  You'll
+    need the `pymogile` package installed, available from
+    https://github.com/AloneRoad/pymogile in the 2.0 branch.
+
+    `filestore.trackers` is a space-delimited list of trackers.
+
+    `filestore.domain` is the name of the MogileFS domain under which all the
+    files will be stored.
+
+    See the mogile docs for creating a basic mogile environment:
+    http://code.google.com/p/mogilefs/wiki/InstallHowTo
