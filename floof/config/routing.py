@@ -12,10 +12,6 @@ def user_filter(kw):
         kw['name'] = kw.pop('user').name
     return kw
 
-def filestore_filter(kw):
-    kw['url'] = config['filestore'].url(kw.pop('key'))
-    return kw
-
 def make_map(config):
     """Create, configure and return the routes Mapper"""
     map = Mapper(directory=config['pylons.paths']['controllers'],
@@ -29,6 +25,9 @@ def make_map(config):
     # likely stay at the top, ensuring it can always be resolved
     map.connect('/error/{action}', controller='error')
     map.connect('/error/{action}/{id}', controller='error')
+
+    map.connect('filestore', '/filestore/{class_}/{key}', controller='main', action='filestore')
+    map.connect('/reproxy', controller='main', action='reproxy')
 
     map.connect('/account/{action}', controller='account',
         requirements=dict(action='login|login_finish|profile'))
@@ -100,6 +99,5 @@ def make_map(config):
     # Static routes
     map.connect('icon', '/icons/{which}.png', _static=True)
     map.connect('css', '/css/{which}.css', _static=True)
-    map.connect('filestore', '{url}', _static=True, _filter=filestore_filter)
 
     return map

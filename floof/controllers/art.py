@@ -163,7 +163,7 @@ class ArtController(BaseController):
 
             # OK, store the file.  Reset the file object first!
             fileobj.seek(0)
-            storage.put(hash, fileobj)
+            storage.put(u'artwork', hash, fileobj)
 
             # Open the image, determine its size, and generate a thumbnail
             fileobj.seek(0)
@@ -192,7 +192,6 @@ class ArtController(BaseController):
                 thumbnail_image = cropped_image
 
             # Dump the thumbnail in a buffer and save it, too
-            # XXX find a better storage medium for these perhaps!
             from cStringIO import StringIO
             buf = StringIO()
             if mimetype == u'image/png':
@@ -203,7 +202,7 @@ class ArtController(BaseController):
                 thumbnail_format = 'JPEG'
             thumbnail_image.save(buf, thumbnail_format)
             buf.seek(0)
-            storage.put(hash + '.thumbnail', buf)
+            storage.put(u'thumbnail', hash, buf)
 
             # Deal with user-supplied metadata
             # nb: it's perfectly valid to have no title
@@ -274,8 +273,6 @@ class ArtController(BaseController):
             c.current_rating = rating_obj.rating if rating_obj else 0
         else:
             c.current_rating = 0
-
-        c.artwork_url = url('filestore', key=c.artwork.hash)
 
         c.comment_form = self.CommentForm()
         c.add_tag_form = AddTagForm()

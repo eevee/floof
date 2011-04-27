@@ -19,7 +19,7 @@ def media_icon(type):
 ## called inside a <ul>.
 <li class="thumbnail">
     <a class="thumbnail" href="${h.art_url(artwork)}">
-        <img src="${url('filestore', key=artwork.hash + '.thumbnail')}" alt="">
+        <img src="${url('filestore', class_=u'thumbnail', key=artwork.hash)}" alt="">
     </a>
     <div class="thumbnail-meta">
         <div class="title">
@@ -46,7 +46,7 @@ def media_icon(type):
 % for artwork in artworks:
 <li class="detailed-thumbnail">
     <a class="thumbnail" href="${h.art_url(artwork)}">
-        <img src="${url('filestore', key=artwork.hash + '.thumbnail')}" alt="">
+        <img src="${url('filestore', class_=u'thumbnail', key=artwork.hash)}" alt="">
     </a>
     <a href="${h.art_url(artwork)}">${artwork.title}</a>
 </li>
@@ -68,7 +68,7 @@ def media_icon(type):
 <tr>
     <td class="-thumbnail">
         <a class="thumbnail" href="${h.art_url(artwork)}">
-            <img src="${url('filestore', key=artwork.hash + '.thumbnail')}" alt="">
+            <img src="${url('filestore', class_=u'thumbnail', key=artwork.hash)}" alt="">
         </a>
     </td>
     <td><a href="${h.art_url(artwork)}">${artwork.title}</a></td>
