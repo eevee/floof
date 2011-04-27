@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
-from datetime import datetime
 import logging
-import pytz
 import re
 
 from pylons import request, response, session, tmpl_context as c, url
@@ -10,6 +8,7 @@ from sqlalchemy.orm.exc import NoResultFound
 from urllib2 import HTTPError, URLError
 import wtforms.form, wtforms.fields, wtforms.validators
 
+from floof.forms import TimezoneField
 from floof.lib import helpers
 from floof.lib.auth import CERT_CONFIDENCE_EXPIRY_SECONDS, CONFIDENCE_EXPIRY_SECONDS, fetch_stash_url, stash_keys
 from floof.lib.base import BaseController, render
@@ -20,21 +19,6 @@ from floof import model
 from floof.model import Discussion, UserProfileRevision, IdentityURL, User, Role, meta
 
 log = logging.getLogger(__name__)
-
-def gen_timezone_choices():
-    #XXX: Perfect for caching; the list is unlikely to change more than hourly.
-    tzs = []
-    now = datetime.now()
-    for tz_name in pytz.common_timezones:
-        offset = pytz.timezone(tz_name).utcoffset(now)
-        offset_real_secs = offset.seconds + offset.days * 24 * 60**2
-        offset_hours, remainder = divmod(offset_real_secs, 3600)
-        offset_minutes, _ = divmod(remainder, 60)
-        offset_txt = '(UTC {0:0=+3d}:{1:0>2d}) {2}'.format(
-                offset_hours, offset_minutes, tz_name)
-        tzs.append((offset_real_secs, tz_name, offset_txt))
-    tzs.sort()
-    return [tz[1:] for tz in tzs]
 
 class LoginForm(wtforms.form.Form):
     # n.b.: This is actually a name recommended by the OpenID spec, for ease of
@@ -51,9 +35,7 @@ class RegistrationForm(wtforms.form.Form):
             u'lowercase letters, numbers, and underscores.'
             ),
         ])
-    timezone = wtforms.fields.SelectField(u'Timezone',
-            choices=gen_timezone_choices(),
-            )
+    timezone = TimezoneField(u'Timezone')
 
     def validate_username(form, field):
         if meta.Session.query(User).filter_by(name=field.data).count():
@@ -218,7 +200,7 @@ class AccountController(BaseController):
             name=c.form.username.data,
             role=base_user,
             resource=resource,
-            timezone=pytz.timezone(c.form.timezone.data),
+            timezone=c.form.timezone.data,
         )
         meta.Session.add_all([user, resource, discussion])
 
