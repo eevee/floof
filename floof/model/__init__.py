@@ -117,6 +117,8 @@ class User(TableBase):
     id = Column(Integer, primary_key=True, nullable=False)
     resource_id = Column(Integer, ForeignKey('resources.id'), nullable=False)
     name = Column(Unicode(24), nullable=False, index=True, unique=True)
+    display_name = Column(Unicode(24), nullable=True)
+    has_trivial_display_name = Column(Boolean, nullable=False, default=False)
     timezone = Column(Timezone, nullable=True)
     role_id = Column(Integer, ForeignKey('roles.id'), nullable=False)
     cert_auth = Column(Enum(
@@ -154,13 +156,6 @@ class User(TableBase):
         return []
 
     @property
-    def display_name(self):
-        """Returns a flavory string that should be used to present this user.
-        """
-
-        return self.name
-
-    @property
     def invalid_certificates(self):
         return [cert for cert in self.certificates if not cert.valid]
 
@@ -184,7 +179,7 @@ class User(TableBase):
         if self._profile is None:
             self._profile = UserProfile()
         self._profile.content = value
-    
+
 class IdentityURL(TableBase):
     __tablename__ = 'identity_urls'
     id = Column(Integer, primary_key=True, nullable=False)
@@ -226,6 +221,38 @@ class Artwork(TableBase):
     @property
     def resource_title(self):
         return self.title or 'Untitled'
+
+    @property
+    def filename(self):
+        """Returns a suitable filename for the associated file."""
+        # Current format looks like: artist1.artist2.artist3.title.id.ext
+        filename_parts = []
+
+        # User names have a minimal set of characters, so they should be safe
+        # to put directly in filenames
+        # TODO: when there's a concept of primary artist, use that first
+        for user_artwork in self.user_artwork:
+            if user_artwork.relationship_type == u'by':
+                filename_parts.append(user_artwork.user.name)
+        if not filename_parts:
+            # Should always have at least one username
+            filename_parts.append(u'unknown')
+
+        filename_parts.append(
+            # Convert everything not a nice character to dashes
+            re.sub(u'[^A-Za-z0-9]+', u'-', self.title).strip(u'-')
+            or u'untitled')
+        filename_parts.append(unicode(self.id))
+
+        if self.mime_type == u'image/png':
+            filename_parts.append(u'png')
+        elif self.mime_type == u'image/jpeg':
+            filename_parts.append(u'jpg')
+        elif self.mime_type == u'image/gif':
+            filename_parts.append(u'gif')
+
+        return u'.'.join(filename_parts)
+
 
 # Dynamic subclasses of the 'artwork' table for storing metadata for different
 # types of media

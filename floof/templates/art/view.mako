@@ -15,7 +15,7 @@
 
 ## Ye art itself
 <div class="artwork">
-    <img src="${c.artwork_url}" alt="">
+    <img src="${url('filestore', class_=u'artwork', key=c.artwork.hash)}" alt="">
 </div>
 
 ## Metadata and whatever
