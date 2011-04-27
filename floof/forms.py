@@ -91,14 +91,16 @@ def timezone_choices():
     return [tz[1:] for tz in tzs]
 
 def coerce_timezone(value):
-        if isinstance(value, (pytz.tzfile.DstTzInfo, pytz.tzfile.StaticTzInfo)):
-            return value
-        else:
-            try:
-                return pytz.timezone(value)
-            except (ValueError, pytz.UnknownTimeZoneError):
-                # ValueError is recognised by SelectField.process_formdata()
-                raise ValueError(u'Not a timezone')
+    if value is None:
+        return None
+    if isinstance(value, (pytz.tzfile.DstTzInfo, pytz.tzfile.StaticTzInfo)):
+        return value
+    else:
+        try:
+            return pytz.timezone(value)
+        except (ValueError, pytz.UnknownTimeZoneError):
+            # ValueError is recognised by SelectField.process_formdata()
+            raise ValueError(u'Not a timezone')
 
 class TimezoneField(fields.SelectField):
     """A simple select field that handles pytz to Olson TZ name conversions.
