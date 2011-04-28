@@ -27,10 +27,10 @@
 
 % for rel in c.user_artwork_types:
 <%
-    arts = c.related_art[rel].get_query().all()
-    if not arts:
+    art_pager = c.related_art[rel].evaluate()
+    if not art_pager.items:
         continue
 %>
 <h2>Art ${rel} ${c.this_user.display_name or c.this_user.name}</h2>
-${artlib.thumbnail_grid(arts)}
+${artlib.thumbnail_grid(art_pager)}
 % endfor
