@@ -91,9 +91,9 @@ def timezone_choices():
     return [tz[1:] for tz in tzs]
 
 def coerce_timezone(value):
-    if value is None:
-        return None
-    if isinstance(value, (pytz.tzfile.DstTzInfo, pytz.tzfile.StaticTzInfo)):
+    if value is None or \
+            value == pytz.utc or \
+            isinstance(value, (pytz.tzfile.DstTzInfo, pytz.tzfile.StaticTzInfo)):
         return value
     else:
         try:
