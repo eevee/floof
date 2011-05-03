@@ -8,6 +8,7 @@ from sqlalchemy.orm.exc import NoResultFound
 from urllib2 import HTTPError, URLError
 import wtforms.form, wtforms.fields, wtforms.validators
 
+from floof.forms import TimezoneField
 from floof.lib import helpers
 from floof.lib.auth import CERT_CONFIDENCE_EXPIRY_SECONDS, CONFIDENCE_EXPIRY_SECONDS, fetch_stash_url, stash_keys
 from floof.lib.base import BaseController, render
@@ -38,6 +39,7 @@ class RegistrationForm(wtforms.form.Form):
             wtforms.validators.Optional(),
             wtforms.validators.Email(message=u'That does not appear to be an email address.'),
             ])
+    timezone = TimezoneField(u'Timezone')
 
     def validate_username(form, field):
         if meta.Session.query(User).filter_by(name=field.data).count():
@@ -169,17 +171,11 @@ class AccountController(BaseController):
             c.identity_webfinger = session.get('pending_identity_webfinger', None)
 
             # Try to pull a name and email address out of the SReg response
-            try:
-                username = sreg_res['nickname'].lower()
-            except (KeyError, TypeError):
-                # KeyError if sreg has no nickname; TypeError if sreg is None
-                username = u''
-            try:
-                email = sreg_res['email'].lower()
-            except (KeyError, TypeError):
-                email = None
-
-            c.form = RegistrationForm(username=username, email=email)
+            c.form = RegistrationForm(
+                    username=sreg_res.get('nickname', u''),
+                    email=sreg_res.get('email', 'UTC'),
+                    timezone=sreg_res.get('timezone', 'UTC'),
+                    )
             c.form.validate()
             return render('/account/register.mako')
 
@@ -210,6 +206,7 @@ class AccountController(BaseController):
             email=c.form.email.data,
             role=base_user,
             resource=resource,
+            timezone=c.form.timezone.data,
         )
         meta.Session.add_all([user, resource, discussion])
 

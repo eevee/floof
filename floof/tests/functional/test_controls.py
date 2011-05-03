@@ -50,6 +50,32 @@ class TestControlsController(TestController):
                 )
         # Test response...
 
+    def test_user_info(self):
+        """Test modification of basic user info options."""
+        response = self.app.get(
+                url(controller='controls', action='user_info'),
+                extra_environ={'tests.user_id': self.user.id},
+                )
+        assert 'Display Name' in response, 'User Info control page does not appear to have loaded.'
+
+        # Test setting some new user details
+        response = self.app.post(
+                url(controller='controls', action='user_info'),
+                params=[
+                    ('display_name', u'Barack Obama'),
+                    ('timezone', u'US/Eastern'),
+                ],
+                extra_environ={'tests.user_id': self.user.id},
+                )
+        response = self.app.get(
+                url(controller='controls', action='user_info'),
+                extra_environ={'tests.user_id': self.user.id},
+                )
+        assert 'Barack Obama' in response, 'Failed to set display name.'
+        assert 'selected="selected" value="US/Eastern"' in response, 'Failed to set timezone.'
+
+        # TODO: Test normalization of the display name
+
     def test_openids(self):
         """Test display of user OpenID controls page."""
         response = self.app.get(

@@ -4,13 +4,24 @@
 <%def name="panel_title()">User Info</%def>
 <%def name="panel_icon()">${lib.icon('user')}</%def>
 
-${h.secure_form(url.current())}
-<h2>Display name</h2>
-${c.display_name_form.display_name(
-    size=c.display_name_form._max_length,
-    maxlength=c.display_name_form._max_length
-)}
-${c.display_name_form.update_display_name()}
+<%
+fields = [
+        'display_name',
+        'timezone',
+        ]
+%>
 
-${lib.field_errors(c.display_name_form.display_name)}
+${h.secure_form(url.current())}
+% for f in fields:
+    <% field = getattr(c.form, f) %>
+    <% maxlen = getattr(c.form, '_{0}_maxlen'.format(f), None) %>
+    <h2>${field.label}</h2>
+    % if maxlen:
+        ${field(size=maxlen, maxlength=maxlen)}
+    % else:
+        ${field()}
+    % endif
+    ${c.form.update()}
+    ${lib.field_errors(field)}
+% endfor
 ${h.end_form()}

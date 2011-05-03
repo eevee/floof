@@ -98,7 +98,7 @@ def openid_end(return_url):
     if identity_webfinger:
         del session['pending_identity_webfinger']
 
-    sreg_res = SRegResponse.fromSuccessResponse(res)
+    sreg_res = SRegResponse.fromSuccessResponse(res) or dict()
     pape_res = PAPEResponse.fromSuccessResponse(res)
     auth_time = pape_res.auth_time
 
