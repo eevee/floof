@@ -1,6 +1,8 @@
 <%inherit file="base.mako" />
 <%namespace name="lib" file="/lib.mako" />
 
+<%def name="title()">Register</%def>
+
 <h1>Register with OpenID</h1>
 
 ${h.secure_form(url(controller='account', action='register'))}
@@ -12,6 +14,7 @@ ${h.secure_form(url(controller='account', action='register'))}
         <dd><tt>${c.identity_url}</tt></dd>
     % endif
     ${lib.field(c.form.username)}
+    ${lib.field(c.form.email)}
 
     <dd><button type="submit">OK, register!</button></dd>
 </dl>

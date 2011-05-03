@@ -117,6 +117,7 @@ class User(TableBase):
     id = Column(Integer, primary_key=True, nullable=False)
     resource_id = Column(Integer, ForeignKey('resources.id'), nullable=False)
     name = Column(Unicode(24), nullable=False, index=True, unique=True)
+    email = Column(Unicode(255))
     display_name = Column(Unicode(24), nullable=True)
     has_trivial_display_name = Column(Boolean, nullable=False, default=False)
     timezone = Column(Timezone, nullable=True)

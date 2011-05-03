@@ -34,6 +34,10 @@ class RegistrationForm(wtforms.form.Form):
             u'lowercase letters, numbers, and underscores.'
             ),
         ])
+    email = wtforms.fields.TextField(u'Email Address', [
+            wtforms.validators.Optional(),
+            wtforms.validators.Email(message=u'That does not appear to be an email address.'),
+            ])
 
     def validate_username(form, field):
         if meta.Session.query(User).filter_by(name=field.data).count():
@@ -164,14 +168,18 @@ class AccountController(BaseController):
             c.identity_url = identity_url
             c.identity_webfinger = session.get('pending_identity_webfinger', None)
 
-            # Try to pull a name out of the SReg response
+            # Try to pull a name and email address out of the SReg response
             try:
                 username = sreg_res['nickname'].lower()
             except (KeyError, TypeError):
                 # KeyError if sreg has no nickname; TypeError if sreg is None
                 username = u''
+            try:
+                email = sreg_res['email'].lower()
+            except (KeyError, TypeError):
+                email = None
 
-            c.form = RegistrationForm(username=username)
+            c.form = RegistrationForm(username=username, email=email)
             c.form.validate()
             return render('/account/register.mako')
 
@@ -199,6 +207,7 @@ class AccountController(BaseController):
         discussion = model.Discussion(resource=resource)
         user = User(
             name=c.form.username.data,
+            email=c.form.email.data,
             role=base_user,
             resource=resource,
         )
