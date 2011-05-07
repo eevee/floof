@@ -64,6 +64,7 @@ class TestControlsController(TestController):
                 params=[
                     ('display_name', u'Barack Obama'),
                     ('timezone', u'US/Eastern'),
+                    ('email', u'abc@example.org'),
                 ],
                 extra_environ={'tests.user_id': self.user.id},
                 )

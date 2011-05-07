@@ -45,8 +45,12 @@ def reduce_display_name(name):
 
 class UserInfoForm(wtforms.form.Form):
     display_name = wtforms.fields.TextField(u'Display Name')
+    email = wtforms.fields.TextField(u'Email Address', [
+            wtforms.validators.Optional(),
+            wtforms.validators.Email(message=u'That does not appear to be an email address.'),
+            ])
     timezone = TimezoneField(u'Timezone')
-    update = wtforms.SubmitField(u'Update')
+    submit = wtforms.SubmitField(u'Update')
 
     # n.b. model.User.display_name is a mapper, not a column, hence __table__
     _display_name_maxlen = model.User.__table__.c.display_name.type.length

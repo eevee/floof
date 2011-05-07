@@ -7,21 +7,25 @@
 <%
 fields = [
         'display_name',
+        'email',
         'timezone',
         ]
 %>
 
+<h2>User Info</h2>
 ${h.secure_form(url.current())}
-% for f in fields:
-    <% field = getattr(c.form, f) %>
-    <% maxlen = getattr(c.form, '_{0}_maxlen'.format(f), None) %>
-    <h2>${field.label}</h2>
-    % if maxlen:
-        ${field(size=maxlen, maxlength=maxlen)}
-    % else:
-        ${field()}
-    % endif
-    ${c.form.update()}
-    ${lib.field_errors(field)}
-% endfor
+
+<input type="submit" class="stylish-button" value="Update" />
+<dl>
+    % for f in fields:
+        <% field = getattr(c.form, f) %>
+        <% maxlen = getattr(c.form, '_{0}_maxlen'.format(f), None) %>
+        % if maxlen:
+            ${lib.field(field, size=maxlen, maxlength=maxlen)}
+        % else:
+            ${lib.field(field)}
+        % endif
+    % endfor
+</dl>
+<input type="submit" class="stylish-button" value="Update" />
 ${h.end_form()}
