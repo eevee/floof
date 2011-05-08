@@ -27,6 +27,16 @@ class PassthroughListWidget(widgets.ListWidget):
         html.append(u'</%s>' % self.html_tag)
         return HTMLString(u''.join(html))
 
+class IDNAField(fields.TextField):
+    def process_formdata(self, valuelist):
+        if valuelist:
+            self.data = valuelist[0].encode('idna')
+        else:
+            self.data = ''
+
+    def _value(self):
+        return self.data.decode('idna')
+
 class KeygenField(fields.TextField):
     widget = KeygenWidget()
 

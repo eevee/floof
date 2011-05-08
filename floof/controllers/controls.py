@@ -10,7 +10,7 @@ from pylons.controllers.util import abort
 from sqlalchemy.exc import IntegrityError
 import wtforms
 
-from floof.forms import KeygenField, MultiCheckboxField, TimezoneField
+from floof.forms import IDNAField, KeygenField, MultiCheckboxField, TimezoneField
 from floof.lib import helpers
 from floof.lib.auth import fetch_post, get_ca, update_crl
 from floof.lib.base import BaseController, render
@@ -45,7 +45,7 @@ def reduce_display_name(name):
 
 class UserInfoForm(wtforms.form.Form):
     display_name = wtforms.fields.TextField(u'Display Name')
-    email = wtforms.fields.TextField(u'Email Address', [
+    email = IDNAField(u'Email Address', [
             wtforms.validators.Optional(),
             wtforms.validators.Email(message=u'That does not appear to be an email address.'),
             ])
