@@ -26,7 +26,7 @@ class FileStorage(BaseFileStorage):
         dest = self._path(self.directory, class_, key)
         dest_dir, _ = os.path.split(dest)
 
-        if not os.exists(dest_dir):
+        if not os.path.isdir(dest_dir):
             os.makedirs(dest_dir)
 
         with os.fdopen(os.open(dest, os.O_WRONLY | os.O_CREAT, 0644), 'wb') as destobj:
