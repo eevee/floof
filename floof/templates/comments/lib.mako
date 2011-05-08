@@ -3,7 +3,7 @@
 ## Render a single comment object
 <%def name="single_comment(comment)">
 <div class="comment" id="comment-${comment.id}">
-    <div class="avatar">(avatar)</div>
+    <div class="avatar">${lib.avatar(comment.author)}</div>
     <div class="header">
         <ul class="links">
             <li><a href="${h.comment_url(comment.discussion.resource, 'write', comment.id, anchor="comment")}">Reply</a></li>

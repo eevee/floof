@@ -1,7 +1,13 @@
+<%! import hashlib %>
 <%! import math %>
 <%! import pytz %>
 <%! import wtforms.widgets %>
 <%! from datetime import datetime %>
+
+<%def name="avatar(user)">\
+<% hash = hashlib.md5(user.email.lower()).hexdigest() %>\
+<img src="https://secure.gravatar.com/avatar/${hash}?r=r&s=100&d=identicon" />\
+</%def>
 
 <%def name="icon(which, alt='')">\
 <img src="${url('icon', which=which)}" alt="${alt}">\
