@@ -18,8 +18,8 @@ ${h.secure_form(url.current())}
 <input type="submit" class="stylish-button" value="Update" />
 <dl>
     % for f in fields:
-        <% field = getattr(c.form, f) %>
-        <% maxlen = getattr(c.form, '_{0}_maxlen'.format(f), None) %>
+        <% field = getattr(c.form, f) %>\
+        <% maxlen = getattr(c.form, '_{0}_maxlen'.format(f), None) %>\
         % if maxlen:
             ${lib.field(field, size=maxlen, maxlength=maxlen)}
         % else:
