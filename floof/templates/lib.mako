@@ -6,7 +6,7 @@
 
 <%def name="avatar(user)">\
 <% hash = hashlib.md5(user.email.lower()).hexdigest() %>\
-<img src="https://secure.gravatar.com/avatar/${hash}?r=r&s=100&d=identicon" />\
+<img src="https://secure.gravatar.com/avatar/${hash}?r=r&s=100&d=mm" />\
 </%def>
 
 <%def name="icon(which, alt='')">\
