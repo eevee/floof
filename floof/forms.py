@@ -67,3 +67,5 @@ class MultiTagField(fields.TextField):
 
         if value:
             self.data = [x for x in value.strip().split()]
+        else:
+            self.data = []
