@@ -10,7 +10,7 @@ from pylons.controllers.util import abort
 from sqlalchemy.exc import IntegrityError
 import wtforms
 
-from floof.forms import KeygenField, MultiCheckboxField
+from floof.forms import IDNAField, KeygenField, MultiCheckboxField, TimezoneField
 from floof.lib import helpers
 from floof.lib.auth import fetch_post, get_ca, update_crl
 from floof.lib.base import BaseController, render
@@ -43,19 +43,24 @@ def reduce_display_name(name):
 
     return name
 
-class DisplayNameForm(wtforms.form.Form):
+class UserInfoForm(wtforms.form.Form):
     display_name = wtforms.fields.TextField(u'Display Name')
-    update_display_name = wtforms.SubmitField(u'Update')
+    email = IDNAField(u'Email Address', [
+            wtforms.validators.Optional(),
+            wtforms.validators.Email(message=u'That does not appear to be an email address.'),
+            ])
+    timezone = TimezoneField(u'Timezone')
+    submit = wtforms.SubmitField(u'Update')
 
     # n.b. model.User.display_name is a mapper, not a column, hence __table__
-    _max_length = model.User.__table__.c.display_name.type.length
+    _display_name_maxlen = model.User.__table__.c.display_name.type.length
 
     def validate_display_name(form, field):
         field.data = field.data.strip()
 
-        if len(field.data) > form._max_length:
+        if len(field.data) > form._display_name_maxlen:
             raise wtforms.ValidationError(
-                '{0} characters maximum.'.format(form._max_length))
+                '{0} characters maximum.'.format(form._display_name_maxlen))
 
         for char in field.data:
             # Allow printable ASCII
@@ -165,20 +170,23 @@ class ControlsController(BaseController):
     @logged_in
     def user_info(self):
         c.current_action = 'user_info'
-        c.display_name_form = DisplayNameForm(request.POST)
+        c.form = UserInfoForm(request.POST, c.user)
 
-        if request.method == 'POST' and c.display_name_form.validate():
-            if not c.display_name_form.display_name.data:
+        if request.method == 'POST' and c.form.validate():
+            c.form.populate_obj(c.user)
+
+            if not c.form.display_name.data:
                 c.user.display_name = None
                 c.user.has_trivial_display_name = False
             else:
-                c.user.display_name = c.display_name_form.display_name.data
                 c.user.has_trivial_display_name = (c.user.name ==
                     reduce_display_name(c.user.display_name))
 
             meta.Session.commit()
-        elif request.method == 'GET':
-            c.display_name_form.display_name.data = c.user.display_name
+            helpers.flash(
+                    u'Successfully updated user info.',
+                    level=u'success'
+                    )
 
         return render('/account/controls/user_info.mako')
 

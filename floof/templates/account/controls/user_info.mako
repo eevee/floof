@@ -4,13 +4,28 @@
 <%def name="panel_title()">User Info</%def>
 <%def name="panel_icon()">${lib.icon('user')}</%def>
 
-${h.secure_form(url.current())}
-<h2>Display name</h2>
-${c.display_name_form.display_name(
-    size=c.display_name_form._max_length,
-    maxlength=c.display_name_form._max_length
-)}
-${c.display_name_form.update_display_name()}
+<%
+fields = [
+        'display_name',
+        'email',
+        'timezone',
+        ]
+%>
 
-${lib.field_errors(c.display_name_form.display_name)}
+<h2>User Info</h2>
+${h.secure_form(url.current())}
+
+<input type="submit" class="stylish-button" value="Update" />
+<dl>
+    % for f in fields:
+        <% field = getattr(c.form, f) %>\
+        <% maxlen = getattr(c.form, '_{0}_maxlen'.format(f), None) %>\
+        % if maxlen:
+            ${lib.field(field, size=maxlen, maxlength=maxlen)}
+        % else:
+            ${lib.field(field)}
+        % endif
+    % endfor
+</dl>
+<input type="submit" class="stylish-button" value="Update" />
 ${h.end_form()}

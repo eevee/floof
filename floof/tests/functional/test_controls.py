@@ -5,6 +5,7 @@ import floof.tests.openidspoofer as oidspoof
 import floof.tests.sim as sim
 
 import copy
+import hashlib
 from openid import oidutil
 import OpenSSL.crypto as ssl
 import time
@@ -49,6 +50,41 @@ class TestControlsController(TestController):
                 extra_environ={'tests.user_id': self.user.id},
                 )
         # Test response...
+
+    def test_user_info(self):
+        """Test modification of basic user info options."""
+        response = self.app.get(
+                url(controller='controls', action='user_info'),
+                extra_environ={'tests.user_id': self.user.id},
+                )
+        assert 'Display Name' in response, 'User Info control page does not appear to have loaded.'
+
+        # Test setting some new user details
+        test_email = u'abc@example.org'
+        response = self.app.post(
+                url(controller='controls', action='user_info'),
+                params=[
+                    ('display_name', u'Barack Obama'),
+                    ('timezone', u'US/Eastern'),
+                    ('email', test_email),
+                ],
+                extra_environ={'tests.user_id': self.user.id},
+                )
+        response = self.app.get(
+                url(controller='controls', action='user_info'),
+                extra_environ={'tests.user_id': self.user.id},
+                )
+        assert 'Barack Obama' in response, 'Failed to set display name.'
+        assert 'selected="selected" value="US/Eastern"' in response, 'Failed to set timezone.'
+
+        # TODO: Test normalization of the display name
+
+        # Test Gravatar
+        response = self.app.get(
+                url(controller='users', action='view', name=self.user.name),
+                extra_environ={'tests.user_id': self.user.id},
+                )
+        assert hashlib.md5(test_email.encode()) in response, 'Failed to generate appropriate Gravatar.'
 
     def test_openids(self):
         """Test display of user OpenID controls page."""

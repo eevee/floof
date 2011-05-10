@@ -1,5 +1,7 @@
+from datetime import datetime
 from wtforms import fields, widgets
 from wtforms.widgets import HTMLString, html_params
+import pytz
 import random
 import re
 
@@ -25,6 +27,19 @@ class PassthroughListWidget(widgets.ListWidget):
         html.append(u'</%s>' % self.html_tag)
         return HTMLString(u''.join(html))
 
+class IDNAField(fields.TextField):
+    def process_formdata(self, valuelist):
+        if valuelist:
+            self.data = valuelist[0].encode('idna')
+        else:
+            self.data = ''
+
+    def _value(self):
+        if self.data:
+            return self.data.decode('idna')
+        else:
+            return u''
+
 class KeygenField(fields.TextField):
     widget = KeygenWidget()
 
@@ -34,7 +49,6 @@ class KeygenField(fields.TextField):
         # For SPKAC certificate generation.  AFAIK it does not need to be
         # a cryptographically strong radom string, just unique.
         self.challenge = random.getrandbits(128)
-
 
 # borrowed from spline
 class MultiCheckboxField(fields.SelectMultipleField):
@@ -69,3 +83,50 @@ class MultiTagField(fields.TextField):
             self.data = [x for x in value.strip().split()]
         else:
             self.data = []
+
+def timezone_choices():
+    """Helper that generates a list of timezones sorted by ascending UTC
+    offset.
+
+    The timezones are represented as tuple pairs of timezone name and a
+    string representation of the current UTC offset.
+    """
+    #TODO: Perfect for caching; the list is unlikely to change more than hourly.
+    tzs = []
+    now = datetime.now()
+    for tz_name in pytz.common_timezones:
+        offset = pytz.timezone(tz_name).utcoffset(now)
+        offset_real_secs = offset.seconds + offset.days * 24 * 60**2
+        offset_hours, remainder = divmod(offset_real_secs, 3600)
+        offset_minutes, _ = divmod(remainder, 60)
+        offset_txt = '(UTC {0:0=+3d}:{1:0>2d}) {2}'.format(
+                offset_hours, offset_minutes, tz_name)
+        tzs.append((offset_real_secs, tz_name, offset_txt))
+    tzs.sort()
+    return [tz[1:] for tz in tzs]
+
+def coerce_timezone(value):
+    if value is None or \
+            value == pytz.utc or \
+            isinstance(value, (pytz.tzfile.DstTzInfo, pytz.tzfile.StaticTzInfo)):
+        return value
+    else:
+        try:
+            return pytz.timezone(value)
+        except (ValueError, pytz.UnknownTimeZoneError):
+            # ValueError is recognised by SelectField.process_formdata()
+            raise ValueError(u'Not a timezone')
+
+class TimezoneField(fields.SelectField):
+    """A simple select field that handles pytz to Olson TZ name conversions.
+    """
+    def __init__(self, label=None, validators=None, **kwargs):
+        super(TimezoneField, self).__init__(label, validators,
+                coerce=coerce_timezone, choices=timezone_choices(), **kwargs)
+
+    def pre_validate(self, form):
+        for v, _ in self.choices:
+            if self.data.zone == v:
+                break
+        else:
+            raise ValueError(self.gettext(u'Not a valid choice'))

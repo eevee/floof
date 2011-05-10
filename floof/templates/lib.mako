@@ -1,7 +1,13 @@
+<%! import hashlib %>
 <%! import math %>
 <%! import pytz %>
 <%! import wtforms.widgets %>
 <%! from datetime import datetime %>
+
+<%def name="avatar(user)">\
+<% hash = hashlib.md5(user.email.lower()).hexdigest() %>\
+<img src="https://secure.gravatar.com/avatar/${hash}?r=r&s=100&d=mm" />\
+</%def>
 
 <%def name="icon(which, alt='')">\
 <img src="${url('icon', which=which)}" alt="${alt}">\
@@ -33,15 +39,15 @@
 
 
 ## User handling
-<%def name="time(t)">
-${c.user.localtime(t).strftime('%A, %d %B %Y at %H:%M %Z')}
+<%def name="time(t)">\
+${c.user.localtime(t).strftime('%A, %d %B %Y at %H:%M %Z')}\
 </%def>
 
 <%def name="timedelta(td)">\
 ${ "{0:.02f}".format( td.seconds + td.microseconds / 1000000.0 ) }s\
 </%def>
 
-<%def name="longtimedelta(t1)">
+<%def name="longtimedelta(t1)">\
 <%
 if type(t1).__name__ == 'timedelta':
   td = t1
@@ -52,8 +58,8 @@ hours = int(math.floor(secs / 60**2))
 secs -= hours * 60**2
 mins = int(math.floor(secs / 60))
 secs -= mins * 60
-%>
-${"{0} days, {1} hours, {2} mins".format(td.days, hours, mins)}
+%>\
+${"{0} days, {1} hours, {2} mins".format(td.days, hours, mins)}\
 </%def>
 
 <%def name="user_link(user, show_trivial_username=False)">
@@ -75,7 +81,7 @@ ${user.display_name}</a> (${user.name})\
 
 
 ## Standard form rendering
-<%def name="field(form_field, **kwargs)">
+<%def name="field(form_field, **kwargs)">\
 % if isinstance(form_field.widget, wtforms.widgets.CheckboxInput):
 <dd>
     ${form_field(**kwargs) | n} ${form_field.label() | n}
@@ -90,7 +96,7 @@ ${user.display_name}</a> (${user.name})\
 % endif
 </%def>
 
-<%def name="field_errors(form_field)">
+<%def name="field_errors(form_field)">\
 % for error in form_field.errors:
 <p class="form-error">${error | n}</p>
 % endfor
@@ -104,7 +110,7 @@ ${user.display_name}</a> (${user.name})\
 % endif
 </%def>
 
-<%def name="cert_serial(serial)">
+<%def name="cert_serial(serial)">\
 <%
 id = ''
 i = 0
@@ -114,8 +120,8 @@ for char in serial[:10]:
     else:
         id += char + ':'
     i += 1
-%>
-<span class="monospace">${id[:-1]}</span>
+%>\
+<span class="monospace">${id[:-1]}</span>\
 </%def>
 
 
