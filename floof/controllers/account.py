@@ -173,8 +173,8 @@ class AccountController(BaseController):
             # Try to pull a name and email address out of the SReg response
             c.form = RegistrationForm(
                     username=sreg_res.get('nickname', u''),
-                    email=sreg_res.get('email', 'UTC'),
-                    timezone=sreg_res.get('timezone', 'UTC'),
+                    email=sreg_res.get('email', u''),
+                    timezone=sreg_res.get('timezone', u'UTC'),
                     )
             c.form.validate()
             return render('/account/register.mako')

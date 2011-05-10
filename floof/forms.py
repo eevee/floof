@@ -35,7 +35,10 @@ class IDNAField(fields.TextField):
             self.data = ''
 
     def _value(self):
-        return self.data.decode('idna')
+        if self.data:
+            return self.data.decode('idna')
+        else:
+            return u''
 
 class KeygenField(fields.TextField):
     widget = KeygenWidget()
