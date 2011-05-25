@@ -28,6 +28,10 @@ setup(
         # $ wget http://launchpad.net/pyopenssl/main/0.11/+download/pyOpenSSL-0.11.tar.gz
         # $ easy_install pyOpenSSL-0.11.tar.gz
         'pyOpenSSL>=0.11',
+        'pyramid',
+        'pyramid_beaker',
+        'repoze.tm2>=1.0b1',  # default_commit_veto
+        'zope.sqlalchemy',
     ],
     setup_requires=["PasteScript>=1.6.3"],
     packages=find_packages(exclude=['ez_setup']),
@@ -39,10 +43,11 @@ setup(
     #        ('templates/**.mako', 'mako', {'input_encoding': 'utf-8'}),
     #        ('public/**', 'ignore', None)]},
     zip_safe=False,
-    paster_plugins=['PasteScript', 'Pylons'],
+    paster_plugins=['PasteScript', 'Pylons', 'pyramid'],
     entry_points="""
     [paste.app_factory]
     main = floof.config.middleware:make_app
+    pyramid = floof.app:main
 
     [paste.app_install]
     main = pylons.util:PylonsInstaller

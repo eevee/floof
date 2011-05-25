@@ -4,7 +4,7 @@
 <head>
     <title>${self.title()} - ${config['site_title']}</title>
     <meta charset="utf-8" />
-    <link rel="stylesheet" type="text/css" href="${url('css', which='all')}">
+    <link rel="stylesheet" type="text/css" href="${static_url('floof:public/css/all.css')}">
     ${h.javascript_link(url('/js/lib/jquery-1.4.4.min.js'))}
     ${h.javascript_link(url('/js/lib/jquery.cookie.js'))}
     % if config.get('super_debug', False):
@@ -20,20 +20,20 @@
     <div id="header">
         <div id="logo"><a href="${url('/')}">floof</a></div>
         <div id="user">
-            % if c.user:
+            % if user:
             ${h.secure_form(url(controller='account', action='logout'), class_='compact')}
-            <p>Hello, ${lib.user_link(c.user)}!</p>
-                % if c.auth.can_purge:
+            <p>Hello, ${lib.user_link(user)}!</p>
+                % if auth.can_purge:
                 <p><input type="submit" value="Log out" /></p>
                 % else:
                 <p>To log out, you'll need to instruct your browser to stop
                 sending your SSL certificate.</p>
                 % endif
             ${h.end_form()}
-            % elif c.auth.pending_user:
-            <p><a href="${url(controller='account', action='login')}">Complete log in for ${c.auth.pending_user.name}</a></p>
+            % elif auth.pending_user:
+            <p><a href="${url(controller='account', action='login')}">Complete log in for ${auth.pending_user.name}</a></p>
             ${h.secure_form(url(controller='account', action='logout'), class_='compact')}
-                % if c.auth.can_purge:
+                % if auth.can_purge:
                 <p><input type="submit" value="Purge Authentication" /></p>
                 % else:
                 <p>To log in as someone else, you'll need to instruct
@@ -48,17 +48,18 @@
             <li><a href="${url(controller='art', action='gallery')}">Art</a></li>
             <li><a href="${url(controller='art', action='upload')}">Upload</a></li>
             <li><a href="${url(controller='tags', action='index')}">Tags</a></li>
-            % if c.user:
+            % if user:
                 <li><a href="${url(controller='controls', action='index')}">Controls</a></li>
             % endif
-            % if c.user.can('admin.view'):
+            % if user.can('admin.view'):
                 <li><a href="${url(controller='admin', action='dashboard')}">Admin</a></li>
             % endif
         </ul>
     </div>
 
-    <% flash = h._flash.pop_messages() %>
+    <% flash = request.session.pop_flash() %>
     % if flash:
+    ## XXX yeah this won't actually work yet.
     <ul id="flash">
         % for messages in flash:
         <li class="flash-level-${messages.message[1]['level']}">
@@ -75,11 +76,13 @@
 
     <div id="footer-spacer"></div>
     <div id="footer">
+        <%doc>
         <p id="footer-stats">
-            built in ${lib.timedelta(c.timer.total_time)} <br>
-            ${c.timer.sql_queries} quer${ 'y' if c.timer.sql_queries == 1 else 'ies' }
-                in ${lib.timedelta(c.timer.sql_time)}
+            built in ${lib.timedelta(timer.total_time)} <br>
+            ${timer.sql_queries} quer${ 'y' if timer.sql_queries == 1 else 'ies' }
+                in ${lib.timedelta(timer.sql_time)}
         </p>
+        </%doc>
         <p>Icons from the <a href="http://p.yusukekamiyamane.com/">Fugue set</a></p>
         <p><a href="${url(controller='main', action='log')}">Admin log</a></p>
     </div>

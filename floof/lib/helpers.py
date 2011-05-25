@@ -8,11 +8,14 @@ from pylons.controllers.util import redirect as orig_redirect
 from webhelpers.html import escape, HTML, literal, url_escape
 from webhelpers.html.tags import *
 from webhelpers.pylonslib import Flash
-from webhelpers.pylonslib.secure_form import authentication_token, secure_form, token_key
+#from webhelpers.pylonslib.secure_form import authentication_token, secure_form, token_key
 from webhelpers.util import update_params
 
 import re
 
+
+def secure_form(*args, **kwargs):
+    return HTML.form(*args, **kwargs)
 
 _flash = Flash()
 _default_flash_icons = dict(
