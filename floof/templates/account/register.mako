@@ -9,17 +9,17 @@
 
 <h1>Register with OpenID</h1>
 
-${h.secure_form(url(controller='account', action='register'))}
+${h.secure_form(request.route_url('account.register'))}
 <dl>
     <dt>Registering from:</dt>
-    % if c.identity_webfinger:
-        <dd><tt>${c.identity_webfinger} (${c.identity_url})</tt></dd>
+    % if identity_webfinger:
+        <dd><tt>${identity_webfinger} (${identity_url})</tt></dd>
     % else:
-        <dd><tt>${c.identity_url}</tt></dd>
+        <dd><tt>${identity_url}</tt></dd>
     % endif
-    ${lib.field(c.form.username)}
-    ${lib.field(c.form.email)}
-    ${lib.field(c.form.timezone)}
+    ${lib.field(form.username)}
+    ${lib.field(form.email)}
+    ${lib.field(form.timezone)}
 
     <dd><button type="submit">OK, register!</button></dd>
 </dl>

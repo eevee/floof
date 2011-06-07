@@ -100,12 +100,6 @@ class Auth():
         # Process mechanisms to determine user and other Auth attributes
         self.authenticate()
 
-        # Determine session idle time
-        if session.last_accessed:
-            self.idle_time = datetime.now() - datetime.fromtimestamp(session.last_accessed)
-        else:
-            self.idle_time = timedelta()
-
         # If testing, set the blunt user override as requested
         if 'tests.user_id' in environ:
             self.user = meta.Session.query(model.User) \

@@ -4,7 +4,7 @@
 <head>
     <title>${self.title()} - ${config['site_title']}</title>
     <meta charset="utf-8" />
-    <link rel="stylesheet" type="text/css" href="${static_url('floof:public/css/all.css')}">
+    <link rel="stylesheet" type="text/css" href="${request.static_url('floof:public/css/all.css')}">
     ${h.javascript_link(url('/js/lib/jquery-1.4.4.min.js'))}
     ${h.javascript_link(url('/js/lib/jquery.cookie.js'))}
     % if config.get('super_debug', False):
@@ -18,10 +18,10 @@
 </head>
 <body>
     <div id="header">
-        <div id="logo"><a href="${url('/')}">floof</a></div>
+        <div id="logo"><a href="${request.route_url('root')}">floof</a></div>
         <div id="user">
             % if user:
-            ${h.secure_form(url(controller='account', action='logout'), class_='compact')}
+            ${h.secure_form(request.route_url('account.logout'), class_='compact')}
             <p>Hello, ${lib.user_link(user)}!</p>
                 % if auth.can_purge:
                 <p><input type="submit" value="Log out" /></p>
@@ -31,8 +31,8 @@
                 % endif
             ${h.end_form()}
             % elif auth.pending_user:
-            <p><a href="${url(controller='account', action='login')}">Complete log in for ${auth.pending_user.name}</a></p>
-            ${h.secure_form(url(controller='account', action='logout'), class_='compact')}
+            <p><a href="${request.route_url('account.login')}">Complete log in for ${auth.pending_user.name}</a></p>
+            ${h.secure_form(request.route_url('account.logout'), class_='compact')}
                 % if auth.can_purge:
                 <p><input type="submit" value="Purge Authentication" /></p>
                 % else:
@@ -41,7 +41,7 @@
                 % endif
             ${h.end_form()}
             % else:
-            <a href="${url(controller='account', action='login')}">Log in or register</a>
+            <a href="${request.route_url('account.login')}">Log in or register</a>
             % endif
         </div>
         <ul id="navigation">
@@ -62,9 +62,9 @@
     ## XXX yeah this won't actually work yet.
     <ul id="flash">
         % for messages in flash:
-        <li class="flash-level-${messages.message[1]['level']}">
-            ${lib.icon(messages.message[1]['icon'])}
-            ${messages.message[0]}
+        <li class="flash-level-${'' and messages.message[1]['level']}">
+            ##${lib.icon(messages.message[1]['icon'])}
+            ${messages}
         </li>
         % endfor
     </ul>

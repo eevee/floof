@@ -5,8 +5,9 @@ available to Controllers. This module is available to templates as 'h'.
 """
 from pylons import url
 from pylons.controllers.util import redirect as orig_redirect
-from webhelpers.html import escape, HTML, literal, url_escape
-from webhelpers.html.tags import *
+from webhelpers.html import escape, HTML, literal, tags, url_escape
+#from webhelpers.html.tags import *
+from webhelpers.html.tags import end_form, javascript_link
 from webhelpers.pylonslib import Flash
 #from webhelpers.pylonslib.secure_form import authentication_token, secure_form, token_key
 from webhelpers.util import update_params
@@ -15,7 +16,7 @@ import re
 
 
 def secure_form(*args, **kwargs):
-    return HTML.form(*args, **kwargs)
+    return tags.form(*args, **kwargs)
 
 _flash = Flash()
 _default_flash_icons = dict(
