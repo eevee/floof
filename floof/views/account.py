@@ -154,15 +154,16 @@ def login_finish(context, request):
         #        .format(user.id, user.name, identity_url))
 
         # Log the successful authentication
-        if 1 or c.auth.openid_success(request.session, user.id, identity_url):
-            auth_headers = security.remember(request, user.id)
-            request.session.flash(
-                u'Hello, {0}'.format(user.display_name or user.name),
-                )#icon='user')
-            return HTTPSeeOther(
-                location=request.route_url('root'),
-                headers=auth_headers)
-        redirect(url(controller='account', action='login'))
+        # TODO try/except
+        request.auth.login_openid(user)
+        auth_headers = []#security.remember(request, user.id)
+        request.session.flash(
+            u'Hello, {0}'.format(user.display_name or user.name),
+            )#icon='user')
+        return HTTPSeeOther(
+            location=request.route_url('root'),
+            headers=auth_headers)
+        #redirect(url(controller='account', action='login'))
 
     except NoResultFound:
         # Nope.  Give a (brief!) registration form instead

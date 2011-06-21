@@ -1,6 +1,8 @@
-from datetime import datetime, timedelta
 from pylons import config, request
 from pylons.controllers.util import abort
+
+import OpenSSL.crypto as ssl
+from pyramid.decorator import reify
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import NoResultFound
 
@@ -8,7 +10,8 @@ from floof import model
 from floof.lib.helpers import flash
 from floof.model import meta, Certificate
 
-import OpenSSL.crypto as ssl
+import calendar
+from datetime import datetime, timedelta
 import os
 import random
 import time
@@ -33,6 +36,209 @@ sensitive_privs = []
 for lvl in req_confidence_levels:
     for priv in req_confidence_levels[lvl]:
         sensitive_privs.append(priv)
+
+class FloofAuthPolicy(object):
+    """Authentication policy bolted atop a beaker session.
+
+    Most of the actual work here is done by the Auth class below.  The Pyramid
+    auth interface is extremely clunky, and this class only exists so standard
+    Pyramid authorization stuff still works.
+    """
+
+    def authenticated_userid(self, request):
+        raise NotImplementedError()
+
+    def unauthenticated_userid(self, request):
+        raise NotImplementedError()
+
+    def effective_principals(self, request):
+        return ()
+
+    def remember(self, request, principal, **kw):
+        request.auth.login_openid(principal)
+        request.session.save()
+
+    def forget(self, request):
+        request.session.pop('auth', None)
+
+
+
+
+class Authenticizer(object):
+    """Manages the authentication and authorization state of the current user.
+
+    This class is intended to be instantiated from a Request object.  The authn
+    and authz policy classes above expect to find an instance of this class on
+    the request, and delegate Pyramid security functionality here.
+
+    State is contained within a dictionary, passed to the constructor.
+    """
+    def __init__(self, request):
+        # The point of this whole method is really just to get a user id.
+        # Note: everything within the state is meant to be consistent at all
+        # times; i.e., there should never be a cert serial, openid, or user id
+        # that don't all match.
+        self.state = request.session.setdefault('auth', {})
+        mechanisms = []
+
+        # Test amenity
+        if 'tests.user_id' in request.environ:
+            # Override user id manually
+            self.state.clear()
+            self.state['user_id'] = request.environ['tests.user_id']
+            self.confidence = 2  # maximum!
+            request.session.changed()
+            return
+        # If testing, override mechanism states as requested
+        # XXX uhh support these I guess maybe.
+        #for var in persistant_variables:
+        #    if 'tests.auth_{0}'.format(var) in request.environ:
+        #        setattr(self, var, request.environ['tests.auth_{0}'.format(var)])
+
+        # Check for client certificate login; the cert serial is passed by the
+        # frontend server in an HTTP header.  This effectively acts as a login
+        # if it changes
+        # XXX thinking the secret stuff should become a general "don't be world-readable"
+        try:
+            cert_serial = request.environ['tests.auth_cert_serial']
+        except KeyError:
+            try:
+                cert_serial = request.headers['X-Floof-SSL-Client-Serial']
+            except KeyError:
+                cert_serial = None
+
+        self.login_certificate(cert_serial)
+
+        # Check confidence level.
+        # Guests are -1.
+        # A regular OpenID login is 0 (standard).
+        # If performed fairly recently, it's 1 (semi-trusted).
+        # Client certificates are 2 (trusted).
+        # XXX check for cert_auth and remove disabled mechanisms separately, with a warning to the user or something
+        self.trusted = -1
+        if not self.user:
+            pass
+        elif 'cert_serial' in self.state and self.user.cert_auth != u'disabled':
+            self.trusted = 2
+        elif 'openid_timestamp' in self.state and self.user.cert_auth != u'required':
+            age = datetime.now() - datetime.fromtimestamp(self.state['openid_timestamp'])
+            if age <= timedelta(seconds=CONFIDENCE_EXPIRY_SECONDS) and self.user.cert_auth != u'sensitive_required':
+                self.trusted = 1
+            else:
+                self.trusted = 0
+
+        if self.trusted == -1:
+            # Either there's no user, or none of their current auths are valid.
+            # Wipe the slate clean
+            self.state.clear()
+            del self.user
+
+        print self.state
+        request.session.changed()
+
+    def login_certificate(self, serial):
+        """Log in via client certificate serial.
+
+        `serial` may be `None`, in which case no actual login is done, but
+        existing cert-related state is cleared.
+        """
+        if serial:
+            print type(serial)
+            serial = serial.lower()
+
+        # Certificates are sent on every request.  To avoid db churn looking
+        # them up constantly, the last seen serial is saved in the session
+        if serial == self.state.get('cert_serial', None):
+            # Stored serial matches the new one (even if the new one is None),
+            # so the state's user_id is correct and there's nothing to do
+            return
+
+        if not serial:
+            # No cert given, but we had one before.  Clear the serial from the
+            # state.  If this was the only login mechanism the user had,
+            # __init__ will wipe out user_id too
+            self.state.pop('cert_serial', None)
+            return
+
+        # OK, figure out what certificate and user this serial belongs to
+        cert_q = meta.Session.query(model.Certificate) \
+            .options(joinedload(model.Certificate.user)) \
+            .filter_by(serial=serial)
+
+        try:
+            cert = cert_q.one()
+        except NoResultFound:
+            # XXX do something; probably abort with 500 or 400 (bad request)
+            raise
+            # Should never happen in production
+            # (Certificate records should stand eternal)
+            abort(500, detail='Unable to find certificate in store.  '
+                    '(Has the certificate record been deleted?)  '
+                    'Try not sending your SSL client certificate.')
+
+        if cert.user.cert_auth == u'disabled':
+            # This cert isn't supposed to be used!
+            raise ValueError  # XXX
+        if cert.revoked:
+            # Nor is this!
+            raise ValueError  # XXX
+
+        if cert.user_id != self.state.get('user_id', None):
+            # This is, essentially, a new login.  Start the state clean
+            self.state.clear()
+            self.state['user_id'] = cert.user_id
+
+        self.state['cert_serial'] = serial
+
+        # Avoid a second "lazy" query later
+        # XXX above needs to eagerload the right stuff ugh
+        self.user = cert.user
+
+    def login_openid(self, user):
+        """Log in via OpenID.
+
+        Need to save the session after this!"""
+        # XXX Temporarily drop auth level if user's certs have all expired
+        if user.cert_auth == 'required':
+            raise ValueError("this user can't log in with openid")
+
+        if user != self.user:
+            if 'cert_serial' in self.state:
+                raise ValueError("can't log in with an openid when you're using a client cert")
+
+            self.state.clear()
+            del self.user
+
+            self.state['user_id'] = user.id
+
+        self.state['openid_timestamp'] = calendar.timegm(datetime.now().timetuple())
+
+    @reify
+    def user(self):
+        """Returns the currently logged-in user, or a falsey proxy object if
+        there is none.
+        """
+        if 'user_id' in self.state:
+            user = meta.Session.query(model.User) \
+                .options(joinedload(model.User.role)) \
+                .get(self.state['user_id'])
+        else:
+            user = None
+
+        if not user:
+            user = model.AnonymousUser()  # XXX probably move into this file
+        return user
+
+    @property
+    def can_purge(self):
+        return self.user and 'openid_timestamp' in self.state
+
+    @property
+    def pending_user(self):
+        return False
+        # XXX this is mainly used in login.mako, for when the user has logged
+        # in with one mechanism but only the other one is allowed
+
 
 class Auth():
     """
@@ -83,66 +289,6 @@ class Auth():
 
     """
 
-    def __init__(self, session, environ):
-        # Load OpenID state and certificate cache values
-        for var in persistant_variables:
-            setattr(self, var, session.get(var, None))
-
-        # Grab the client certificate, if any
-        # If testing, override the serial as requested
-        self._load_certificate(override=environ.get('tests.auth_cert_serial', None))
-
-        # If testing, override mechanism states as requested
-        for var in persistant_variables:
-            if 'tests.auth_{0}'.format(var) in environ:
-                setattr(self, var, environ['tests.auth_{0}'.format(var)])
-
-        # Process mechanisms to determine user and other Auth attributes
-        self.authenticate()
-
-        # If testing, set the blunt user override as requested
-        if 'tests.user_id' in environ:
-            self.user = meta.Session.query(model.User) \
-                    .options(joinedload('role')) \
-                    .filter_by(id=environ['tests.user_id']) \
-                    .one()
-
-        # Save any changes made during initialization and self.authenticate()
-        self.save(session)
-
-    def save(self, session):
-        """Save the authentication status to the given session."""
-        for var in persistant_variables:
-            session[var] = getattr(self, var)
-        session.save()
-
-    def authenticate(self):
-        self.user = None
-        self.pending_user = None
-        if self.cert_uid and self.cert_uid != self.openid_uid:
-            self.openid_uid = None
-        self.satisfied = []
-        for auth in ['cert', 'openid']:
-            if getattr(self, '{0}_uid'.format(auth)):
-                self.satisfied.append(auth)
-        if self.satisfied:
-            uid = self.cert_uid or self.openid_uid
-            user = meta.Session.query(model.User) \
-                    .options(joinedload('role'), joinedload('certificates')) \
-                    .filter_by(id=uid) \
-                    .one()
-            if user.cert_auth in ['required', 'sensitive_required'] and \
-                    not user.valid_certificates:
-                # Temporarily drop auth level if user's certs have all expired
-                user.cert_auth = 'allowed'
-            if (user.cert_auth != 'disabled' and self.cert_uid) or \
-                    (user.cert_auth != 'required' and self.openid_uid):
-                # Successful login
-                self.user = user
-            else:
-                self.pending_user = user
-        return bool(self.user)
-
     def can(self, priv, log):
         """Return (True, '') if the current user has the permission priv and
         a sufficient session confidence level to exercise if.  Else return
@@ -173,105 +319,6 @@ class Auth():
                 return False, 'cert_auth_option_too_weak'
         return False, 'openid_reauth_required'
 
-    def get_can_purge(self):
-        """Convenience method: Ccheck if the auth session may be sensibly
-        logged out.
-        """
-        return len(self.satisfied) == 1 and self.satisfied[0] == 'openid'
-
-    can_purge = property(get_can_purge)
-
-    def get_confidence_level(self):
-        """Return the current confidence level of the session.
-
-        Based on:
-          - Whether the is a user logged in
-            (-1 if not).
-          - How recently an OpenID authentication was made
-            (1 if recently enough, else 0).
-          - Whether a certificate required for sensitive actions and one
-            is being used to authenticate this session
-            (2 if so and the OpenID check passed).
-
-        """
-        if not self.user:
-            return -1
-        if not self.openid_uid or not self.openid_time:
-            return 0
-        if self.user.cert_auth in ['required', 'sensitive_required']:
-            if self.cert_uid and self.openid_age <= timedelta(seconds=CERT_CONFIDENCE_EXPIRY_SECONDS):
-                return 2
-        elif self.openid_age <= timedelta(seconds=CONFIDENCE_EXPIRY_SECONDS):
-            return 1
-        return 0
-
-    confidence_level = property(get_confidence_level)
-
-    def get_openid_age(self):
-        """Return how long ago the OpenID auth, if any, was refreshed."""
-        if self.openid_time:
-            return datetime.now() - datetime.fromtimestamp(self.openid_time)
-        return None
-
-    openid_age = property(get_openid_age)
-
-    def get_user(self):
-        """Convenience method: will return the authed user or AnonymousUser()."""
-        return self.user if self.user else model.AnonymousUser()
-
-    def openid_success(self, session, uid, url, auth_time=None):
-        """Log the success of an OpenID authentication attempt."""
-        if self.user and (
-                uid != self.user.id or
-                url not in [id.url for id in self.user.identity_urls]
-                ):
-            return False
-        self.openid_uid = uid
-        self.openid_url = url
-        self.openid_time = time.time()
-        is_sufficient_for_login = self.authenticate()
-        self.save(session)
-        return is_sufficient_for_login
-
-    def purge(self, session):
-        """Removes all the cached authentication data it can from the session."""
-        for var in persistant_variables:
-            setattr(self, var, None)
-        self.save(session)
-
-    def _load_certificate(self, override=None):
-        """Set up certificate authentication attributes."""
-        serial = None
-        transport = config.get('client_cert_transport', None)
-        if override:
-            serial = override
-        elif transport == 'http_headers':
-            serial = unicode(request.headers.get('X-Floof-SSL-Client-Serial', '').lower())
-            if serial and request.headers.get('X-Floof-Secret', '') != config['client_cert_http_secret']:
-                abort(500, detail='SSL client certificate Serial header recieved '
-                        'but Secret header invalid.  Misconfiguration or attack.')
-
-        if serial and config.get('client_cert_auth', '').lower() == 'true':
-            self.cert_serial = None
-            self.cert_uid = None
-            try:
-                cert = meta.Session.query(model.Certificate) \
-                        .options(joinedload('user')) \
-                        .filter_by(serial=serial) \
-                        .one()
-            except NoResultFound:
-                # Should never happen in production
-                # (Certificate records should stand eternal)
-                abort(500, detail='Unable to find certificate in store.  '
-                        '(Has the certificate record been deleted?)  '
-                        'Try not sending your SSL client certificate.')
-            if cert and cert.valid:
-                self.cert_serial = serial.lower()
-                self.cert_uid = cert.user.id
-        else:
-            # Protect against stale data
-            self.cert_serial = None
-            self.cert_uid = None
 
 def stash_request(session, url, post_data=None):
     """Stash the given url and, optionlly, post_data MultiDict, in the given
