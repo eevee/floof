@@ -17,13 +17,13 @@ anything by fiddling about here.</p>
 
 <p>Once you've got the hang of it and have a certificate successfully
 installed, you can change your
-<a href="${url(controller='controls', action='authentication')}">
+<a href="${request.route_url('controls.auth')}">
 Authentication Options</a> to require that you present that certificate
 to log on at all.</p>
 
 <h2>Generate New Certificate</h2>
 <div class="halfsplit">
-    ${h.secure_form(url.current())}
+    ${h.secure_form(request.path_url)}
     <h3>Generate Certificate in Browser</h3>
     <p>This will cause your browser to generate and install a certificate
     automatically.</p>
@@ -37,14 +37,14 @@ to log on at all.</p>
     as a backup and will allow you to import and use the one certificate
     on multiple computers.</p>
     <dl>
-        ${lib.field(c.form.days)}
-        ${lib.field(c.form.pubkey)}
+        ${lib.field(form.days)}
+        ${lib.field(form.pubkey)}
     </dl>
-    ${c.form.generate_browser()}
+    ${form.generate_browser()}
     ${h.end_form()}
 </div>
 <div class="halfsplit">
-    ${h.secure_form(url(controller='controls', action='certificates_server', name=c.user.name))}
+    ${h.secure_form(request.route_url('controls.certs.generate_server', name=user.name))}
     <h3>Generate Certificate on Server</h3>
     <p>This will return a PKCS12 certificate file for download and
     manual installation.</p>
@@ -55,16 +55,16 @@ to log on at all.</p>
     <p>Be sure to save the file when prompted -- you will not be able to
     download the generated private key again.</p>
     <dl>
-        ${lib.field(c.form.days)}
-        ${lib.field(c.form.name)}
-        ${lib.field(c.form.passphrase)}
+        ${lib.field(form.days)}
+        ${lib.field(form.name)}
+        ${lib.field(form.passphrase)}
     </dl>
-    ${c.form.generate_server()}
+    ${form.generate_server()}
     ${h.end_form()}
 </div>
 
 <h2 style="clear:both;">Your Currently Active Certificates</h2>
-% if not c.user.valid_certificates:
+% if not user.valid_certificates:
 <p>You have no active certificates.</p>
 % else:
 <table>
@@ -78,23 +78,23 @@ to log on at all.</p>
         <th>Download</th>
         <th>Revoke</th>
     </tr>
-    % for cert in c.user.valid_certificates:
+    % for cert in user.valid_certificates:
     <tr>
         <td>${lib.cert_serial(cert.serial)}</td>
         <td>${cert.bits}</td>
         <td>${lib.time(cert.created_time)}</td>
         <td>${lib.time(cert.expiry_time)}</td>
         <td>${lib.longtimedelta(cert.expiry_time)}</td>
-        <td><a href="${url(controller='controls', action='certificates_details', id=cert.id)}" title="Full text of the certificate">Details</a></td>
-        <td><a href="${url(controller='controls', action='certificates_download', id=cert.id, name=c.user.name)}" title="Download this certificate (public component only) in PEM-encoded X.509 format">Download</a></td>
-        <td><a href="${url(controller='controls', action='certificates_revoke', id=cert.id)}" title="Revoke this certificate">Revoke...</a></td>
+        <td><a href="${request.route_url('controls.certs.details', id=cert.id)}" title="Full text of the certificate">Details</a></td>
+        <td><a href="${request.route_url('controls.certs.download', id=cert.id, name=request.user.name)}" title="Download this certificate (public component only) in PEM-encoded X.509 format">Download</a></td>
+        <td><a href="${request.route_url('controls.certs.revoke', id=cert.id)}" title="Revoke this certificate">Revoke...</a></td>
     </tr>
     % endfor
 </table>
 % endif
 
 <h2>Your Revoked and Expired Certificates</h2>
-% if not c.user.invalid_certificates:
+% if not user.invalid_certificates:
 <p>You have no revoked or expired certificates.</p>
 % else:
 <table>
@@ -107,7 +107,7 @@ to log on at all.</p>
         <th>Details</th>
         <th>Download</th>
     </tr>
-    % for cert in c.user.invalid_certificates:
+    % for cert in user.invalid_certificates:
     <tr>
         <td>${lib.cert_serial(cert.serial)}</td>
         <td>${cert.bits}</td>
@@ -119,7 +119,7 @@ to log on at all.</p>
         <td>${lib.time(cert.revoked_time)}</td>
         % endif
         <td><a href="${url(controller='controls', action='certificates_details', id=cert.id)}" title="Full text of the certificate">Details</a></td>
-        <td><a href="${url(controller='controls', action='certificates_download', id=cert.id, name=c.user.name)}" title="Download this certificate (public component only) in PEM-encoded X.509 format">Download</td>
+        <td><a href="${url(controller='controls', action='certificates_download', id=cert.id, name=user.name)}" title="Download this certificate (public component only) in PEM-encoded X.509 format">Download</td>
     </tr>
     % endfor
 </table>

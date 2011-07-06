@@ -239,6 +239,13 @@ class Authenticizer(object):
         # XXX this is mainly used in login.mako, for when the user has logged
         # in with one mechanism but only the other one is allowed
 
+    @property
+    def certificate_serial(self):
+        """Returns the serial for the active client certificate, or None if
+        there isn't one.
+        """
+        return self.state.get('cert_serial', None)
+
 
 class Auth():
     """
@@ -367,14 +374,14 @@ def fetch_post(session, request):
             flash(u'Unrecognised return key.  Timeout?', level='warning')
     return request.POST
 
-def get_ca():
+def get_ca(settings):
     """Fetches the Certifiacte Authority certificate and key.
 
     Returns a (ca_cert, ca_key) tuple, where ca_cert is a pyOpenSSL
     X509 object and ca_key is a pyOpenSSL PKey object.
 
     """
-    cert_dir = config['client_cert_dir']
+    cert_dir = settings['client_cert_dir']
     ca_cert_file = os.path.join(cert_dir, 'ca.pem')
     ca_key_file = os.path.join(cert_dir, 'ca.key')
     with open(ca_cert_file, 'rU') as f:
@@ -383,7 +390,7 @@ def get_ca():
         ca_key = ssl.load_privatekey(ssl.FILETYPE_PEM, f.read())
     return ca_cert, ca_key
 
-def update_crl():
+def update_crl(settings):
     """Generates a new Certificate Revocation List and writes it to file."""
     crl = ssl.CRL()
     for cert in meta.Session.query(Certificate).filter_by(revoked=True).all():
@@ -392,6 +399,6 @@ def update_crl():
         r.set_rev_date(cert.revoked_time.strftime('%Y%m%d%H%M%SZ'))
         crl.add_revoked(r)
     ca_cert, ca_key = get_ca()
-    crl_file = os.path.join(config['client_cert_dir'], 'crl.pem')
+    crl_file = os.path.join(settings['client_cert_dir'], 'crl.pem')
     with open(crl_file, 'w') as f:
         f.write(crl.export(ca_cert, ca_key, ssl.FILETYPE_PEM))

@@ -7,9 +7,9 @@
 ## Only show art watches for now; the others don't have a remote chance of
 ## working yet
 <h2>Watches</h2>
-% if c.watches:
+% if watches:
 <table class="user-list">
-    % for watch in c.watches:
+    % for watch in watches:
     <tr>
         <td>${lib.user_link(watch.other_user)}</td>
     </tr>

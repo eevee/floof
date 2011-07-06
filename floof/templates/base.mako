@@ -49,7 +49,7 @@
             <li><a href="${url(controller='art', action='upload')}">Upload</a></li>
             <li><a href="${url(controller='tags', action='index')}">Tags</a></li>
             % if user:
-                <li><a href="${url(controller='controls', action='index')}">Controls</a></li>
+                <li><a href="${request.route_url('controls.index')}">Controls</a></li>
             % endif
             % if user.can('admin.view'):
                 <li><a href="${url(controller='admin', action='dashboard')}">Admin</a></li>

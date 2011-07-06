@@ -10,7 +10,7 @@
 </%def>
 
 <%def name="icon(which, alt='')">\
-<img src="${url('icon', which=which)}" alt="${alt}">\
+<img src="${request.static_url("floof:public/icons/{which}.png".format(which=which))}" alt="${alt}">\
 </%def>
 
 <%!
@@ -40,7 +40,7 @@
 
 ## User handling
 <%def name="time(t)">\
-${c.user.localtime(t).strftime('%A, %d %B %Y at %H:%M %Z')}\
+${request.user.localtime(t).strftime('%A, %d %B %Y at %H:%M %Z')}\
 </%def>
 
 <%def name="timedelta(td)">\

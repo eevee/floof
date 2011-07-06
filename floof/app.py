@@ -81,6 +81,35 @@ def main(global_config, **settings):
 
     config.add_route('account.profile', '/account/profile')
 
+    # Regular user control panel
+    config.add_route('controls.index', '/account/controls')
+    config.add_route('controls.auth', '/account/controls/authentication')
+    config.add_route('controls.openid', '/account/controls/openid')
+    config.add_route('controls.openid.add', '/account/controls/openid/add')
+    config.add_route('controls.openid.add_finish', '/account/controls/openid/add_finish')
+    config.add_route('controls.openid.remove', '/account/controls/openid/remove')
+    config.add_route('controls.rels', '/account/controls/relationships')
+    config.add_route('controls.rels.watch', '/account/controls/relationships/watch')
+    config.add_route('controls.rels.unwatch', '/account/controls/relationships/unwatch')
+    config.add_route('controls.info', '/account/controls/user_info')
+
+    config.add_route('controls.certs', '/account/controls/certificates')
+    config.add_route('controls.certs.generate_server', '/account/controls/certificates/gen/cert-{name}.p12')
+    config.add_route('controls.certs.details', '/account/controls/certificates/details/{id}')
+    config.add_route('controls.certs.download', '/account/controls/certificates/download/cert-{name}-{id}.pem')
+    config.add_route('controls.certs.revoke', '/account/controls/certificates/revoke/{id}')
+
+
+    #map.connect('', controller='controls', action='index')
+    #map.connect('/{action}', controller='controls', requirements=dict(action='authentication|certificates|openid|relationships|user_info'))
+    #map.connect('/certificates/gen/cert-{name}.p12', controller='controls', action='certificates_server', **require_POST)
+    #map.connect('/certificates/details/{id}', controller='controls', action='certificates_details', **require_GET)
+    #map.connect('/certificates/download/cert-{name}-{id}.pem', controller='controls', action='certificates_download', **require_GET)
+    #map.connect('/certificates/revoke/{id}', controller='controls', action='certificates_revoke')
+    #map.connect('/relationships/watch', controller='controls', action='relationships_watch', **require_GET)
+    #map.connect('/relationships/watch', controller='controls', action='relationships_watch_commit', **require_POST)
+    #map.connect('/relationships/unwatch_commit', controller='controls', action='relationships_unwatch_commit', **require_POST)
+
 
     import floof.views
     config.scan(floof.views)
