@@ -75,6 +75,9 @@ def main(global_config, **settings):
     ### Routing
     config.add_route('root', '/')
     config.add_route('filestore', '/filestore/{class_}/{key}')
+    config.add_route('reproxy', '/reproxy')
+    config.add_route('cookies_disabled', '/cookies_disabled')
+    config.add_route('log', '/log')
 
     # Registration and auth
     config.add_route('account.login', '/account/login')

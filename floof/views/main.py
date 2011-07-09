@@ -3,16 +3,19 @@ import urllib2
 
 from sqlalchemy.orm.exc import NoResultFound
 from pyramid.exceptions import NotFound
+from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.response import Response
 from pyramid.view import view_config
 
 from floof import model
+from floof.lib.log import ADMIN
 from floof.model import meta
 
 log = logging.getLogger(__name__)
 
 @view_config(
     route_name='root',
+    request_method='GET',
     renderer='index.mako')
 def dummy_index(context, request):
     return {}
@@ -30,7 +33,8 @@ def wsgi_reproxy(url):
         yield buf
 
 @view_config(
-    route_name='filestore')
+    route_name='filestore',
+    request_method='GET')
 def filestore(context, request):
     """Serve a file from storage.
 
@@ -102,23 +106,43 @@ def filestore(context, request):
         headerlist=headerlist,
     )
 
-def reproxy(self):
+
+@view_config(
+    route_name='reproxy',
+    request_method='GET')
+def reproxy(context, request):
     """This is a bogus URL used for nginx reproxying.  Clients should never
     land here!
     """
     log.warn("Client landed on /reproxy; your upstream is misconfigured!")
-    return "our apologies; app misconfiguration"
+    return Response(
+        body="our apologies; app misconfiguration",
+        headerlist=[('Content-type', 'text/plain; charset=utf-8')],
+    )
 
-def cookies_disabled(self):
+
+@view_config(
+    route_name='cookies_disabled',
+    request_method='GET',
+    renderer='cookies_disabled.mako')
+def cookies_disabled(context, request):
     if request.cookies:
         # Something odd has happened, but the "you've got cookies
         # disabled" message is clearly inappropriate here.
-        redirect(url(controller='account', action='login'))
-    return render('/cookies_disabled.mako')
+        return HTTPSeeOther(location=request.route_url('account.login'))
 
-def view_log(self):
-    c.records = meta.Session.query(model.Log) \
+    return dict()
+
+
+@view_config(
+    route_name='log',
+    request_method='GET',
+    renderer='log.mako')
+def view_log(context, request):
+    records = meta.Session.query(model.Log) \
         .filter_by(level=ADMIN) \
         .offset(0) \
         .limit(50)
-    return render('/log.mako')
+    return dict(
+        records=records,
+    )

@@ -6,9 +6,9 @@
 
 <p>You appear to have cookies disabled.</p>
 
-<p>Unfortunately, ${config['site_title']} requires cookies to secure
-most user actions against potential CSRF attacks and to log you in with
-OpenID.</p>
+<p>Unfortunately, ${request.registry.settings['site_title']} requires cookies
+to secure most user actions against potential CSRF attacks and to log you in
+with OpenID.</p>
 
 <p>You will need to enable cookies to log in or, if you are logging in
 with certificates, to re-authenticate with OpenID.  Please reference your
