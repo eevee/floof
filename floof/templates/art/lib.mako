@@ -19,7 +19,7 @@ def media_icon(type):
 ## called inside a <ul>.
 <li class="thumbnail">
     <a class="thumbnail" href="${h.art_url(artwork)}">
-        <img src="${url('filestore', class_=u'thumbnail', key=artwork.hash)}" alt="">
+        <img src="${request.route_url('filestore', class_=u'thumbnail', key=artwork.hash)}" alt="">
     </a>
     <div class="thumbnail-meta">
         <div class="title">
@@ -46,7 +46,7 @@ def media_icon(type):
 % for artwork in artworks:
 <li class="detailed-thumbnail">
     <a class="thumbnail" href="${h.art_url(artwork)}">
-        <img src="${url('filestore', class_=u'thumbnail', key=artwork.hash)}" alt="">
+        <img src="${request.route_url('filestore', class_=u'thumbnail', key=artwork.hash)}" alt="">
     </a>
     <a href="${h.art_url(artwork)}">${artwork.title}</a>
 </li>
@@ -68,7 +68,7 @@ def media_icon(type):
 <tr>
     <td class="-thumbnail">
         <a class="thumbnail" href="${h.art_url(artwork)}">
-            <img src="${url('filestore', class_=u'thumbnail', key=artwork.hash)}" alt="">
+            <img src="${request.route_url('filestore', class_=u'thumbnail', key=artwork.hash)}" alt="">
         </a>
     </td>
     <td><a href="${h.art_url(artwork)}">${artwork.title}</a></td>
@@ -115,13 +115,13 @@ ${lib.temporal_pager(pager)}
 
 <%def name="gallery_sieve_form(form)">
 <div class="art-filter">
-    ${h.form(url.current(), method='GET')}
+    ${h.form(request.path_url, method='GET')}
     <div class="column-container">
     <div class="column">
         <dl class="standard-form">
             ${lib.field(form.tags)}
             ${lib.field(form.time_radius)}
-            % if c.user:
+            % if request.user:
             ## Don't show a user-specific field for a non-user
             ${lib.field(form.my_rating)}
             % endif

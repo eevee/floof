@@ -63,7 +63,7 @@ ${"{0} days, {1} hours, {2} mins".format(td.days, hours, mins)}\
 </%def>
 
 <%def name="user_link(user, show_trivial_username=False)">
-<a href="${url('user', user=user)}">\
+<a href="${request.route_url('users.view', name=user.name)}">\
 % if user.display_name is None:
 ${user.name}</a>\
 % elif user.has_trivial_display_name and not show_trivial_username:

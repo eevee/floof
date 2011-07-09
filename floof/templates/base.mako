@@ -2,7 +2,7 @@
 <%namespace name="lib" file="/lib.mako" />
 <html>
 <head>
-    <title>${self.title()} - ${config['site_title']}</title>
+    <title>${self.title()} - ${request.registry.settings['site_title']}</title>
     <meta charset="utf-8" />
     <link rel="stylesheet" type="text/css" href="${request.static_url('floof:public/css/all.css')}">
     ${h.javascript_link(url('/js/lib/jquery-1.4.4.min.js'))}

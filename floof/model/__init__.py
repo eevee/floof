@@ -517,7 +517,7 @@ class Certificate(TableBase):
         self.revoked_time = now()
 
     @classmethod
-    def get(self, Session, id=None, serial=None):
+    def get(cls, Session, id=None, serial=None):
         try:
             if id is not None:
                 return Session.query(Certificate).filter_by(id=id).one()

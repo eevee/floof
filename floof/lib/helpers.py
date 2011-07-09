@@ -7,7 +7,7 @@ from pylons import url
 from pylons.controllers.util import redirect as orig_redirect
 from webhelpers.html import escape, HTML, literal, tags, url_escape
 #from webhelpers.html.tags import *
-from webhelpers.html.tags import end_form, javascript_link
+from webhelpers.html.tags import form, end_form, javascript_link
 from webhelpers.pylonslib import Flash
 #from webhelpers.pylonslib.secure_form import authentication_token, secure_form, token_key
 from webhelpers.util import update_params
@@ -59,6 +59,8 @@ def art_url(artwork):
         # RFC 3986 section 2.3 says: letters, numbers, and -_.~ are unreserved
         title['title'] = _make_url_friendly(artwork.title)
 
+    # XXX
+    return "NotImplementedError"
     return url(controller='art', action='view', id=artwork.id, **title)
 
 def comment_url(resource, action, comment_id=None, **kwargs):

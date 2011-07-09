@@ -7,7 +7,7 @@ from pyramid.request import Request
 from sqlalchemy import engine_from_config
 
 from floof.lib.auth import Authenticizer, FloofAuthPolicy
-from floof.model import User, meta
+from floof.model import User, filestore, meta
 
 def renderer_globals_factory(system):
     import floof.lib.helpers
@@ -44,12 +44,15 @@ class FloofRequest(Request):
 
 def main(global_config, **settings):
     """Constructs a WSGI application."""
+    ### Settings
     engine = engine_from_config(settings, 'sqlalchemy.')
 
     import floof.model
     from zope.sqlalchemy import ZopeTransactionExtension
     floof.model.meta.Session.configure(bind=engine, extension=ZopeTransactionExtension())
     floof.model.TableBase.metadata.bind = engine                             
+
+    settings['filestore'] = filestore.get_storage(settings)
 
     config = Configurator(
         settings=settings,
@@ -71,6 +74,7 @@ def main(global_config, **settings):
 
     ### Routing
     config.add_route('root', '/')
+    config.add_route('filestore', '/filestore/{class_}/{key}')
 
     # Registration and auth
     config.add_route('account.login', '/account/login')
@@ -99,6 +103,11 @@ def main(global_config, **settings):
     config.add_route('controls.certs.download', '/account/controls/certificates/download/cert-{name}-{id}.pem')
     config.add_route('controls.certs.revoke', '/account/controls/certificates/revoke/{id}')
 
+    # User pages
+    config.add_route('users.view', '/users/{name}')
+    config.add_route('users.art_by_label', '/users/{name}/art/{label}')
+    config.add_route('users.profile', '/users/{name}/profile')
+    config.add_route('users.watchstream', '/users/{name}/watchstream')
 
     #map.connect('', controller='controls', action='index')
     #map.connect('/{action}', controller='controls', requirements=dict(action='authentication|certificates|openid|relationships|user_info'))
