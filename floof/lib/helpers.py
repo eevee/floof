@@ -7,7 +7,8 @@ from pylons import url
 from pylons.controllers.util import redirect as orig_redirect
 from webhelpers.html import escape, HTML, literal, tags, url_escape
 #from webhelpers.html.tags import *
-from webhelpers.html.tags import form, end_form, javascript_link
+# XXX replace the below with tags.?
+from webhelpers.html.tags import form, end_form, hidden, submit, javascript_link
 from webhelpers.pylonslib import Flash
 #from webhelpers.pylonslib.secure_form import authentication_token, secure_form, token_key
 from webhelpers.util import update_params
@@ -68,6 +69,7 @@ def comment_url(resource, action, comment_id=None, **kwargs):
 
     `resource` is a Resource row.
     """
+    return "XXX"  # XXX
     urldict = dict(controller='comments', action=action)
     if comment_id:
         urldict['comment_id'] = comment_id

@@ -112,6 +112,32 @@ def main(global_config, **settings):
     config.add_route('users.profile', '/users/{name}/profile')
     config.add_route('users.watchstream', '/users/{name}/watchstream')
 
+    # Art
+    config.add_route('art.browse', '/art')
+    config.add_route('art.upload', '/art/upload')
+
+    def pregen_artwork_url(request, elements, kw):
+        # XXX is this check even necessary?  why would artwork not be there?
+        # XXX can we extend this thing to all the /art/## urls using modely context stuff?
+        if 'artwork' in kw:
+            artwork = kw['artwork']
+            kw['id'] = artwork.id
+            if artwork.title:
+                # TODO _make_url_friendly
+                kw['title'] = ';' + artwork.title
+            else:
+                kw['title'] = ''
+
+        return elements, kw
+
+    config.add_route('art.view', r'/art/{id:\d+}{title:(;.+)?}', pregenerator=pregen_artwork_url)
+    config.add_route('art.add_tags', r'/art/{id:\d+}/add_tags')
+    config.add_route('art.remove_tags', r'/art/{id:\d+}/remove_tags')
+    config.add_route('art.rate', r'/art/{id:\d+}/rate')
+
+    # XXX DO COMMENTS *LAST*, AND DO A COOL TRAVERSAL THING
+    # XXX LAST.  I MEAN IT.
+
     #map.connect('', controller='controls', action='index')
     #map.connect('/{action}', controller='controls', requirements=dict(action='authentication|certificates|openid|relationships|user_info'))
     #map.connect('/certificates/gen/cert-{name}.p12', controller='controls', action='certificates_server', **require_POST)

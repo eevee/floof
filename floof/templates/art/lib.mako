@@ -18,7 +18,7 @@ def media_icon(type):
 ## Spits out..  a thumbnail of this artwork.  It's an <li>, so this should be
 ## called inside a <ul>.
 <li class="thumbnail">
-    <a class="thumbnail" href="${h.art_url(artwork)}">
+    <a class="thumbnail" href="${request.route_url('art.view', artwork=artwork)}">
         <img src="${request.route_url('filestore', class_=u'thumbnail', key=artwork.hash)}" alt="">
     </a>
     <div class="thumbnail-meta">
@@ -45,10 +45,10 @@ def media_icon(type):
 <ul class="detailed-thumbnail-grid">
 % for artwork in artworks:
 <li class="detailed-thumbnail">
-    <a class="thumbnail" href="${h.art_url(artwork)}">
+    <a class="thumbnail" href="${request.route_url('art.view', artwork=artwork)}">
         <img src="${request.route_url('filestore', class_=u'thumbnail', key=artwork.hash)}" alt="">
     </a>
-    <a href="${h.art_url(artwork)}">${artwork.title}</a>
+    <a href="${request.route_url('art.view', artwork=artwork)}">${artwork.title}</a>
 </li>
 % endfor
 </ul>
@@ -67,11 +67,11 @@ def media_icon(type):
 % for artwork in artworks:
 <tr>
     <td class="-thumbnail">
-        <a class="thumbnail" href="${h.art_url(artwork)}">
+        <a class="thumbnail" href="${request.route_url('art.view', artwork=artwork)}">
             <img src="${request.route_url('filestore', class_=u'thumbnail', key=artwork.hash)}" alt="">
         </a>
     </td>
-    <td><a href="${h.art_url(artwork)}">${artwork.title}</a></td>
+    <td><a href="${request.route_url('art.view', artwork=artwork)}">${artwork.title}</a></td>
     <td>
         Comments: ${artwork.discussion.comment_count} <br>
         Ratings: ${artwork.rating_count}

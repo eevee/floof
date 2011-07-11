@@ -5,16 +5,14 @@
     <title>${self.title()} - ${request.registry.settings['site_title']}</title>
     <meta charset="utf-8" />
     <link rel="stylesheet" type="text/css" href="${request.static_url('floof:public/css/all.css')}">
-    ${h.javascript_link(url('/js/lib/jquery-1.4.4.min.js'))}
-    ${h.javascript_link(url('/js/lib/jquery.cookie.js'))}
+    ${h.javascript_link(request.static_url('floof:public/js/lib/jquery-1.4.4.min.js'))}
+    ${h.javascript_link(request.static_url('floof:public/js/lib/jquery.cookie.js'))}
     % if config.get('super_debug', False):
         ${h.javascript_link(url('/js/debugging.js'))}
     % endif
 
-## Allow templates to define their script dependencies to include in head
-    % if hasattr(self, "script_dependencies") and hasattr(self.script_dependencies, "__call__"):
-        ${self.script_dependencies()}
-    %endif
+    ## Allow templates to define their script dependencies to include in head
+    ${self.script_dependencies()}
 </head>
 <body>
     <div id="header">
@@ -45,8 +43,8 @@
             % endif
         </div>
         <ul id="navigation">
-            <li><a href="${url(controller='art', action='gallery')}">Art</a></li>
-            <li><a href="${url(controller='art', action='upload')}">Upload</a></li>
+            <li><a href="${request.route_url('art.browse')}">Art</a></li>
+            <li><a href="${request.route_url('art.upload')}">Upload</a></li>
             <li><a href="${url(controller='tags', action='index')}">Tags</a></li>
             % if user:
                 <li><a href="${request.route_url('controls.index')}">Controls</a></li>
@@ -94,3 +92,4 @@
 </html>
 
 <%def name="title()">Untitled</%def>
+<%def name="script_dependencies()"></%def>
