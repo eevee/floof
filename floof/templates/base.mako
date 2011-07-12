@@ -50,7 +50,7 @@
                 <li><a href="${request.route_url('controls.index')}">Controls</a></li>
             % endif
             % if user.can('admin.view'):
-                <li><a href="${url(controller='admin', action='dashboard')}">Admin</a></li>
+                <li><a href="${request.route_url('admin.dashboard')}">Admin</a></li>
             % endif
         </ul>
     </div>

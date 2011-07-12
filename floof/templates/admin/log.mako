@@ -20,7 +20,7 @@
 <tbody>
 <% curr = "even"
 off = "odd" %>
-% for record in c.records:
+% for record in records:
   <% curr, off = off, curr %>
   <tr class="${curr}">
     <td>${lib.levelicon(record.level)} ${lib.levelname(record.level)}</td>

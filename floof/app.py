@@ -141,6 +141,10 @@ def main(global_config, **settings):
     config.add_route('tags.view', '/tags/{name}')
     config.add_route('tags.artwork', '/tags/{name}/artwork')
 
+    # Administration
+    config.add_route('admin.dashboard', '/admin')
+    config.add_route('admin.log', '/admin/log')
+
     # XXX DO COMMENTS *LAST*, AND DO A COOL TRAVERSAL THING
     # XXX LAST.  I MEAN IT.
 
