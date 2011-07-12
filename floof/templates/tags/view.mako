@@ -1,15 +1,15 @@
 <%inherit file="/base.mako"/>
 
-<%def name="title()">Tag "${c.tag.name}"</%def>
+<%def name="title()">Tag "${tag.name}"</%def>
 
 <h1>${title()}</h1>
 
-<p><a href="${url(controller='tags', action='artwork', name=c.tag.name)}">View art with this tag.</a></p>
+<p><a href="${request.route_url('tags.artwork', name=tag.name)}">View art with this tag.</a></p>
 <p>Stat porn goes here.</p>
 
 <dl class="standard-form">
 <dt><span title="# of arts tagged with this tag">Tagged</span></dt>
-<dd><a href="${url(controller='tags', action='artwork', name=c.tag.name)}">${len(c.tag.artwork)}</a></dd>
+<dd><a href="${request.route_url('tags.artwork', name=tag.name)}">${len(tag.artwork)}</a></dd>
 
 <dt><span title="# of users watching this tag">Watching</span></dt>
 <dd>???</dd>

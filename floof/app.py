@@ -135,6 +135,12 @@ def main(global_config, **settings):
     config.add_route('art.remove_tags', r'/art/{id:\d+}/remove_tags')
     config.add_route('art.rate', r'/art/{id:\d+}/rate')
 
+    # Tags
+    # XXX what should the tag name regex be, if anything?
+    config.add_route('tags.list', '/tags')
+    config.add_route('tags.view', '/tags/{name}')
+    config.add_route('tags.artwork', '/tags/{name}/artwork')
+
     # XXX DO COMMENTS *LAST*, AND DO A COOL TRAVERSAL THING
     # XXX LAST.  I MEAN IT.
 

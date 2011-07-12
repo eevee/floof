@@ -45,7 +45,7 @@
         <ul id="navigation">
             <li><a href="${request.route_url('art.browse')}">Art</a></li>
             <li><a href="${request.route_url('art.upload')}">Upload</a></li>
-            <li><a href="${url(controller='tags', action='index')}">Tags</a></li>
+            <li><a href="${request.route_url('tags.list')}">Tags</a></li>
             % if user:
                 <li><a href="${request.route_url('controls.index')}">Controls</a></li>
             % endif

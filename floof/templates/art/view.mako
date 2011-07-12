@@ -96,7 +96,7 @@
     <h2 id="tags">Tags</h2>
     <p>\
     % for tag in artwork.tags:
-    <a href="${url(controller='tags', action='view', name=tag)}">${tag}</a>\
+    <a href="${request.route_url('tags.view', name=tag)}">${tag}</a>\
     % endfor
     </p>
 
