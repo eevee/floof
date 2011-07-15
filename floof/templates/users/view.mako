@@ -5,7 +5,7 @@
 <%def name="title()">${target_user.display_name}</%def>
 
 <h1>
-    ${lib.icon('user-nude')} <a href="${request.route_url('users.profile', name=target_user.name)}">${target_user.name}</a>
+    ${lib.icon('user-nude')} <a href="${request.route_url('users.profile', user=target_user)}">${target_user.name}</a>
     % if target_user.display_name is not None:
     (${target_user.display_name})
     % endif

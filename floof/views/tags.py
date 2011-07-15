@@ -26,12 +26,7 @@ def index(context, request):
     route_name='tags.view',
     request_method='GET',
     renderer='tags/view.mako')
-def view(context, request):
-    try:
-        tag = meta.Session.query(model.Tag).filter_by(name=request.matchdict['name']).one()
-    except NoResultFound:
-        raise NotFound()
-
+def view(tag, request):
     return dict(tag=tag)
 
 
@@ -39,13 +34,8 @@ def view(context, request):
     route_name='tags.artwork',
     request_method='GET',
     renderer='tags/artwork.mako')
-def artwork(context, request):
+def artwork(tag, request):
     """Show a gallery of artwork for this tag."""
-    try:
-        tag = meta.Session.query(model.Tag).filter_by(name=request.matchdict['name']).one()
-    except NoResultFound:
-        raise NotFound()
-
     gallery_sieve = GallerySieve(user=request.user, formdata=request.params)
     gallery_sieve.filter_by_tag(tag.name)  # XXX this seems inefficient.
 

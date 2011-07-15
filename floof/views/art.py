@@ -229,12 +229,7 @@ def browse(context, request):
     route_name='art.view',
     request_method='GET',
     renderer='art/view.mako')
-def view(context, request):
-    """View a single item of artwork."""
-    artwork = meta.Session.query(model.Artwork).get(request.matchdict['id'])
-    if not artwork:
-        raise NotFound()
-
+def view(artwork, request):
     # If the user is not anonymous, get the previous rating if it exists
     current_rating = None
     if request.user:
@@ -264,12 +259,8 @@ def view(context, request):
     request_method='POST',
     xhr=True,
     renderer='json')
-def rate(context, request):
+def rate(artwork, request):
     """Post a rating for a piece of art"""
-    artwork = meta.Session.query(model.Artwork).get(request.matchdict['id'])
-    if not artwork:
-        raise NotFound()
-
     radius = int(request.registry.settings['rating_radius'])
     try:
         rating = int(request.POST['rating']) / radius
@@ -328,11 +319,7 @@ class AddTagForm(wtforms.form.Form):
 @view_config(
     route_name='art.add_tags',
     request_method='POST')
-def add_tags(context, request):
-    artwork = meta.Session.query(model.Artwork).get(request.matchdict['id'])
-    if not artwork:
-        raise NotFound()
-
+def add_tags(artwork, request):
     form = AddTagForm(request.POST, artwork=artwork)
     if not form.validate():
         # FIXME when the final UI is figured out
@@ -369,11 +356,7 @@ class RemoveTagForm(wtforms.form.Form):
 @view_config(
     route_name='art.remove_tags',
     request_method='POST')
-def remove_tags(context, request):
-    artwork = meta.Session.query(model.Artwork).get(request.matchdict['id'])
-    if not artwork:
-        raise NotFound()
-
+def remove_tags(artwork, request):
     form = RemoveTagForm(request.POST, artwork=artwork)
     if not form.validate():
         # FIXME when the final UI is figured out
