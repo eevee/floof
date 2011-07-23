@@ -57,7 +57,7 @@
             if artwork.rating_score is None:
                 rating_score = None
             else:
-                rating_score = artwork.rating_score * config['rating_radius']
+                rating_score = artwork.rating_score # XXX * config['rating_radius']
         %>\
         % if 1 or request.user.can('art.rate'):
             <script type="text/javascript">
@@ -95,8 +95,8 @@
     </div>
     <h2 id="tags">Tags</h2>
     <p>\
-    % for tag in artwork.tags:
-    <a href="${request.route_url('tags.view', tag=tag)}">${tag}</a>\
+    % for tag in artwork.tag_objs:
+    <a href="${request.route_url('tags.view', tag=tag)}">${tag.name}</a>\
     % endfor
     </p>
 

@@ -106,7 +106,7 @@ ${user.display_name}</a> (${user.name})\
 ## Prints a short summary of a resource; used as the header in commenting
 <%def name="resource_summary(resource)">
 % if resource.type == u'artwork':
-<p><a href="${h.art_url(c.discussion.resource.member)}">Return</a></p>
+<p><a href="${request.route_url('art.view', artwork=resource.member)}">Return</a></p>
 % endif
 </%def>
 

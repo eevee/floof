@@ -79,9 +79,66 @@ def configure_routing(config):
     r('admin.dashboard', '/admin')
     r('admin.log', '/admin/log')
 
-    # XXX DO COMMENTS *LAST*, AND DO A COOL TRAVERSAL THING
-    # XXX LAST.  I MEAN IT.
+    # Comments; made complex because they can attach to different parent URLs.
+    # Rather than hack around how Pyramid's routes works, we can just use our
+    # own class that does what we want!
 
+    # XXX 1: make this work for users as well
+    # XXX 2: make the other routes work
+    # XXX 3: possibly find a way to verify that the same logic is used here and for the main routes
+    parent_route_names = ('art.view', 'user.view')
+    mapper = config.get_routes_mapper()
+    parent_routes = [mapper.get_route(name) for name in parent_route_names]
+    commentables = dict(
+        users=floof.model.User.name,
+        art=floof.model.Artwork.id,
+    )
+
+    def comments_factory(request):
+        # XXX prefetching on these?
+        type = request.matchdict['type']
+        identifier = request.matchdict['identifier']
+
+        try:
+            sqla_column = commentables[type]
+            entity = floof.model.meta.Session.query(sqla_column.parententity).filter(sqla_column == identifier).one()
+        except (NoResultFound, KeyError):
+            # 404!
+            raise NotFound()
+
+        if 'comment_id' not in request.matchdict:
+            return entity.discussion
+
+        # URLs to specific comments should have those comments as the context
+        try:
+            return floof.model.meta.Session.query(floof.model.Comment).with_parent(entity.discussion).filter(floof.model.Comment.id == request.matchdict['comment_id']).one()
+        except NoResultFound:
+            raise NotFound()
+
+
+    def comments_pregenerator(request, elements, kw):
+        resource = None
+        comment = kw.get('comment', None)
+
+        if comment:
+            kw['comment_id'] = comment.id
+
+            if 'resource' not in kw:
+                resource = comment.discussion.resource
+
+        if not resource:
+            resource = kw['resource']
+
+        # XXX users...
+        entity = resource.member
+        kw['type'] = 'art'
+        kw['identifier'] = entity.id
+        return elements, kw
+
+    r('comments.list', '/{type}/{identifier}/comments', factory=comments_factory)
+    r('comments.write', '/{type}/{identifier}/comments/write', factory=comments_factory, pregenerator=comments_pregenerator)
+    r('comments.view', '/{type}/{identifier}/comments/{comment_id}', factory=comments_factory, pregenerator=comments_pregenerator)
+    r('comments.reply', '/{type}/{identifier}/comments/{comment_id}/write', factory=comments_factory, pregenerator=comments_pregenerator)
 
 def sqla_route_options(url_key, match_key, sqla_column):
     """Returns a dict of route options that are helpful for routes representing SQLA objects.
