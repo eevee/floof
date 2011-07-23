@@ -74,7 +74,7 @@ ${user.display_name}</a> (${user.name})\
 </%def>
 
 <%def name="user_panel(user)">
-<a href="${url('user', user=user)}" class="user-panel">
+<a href="${request.route_url('users.view', user=user)}" class="user-panel">
     ${user.display_name}
 </a>
 </%def>
@@ -150,7 +150,7 @@ for char in serial[:10]:
     </li>
     % else:
     <li>
-        <a href="${h.update_params(url.current(), \
+        <a href="${h.update_params(request.path_url, \
             **pager.formdata_for(page * pager.page_size))}">
             % if page == 0:
             ⇤
@@ -169,7 +169,7 @@ for char in serial[:10]:
 % endfor
 % if temporal_column_name and pager.is_last_allowable_page:
 <li>
-    <a href="${h.update_params(url.current(), \
+    <a href="${h.update_params(request.path_url, \
         **pager.formdata_for_temporal(temporal_column_name))}">More →</a>
 </li>
 % endif
@@ -180,7 +180,7 @@ for char in serial[:10]:
 <ol class="pager">
     % if pager.timeskip:
     <li>
-        <a href="${h.update_params(url.current(), \
+        <a href="${h.update_params(request.path_url, \
             **pager.formdata_for(None))}">⇤ Newest</a>
     </li>
     <li class="elided">…</li>
@@ -194,7 +194,7 @@ for char in serial[:10]:
 
     % if not pager.is_last_page:
     <li>
-        <a href="${h.update_params(url.current(), \
+        <a href="${h.update_params(request.path_url, \
             **pager.formdata_for(pager.next_item_timeskip))}">More →</a>
     </li>
     % endif

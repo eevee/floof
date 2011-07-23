@@ -32,7 +32,7 @@
         identified you as ${auth.pending_user.name}.  However, your
         account authentication settings require SSL client certificate
         authentication to log in.</p>
-        ${h.secure_form(url(controller='account', action='logout'))}
+        ${h.secure_form(request.route_url('account.logout'))}
             <p>Click the following button to purge all satisfied
             authentication mechanisms.</p>
             <p><input type="submit" value="Purge Authentication"></p>

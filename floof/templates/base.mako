@@ -18,20 +18,20 @@
     <div id="header">
         <div id="logo"><a href="${request.route_url('root')}">floof</a></div>
         <div id="user">
-            % if user:
+            % if request.user:
             ${h.secure_form(request.route_url('account.logout'), class_='compact')}
-            <p>Hello, ${lib.user_link(user)}!</p>
-                % if auth.can_purge:
+            <p>Hello, ${lib.user_link(request.user)}!</p>
+                % if request.auth.can_purge:
                 <p><input type="submit" value="Log out" /></p>
                 % else:
                 <p>To log out, you'll need to instruct your browser to stop
                 sending your SSL certificate.</p>
                 % endif
             ${h.end_form()}
-            % elif auth.pending_user:
-            <p><a href="${request.route_url('account.login')}">Complete log in for ${auth.pending_user.name}</a></p>
+            % elif request.auth.pending_user:
+            <p><a href="${request.route_url('account.login')}">Complete log in for ${request.auth.pending_user.name}</a></p>
             ${h.secure_form(request.route_url('account.logout'), class_='compact')}
-                % if auth.can_purge:
+                % if request.auth.can_purge:
                 <p><input type="submit" value="Purge Authentication" /></p>
                 % else:
                 <p>To log in as someone else, you'll need to instruct
@@ -46,10 +46,10 @@
             <li><a href="${request.route_url('art.browse')}">Art</a></li>
             <li><a href="${request.route_url('art.upload')}">Upload</a></li>
             <li><a href="${request.route_url('tags.list')}">Tags</a></li>
-            % if user:
+            % if request.user:
                 <li><a href="${request.route_url('controls.index')}">Controls</a></li>
             % endif
-            % if user.can('admin.view'):
+            % if request.user.can('admin.view'):
                 <li><a href="${request.route_url('admin.dashboard')}">Admin</a></li>
             % endif
         </ul>
@@ -82,7 +82,7 @@
                 in ${lib.timedelta(request.timer.sql_time)}
         </p>
         <p>Icons from the <a href="http://p.yusukekamiyamane.com/">Fugue set</a></p>
-        <p><a href="${url(controller='main', action='log')}">Admin log</a></p>
+        <p><a href="${request.route_url('log')}">Admin log</a></p>
     </div>
 
     % if request.registry.settings['super_debug']:

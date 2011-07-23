@@ -6,6 +6,7 @@ from pyramid import security
 from pyramid.authentication import AuthTktAuthenticationPolicy
 from pyramid.config import Configurator
 from pyramid.decorator import reify
+from pyramid.events import BeforeRender
 from pyramid.request import Request
 from pyramid.settings import asbool
 from sqlalchemy import engine_from_config
@@ -13,31 +14,11 @@ from zope.sqlalchemy import ZopeTransactionExtension
 
 from floof.lib.auth import Authenticizer, FloofAuthPolicy
 import floof.lib.debugging
+import floof.lib.helpers
 import floof.model
 from floof.model import User, filestore, meta
 import floof.routing
 import floof.views
-
-def renderer_globals_factory(system):
-    import floof.lib.helpers
-    import floof.model
-    import collections
-    import pyramid.url
-    user = object()
-
-    import pyramid.security
-
-    return dict(
-        h=floof.lib.helpers,
-        config=collections.defaultdict(unicode),
-        user=system['request'].user,
-        auth=system['request'].auth,  # XXX should be getting rid of this, probably
-        timer=object(),
-        url=lambda *a, **kw: repr(a) + repr(kw),
-
-        static_url=lambda path: pyramid.url.static_url(path, system['request']),
-    )
-
 
 class FloofRequest(Request):
     def __init__(self, *args, **kwargs):
@@ -72,6 +53,10 @@ class HTTPOnlyCookieMiddleware(object):
                 res.headerlist[i] = (key, val + '; HTTPOnly')
 
         return res(environ, start_response)
+
+def add_renderer_globals(event):
+    """Add any globals that should be available to Mako."""
+    event['h'] = floof.lib.helpers
 
 
 def main(global_config, **settings):
@@ -118,8 +103,11 @@ def main(global_config, **settings):
             #wild_domain=False,
             #secure=True,
         ),
-        renderer_globals_factory=renderer_globals_factory,
     )
+
+    # Added manually because @subscriber only works with a
+    # scan, and we don't want to scan ourselves
+    config.add_subscriber(add_renderer_globals, BeforeRender)
 
     floof.routing.configure_routing(config)
     config.scan(floof.views)
