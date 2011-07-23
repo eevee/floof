@@ -7,8 +7,8 @@
     <link rel="stylesheet" type="text/css" href="${request.static_url('floof:public/css/all.css')}">
     ${h.javascript_link(request.static_url('floof:public/js/lib/jquery-1.4.4.min.js'))}
     ${h.javascript_link(request.static_url('floof:public/js/lib/jquery.cookie.js'))}
-    % if config.get('super_debug', False):
-        ${h.javascript_link(url('/js/debugging.js'))}
+    % if request.registry.settings['super_debug']:
+        ${h.javascript_link(request.static_url('floof:public/js/debugging.js'))}
     % endif
 
     ## Allow templates to define their script dependencies to include in head
@@ -74,18 +74,18 @@
 
     <div id="footer-spacer"></div>
     <div id="footer">
-        <%doc>
+        ## TODO: make this only show for devs.  nobody else cares.
+        ## TODO: of course, if you do that, do more logging!
         <p id="footer-stats">
-            built in ${lib.timedelta(timer.total_time)} <br>
-            ${timer.sql_queries} quer${ 'y' if timer.sql_queries == 1 else 'ies' }
-                in ${lib.timedelta(timer.sql_time)}
+            built in ${lib.timedelta(request.timer.total_time)} <br>
+            ${request.timer.sql_query_count} quer${ 'y' if request.timer.sql_query_count == 1 else 'ies' }
+                in ${lib.timedelta(request.timer.sql_time)}
         </p>
-        </%doc>
         <p>Icons from the <a href="http://p.yusukekamiyamane.com/">Fugue set</a></p>
         <p><a href="${url(controller='main', action='log')}">Admin log</a></p>
     </div>
 
-    % if config.get('super_debug', False):
+    % if request.registry.settings['super_debug']:
     <%include file="/debugging.mako" />
     % endif
 </body>

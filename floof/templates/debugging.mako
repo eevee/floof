@@ -4,12 +4,12 @@
 <ul id="x-debugging">
 <li>
     <h5>Query log</h5>
-    <h6>×${c.timer.sql_queries} in ${lib.timedelta(c.timer.sql_time)}</h6>
+    <h6>×${request.timer.sql_query_count} in ${lib.timedelta(request.timer.sql_time)}</h6>
 
     <div class="x-debugging-panel">
         <table id="x-debugging-query-log">
         <%! import datetime %>\
-        % for query, data in c.timer.sql_query_log.iteritems():
+        % for query, data in request.timer.sql_query_log.iteritems():
         <tbody>
             <tr>
                 <td>×${len(data)}</td>
@@ -32,46 +32,46 @@
 </li>
 <li>
     <h5>Config</h5>
-    <h6>${os.path.split(config['__file__'])[-1]}</h6>
+    <h6>${os.path.split(request.registry.settings['paste_config']['__file__'])[-1]}</h6>
 
-    <pre class="x-debugging-panel">${pprint.pformat(config)}</pre>
+    <pre class="x-debugging-panel">${pprint.pformat(request.registry.settings)}</pre>
 </li>
 <li>
     <h5>Session</h5>
     <h6>
-        % if c.user:
-        User ${c.user.name}
+        % if request.user:
+        User ${request.user.name}
         % else:
         Anonymous user
         % endif
     </h6>
 
-    <pre class="x-debugging-panel">${pprint.pformat(session)}</pre>
+    <pre class="x-debugging-panel">${pprint.pformat(request.session)}</pre>
 </li>
 <li>
     <h5>Time</h5>
-    <h6>${lib.timedelta(c.timer.total_time)}</h6>
+    <h6>${lib.timedelta(request.timer.total_time)}</h6>
 
     <div class="x-debugging-panel">
         <table>
         <tbody>
             <tr>
                 <th>SQL</th>
-                <td>${lib.timedelta(c.timer.sql_time)}</td>
+                <td>${lib.timedelta(request.timer.sql_time)}</td>
             </tr>
             <tr>
                 <th>Mako</th>
-                <td>${lib.timedelta(c.timer.template_time)}</td>
+                <td>${lib.timedelta(request.timer.template_time)}</td>
             </tr>
             <tr>
                 <th>Python</th>
-                <td>${lib.timedelta(c.timer.total_time - c.timer.sql_time - c.timer.template_time)}</td>
+                <td>${lib.timedelta(request.timer.total_time - request.timer.sql_time - request.timer.template_time)}</td>
             </tr>
         </tbody>
         <tbody>
             <tr>
                 <th>Total</th>
-                <td>${lib.timedelta(c.timer.total_time)}</td>
+                <td>${lib.timedelta(request.timer.total_time)}</td>
             </tr>
         </tbody>
         </table>

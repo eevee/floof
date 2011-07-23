@@ -13,9 +13,8 @@ setup(
     author_email='',
     url='',
     install_requires=[
-        "Pylons>=1.0",
         "WebHelpers>=1.0",
-        "SQLAlchemy>=0.6.6",
+        "SQLAlchemy>=0.7",
         'python-openid',
         'wtforms',
         'python-magic',
