@@ -43,58 +43,84 @@ def attach_sqlalchemy_listeners(engine, debug=False):
 
 
 class RequestTimer(object):
-    """Tracks how long a page took to create.
+    """Tracks how long a page took to create.  Splits the time across several
+    individual timers, accessible via the `timers` dict.
 
-    Properties are `total_time`, `sql_time`, and `sql_queries`.
+    Other properties are `total_time`, `sql_time`, and `sql_queries`.
 
     In SQL debug mode, `sql_query_log` is also populated.  Its keys are
     queries; values are dicts of parameters, time, and caller.
     """
+    timer_names = frozenset(('python', 'mako', 'sql'))
+    default_timer = 'python'
+    assert default_timer in timer_names
+
+    _start_timestamp = None
 
     def __init__(self):
-        self._start_timestamp = datetime.now()
+        self._timer_stack = []
+        self.timers = dict((name, timedelta()) for name in self.timer_names)
+        self.switch_timer(self.default_timer)
 
-        # SQLAlchemy will add to these using the above proxy class; see
-        # floof.config.environment
-        self.sql_time = timedelta()
-        # Debug mode only
+        # Not really timing, but relevant SQLAlchemy stats.  Debug mode only
         self.sql_query_count = 0
         self.sql_query_log = defaultdict(list)
 
-        # Template time, not including SQLAlchemy time
-        # Also debug mode only
-        self.template_time = timedelta()
-
     @reify
     def total_time(self):
-        """Return the total time elapsed since this object was created."""
-        return datetime.now() - self._start_timestamp
+        """Stops all timing.  Returns the total time elapsed since this object
+        was created.
+        """
+        self.switch_timer(None)
+        return sum(self.timers.itervalues(), timedelta())
+
+    def switch_timer(self, name):
+        """Change who to blame for processing time going forward.  Pass `None`
+        to stop all timing.
+
+        Don't use this after a `push_timer`, until a corresponding pop.
+
+        Returns the time passed since the last switch.
+        """
+        assert name in self.timer_names or name is None
+        now = datetime.now()
+        if self._start_timestamp:
+            delta = now - self._start_timestamp
+            self.timers[self.current_timer] += delta
+        else:
+            delta = None
+
+        if name is None:
+            self.switch_timer = lambda name: None
+
+        self._start_timestamp = now
+        self.current_timer = name
+        return delta
+
+    def push_timer(self, name):
+        """Temporarily switch timers.  Use `pop_timer` to switch back."""
+        self._timer_stack.append(self.current_timer)
+        return self.switch_timer(name)
+
+    def pop_timer(self):
+        """Undo a `push_timer`."""
+        return self.switch_timer(self._timer_stack.pop())
 
     ### These two callbacks just track how much time is taken by plain old SQL.
     ### They track the high-level execute() calls, so they'll catch some
     ### SQLAlchemy time (mostly compilation).  This is a feature.
-    _sql_execute_time = None
-
     def _before_execute(self):
-        self._sql_execute_time = datetime.now()
+        self.push_timer('sql')
 
     def _after_execute(self):
-        if not self._sql_execute_time:
-            warnings.warn("Got to after_execute with no before_execute")
-            return
-        delta = datetime.now() - self._sql_execute_time
-        self._sql_execute_time = None
-
-        self.sql_time += delta
+        self.pop_timer()
 
     ### These two callbacks fire around each actual query -- they track the
     ### number of individual queries, and in super-crazy-detail mode also track
     ### every statement made and how long it took.
-    _sql_cursor_time = None
-
     def _before_cursor_execute(self):
         self.sql_query_count += 1
-        self._sql_cursor_time = datetime.now()
+        self.push_timer('sql')
 
     def _after_cursor_execute(self, statement, parameters):
         # Find who spawned this query.  Rewind up the stack until we
@@ -110,11 +136,6 @@ class RequestTimer(object):
             caller = "{0}:{1} in {2}".format(frame_file, frame_line, frame_func)
             break
 
-        if not self._sql_cursor_time:
-            warnings.warn("Got to after_cursor_execute with no before_cursor_execute")
-            return
-        delta = datetime.now() - self._sql_cursor_time
-        self._sql_cursor_time = None
-
+        delta = self.pop_timer()
         self.sql_query_log[statement].append(dict(
             parameters=parameters, time=delta, caller=caller))

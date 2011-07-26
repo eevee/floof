@@ -58,6 +58,11 @@ def add_renderer_globals(event):
     """Add any globals that should be available to Mako."""
     event['h'] = floof.lib.helpers
 
+def start_template_timer(event):
+    """Inform the request's timer object to switch to recording rendering time.
+    """
+    event['request'].timer.switch_timer('mako')
+
 
 def main(global_config, **settings):
     """Constructs a WSGI application."""
@@ -98,6 +103,7 @@ def main(global_config, **settings):
 
     # Added manually because @subscriber only works with a
     # scan, and we don't want to scan ourselves
+    config.add_subscriber(start_template_timer, BeforeRender)
     config.add_subscriber(add_renderer_globals, BeforeRender)
 
     floof.routing.configure_routing(config)

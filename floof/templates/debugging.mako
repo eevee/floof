@@ -4,7 +4,7 @@
 <ul id="x-debugging">
 <li>
     <h5>Query log</h5>
-    <h6>×${request.timer.sql_query_count} in ${lib.timedelta(request.timer.sql_time)}</h6>
+    <h6>×${request.timer.sql_query_count} in ${lib.timedelta(request.timer.timers['sql'])}</h6>
 
     <div class="x-debugging-panel">
         <table id="x-debugging-query-log">
@@ -57,15 +57,15 @@
         <tbody>
             <tr>
                 <th>SQL</th>
-                <td>${lib.timedelta(request.timer.sql_time)}</td>
+                <td>${lib.timedelta(request.timer.timers['sql'])}</td>
             </tr>
             <tr>
                 <th>Mako</th>
-                <td>${lib.timedelta(request.timer.template_time)}</td>
+                <td>${lib.timedelta(request.timer.timers['mako'])}</td>
             </tr>
             <tr>
                 <th>Python</th>
-                <td>${lib.timedelta(request.timer.total_time - request.timer.sql_time - request.timer.template_time)}</td>
+                <td>${lib.timedelta(request.timer.timers['python'])}</td>
             </tr>
         </tbody>
         <tbody>
