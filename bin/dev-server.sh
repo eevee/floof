@@ -25,7 +25,7 @@ sass --scss --quiet --watch ${DIR}/floof/sass:${DIR}/floof/public/css &
 # Catch the incoming SIGINT that will kill paster and have it kill sass too
 trap 'kill %1' 2
 
-$PASTER serve --reload $*
+$PASTER serve --reload -n dev $*
 
 # Kill sass again just in case; might get here if paster dies on its own
 kill %1

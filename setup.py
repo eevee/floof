@@ -27,7 +27,7 @@ setup(
         # $ wget http://launchpad.net/pyopenssl/main/0.11/+download/pyOpenSSL-0.11.tar.gz
         # $ easy_install pyOpenSSL-0.11.tar.gz
         'pyOpenSSL>=0.11',
-        'pyramid',
+        'pyramid>=1.1',
         'pyramid_beaker',
         'repoze.tm2>=1.0b1',  # default_commit_veto
         'zope.sqlalchemy',

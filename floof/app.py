@@ -93,16 +93,7 @@ def main(global_config, **settings):
         settings=settings,
         request_factory=FloofRequest,
         session_factory=session_factory_from_settings(settings),
-        authentication_policy=FloofAuthPolicy(
-            # TODO move this stuff to beaker support
-            #secret='secret',  # XXX
-            #timeout=1800,  # expiration
-            #reissue_time=180,
-            #max_age=1800,
-            #http_only=True,
-            #wild_domain=False,
-            #secure=True,
-        ),
+        authentication_policy=FloofAuthPolicy(),
     )
 
     # Added manually because @subscriber only works with a
