@@ -10,14 +10,7 @@ from webhelpers.html import escape, HTML, literal, tags, url_escape
 # XXX replace the below with tags.?
 from webhelpers.html.tags import form, end_form, hidden, submit, javascript_link
 from webhelpers.pylonslib import Flash
-#from webhelpers.pylonslib.secure_form import authentication_token, secure_form, token_key
 from webhelpers.util import update_params
-
-import re
-
-
-def secure_form(*args, **kwargs):
-    return tags.form(*args, **kwargs)
 
 _flash = Flash()
 _default_flash_icons = dict(
@@ -40,6 +33,3 @@ def flash(message, icon=None, level='notice', **extras):
     extras['level'] = level
 
     _flash((message, extras))
-
-def redirect(url, code=303):
-    orig_redirect(url, code)

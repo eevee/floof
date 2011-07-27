@@ -23,7 +23,7 @@ to log on at all.</p>
 
 <h2>Generate New Certificate</h2>
 <div class="halfsplit">
-    ${h.secure_form(request.path_url)}
+    ${lib.secure_form(request.path_url)}
     <h3>Generate Certificate in Browser</h3>
     <p>This will cause your browser to generate and install a certificate
     automatically.</p>
@@ -44,7 +44,7 @@ to log on at all.</p>
     ${h.end_form()}
 </div>
 <div class="halfsplit">
-    ${h.secure_form(request.route_url('controls.certs.generate_server', name=user.name))}
+    ${lib.secure_form(request.route_url('controls.certs.generate_server', name=user.name))}
     <h3>Generate Certificate on Server</h3>
     <p>This will return a PKCS12 certificate file for download and
     manual installation.</p>

@@ -9,7 +9,7 @@
 
 <h1>Register with OpenID</h1>
 
-${h.secure_form(request.route_url('account.register'))}
+${lib.secure_form(request.route_url('account.register'))}
 <dl>
     <dt>Registering from:</dt>
     % if identity_webfinger:

@@ -73,7 +73,7 @@
                 <div class="rater-info"><span class="rater-num-ratings">${artwork.rating_count}</span> (<span class="rater-rating-sum">${rating_score or u'—'}</span>)</div>
                 <% rating_chars = [u'\u2b06', u'\u2022', u'\u2b07'] %>
                 % for r in range(len(rating_chars)):
-                    ${h.secure_form(request.route_url('art.rate', artwork=artwork), class_="rater-form")}
+                    ${lib.secure_form(request.route_url('art.rate', artwork=artwork), class_="rater-form")}
                         ${h.hidden(name="rating", value=(len(rating_chars) / 2 - r))}
                     % if current_rating == (len(rating_chars) / 2 - r):
                         ${h.submit(value=rating_chars[r], name="commit", disabled="disabled")}
@@ -105,7 +105,7 @@
         ('tags.remove', 'remove_tags', remove_tag_form), \
     ]:
     % if request.user.can(perm):
-    ${h.secure_form(request.route_url('art.' + action, artwork=artwork))}
+    ${lib.secure_form(request.route_url('art.' + action, artwork=artwork))}
     <p>
         ${form.tags.label()}:
         ${form.tags()}
@@ -140,7 +140,7 @@
 </h1>
 ${comments_lib.comment_tree(comments)}
 
-% if user.can('comments.add'):
+% if request.user.can('comments.add'):
 <h2>
     ${lib.icon('balloon-white')}
     Write your own

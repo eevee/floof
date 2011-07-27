@@ -6,7 +6,7 @@ from pyramid import security
 from pyramid.authentication import AuthTktAuthenticationPolicy
 from pyramid.config import Configurator
 from pyramid.decorator import reify
-from pyramid.events import BeforeRender
+from pyramid.events import BeforeRender, NewRequest
 from pyramid.request import Request
 from pyramid.settings import asbool
 from sqlalchemy import engine_from_config
@@ -63,6 +63,27 @@ def start_template_timer(event):
     """
     event['request'].timer.switch_timer('mako')
 
+def prevent_csrf(event):
+    """Require a CSRF token on all POST requests.
+
+    Ignore tests, though, for dev sanity.
+    """
+    request = event.request
+    if (request.method == 'POST' and
+        'paste.testing' not in request.environ and
+        request.POST.get('csrf_token', None)
+            != request.session.get_csrf_token()):
+
+        # Token is wrong!
+        if not request.cookies:
+            # XXX need a raisable exception here
+            #redirect(url(controller='main', action='cookies_disabled'))
+            pass
+
+        from pyramid.exceptions import Forbidden
+        raise Forbidden('Possible cross-site request forgery detected.')
+
+
 
 def main(global_config, **settings):
     """Constructs a WSGI application."""
@@ -103,6 +124,7 @@ def main(global_config, **settings):
 
     # Added manually because @subscriber only works with a
     # scan, and we don't want to scan ourselves
+    config.add_subscriber(prevent_csrf, NewRequest)
     config.add_subscriber(start_template_timer, BeforeRender)
     config.add_subscriber(add_renderer_globals, BeforeRender)
 

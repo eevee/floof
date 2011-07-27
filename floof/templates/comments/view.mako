@@ -35,7 +35,7 @@ ${comments_lib.comment_tree(comment_descendants)}
 
 ## Only show this form if we're displaying ALL comments; otherwise it's not
 ## obviously attached to the current comment
-% if not comment and user.can('comments.add'):
+% if not comment and request.user.can('comments.add'):
 <h2>
     ${lib.icon('balloon-white')}
     Write your own

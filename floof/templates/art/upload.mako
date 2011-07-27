@@ -8,7 +8,7 @@
     Upload
 </h1>
 
-${h.secure_form(request.path_url, multipart=True)}
+${lib.secure_form(request.path_url, multipart=True)}
 <dl class="standard-form">
     ${lib.field(form.file)}
     ${lib.field(form.title, size=64, maxlength=133)}

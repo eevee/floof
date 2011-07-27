@@ -4,7 +4,7 @@
 <%def name="panel_title()">Revoke SSL Certificate ID ${cert.id}</%def>
 <%def name="panel_icon()">${lib.icon('key--minus')}</%def>
 
-${h.secure_form(request.path_url)}
+${lib.secure_form(request.path_url)}
 <h2>Permanently Revoke Certificate ID ${cert.id}</h2>
 <p>Are you absolutely sure that you wish to <strong>permanently revoke</strong>
 the certificate below?  You will no longer be able to log in with this

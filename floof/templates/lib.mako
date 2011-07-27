@@ -81,6 +81,11 @@ ${user.display_name}</a> (${user.name})\
 
 
 ## Standard form rendering
+<%def name="secure_form(*args, **kwargs)">
+${h.tags.form(*args, **kwargs)}
+${h.tags.hidden('csrf_token', value=request.session.get_csrf_token(), id=None)}
+</%def>
+
 <%def name="field(form_field, **kwargs)">\
 % if isinstance(form_field.widget, wtforms.widgets.CheckboxInput):
 <dd>

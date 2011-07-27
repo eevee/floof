@@ -55,7 +55,7 @@
 </%def>
 
 <%def name="write_form(form, resource, parent_comment=None)">
-${h.secure_form(request.route_url('comments.reply' if parent_comment else 'comments.write', resource=resource, comment=parent_comment), method='POST')}
+${lib.secure_form(request.route_url('comments.reply' if parent_comment else 'comments.write', resource=resource, comment=parent_comment), method='POST')}
 <p>${form.message(rows=25, cols=80)}</p>
 <p>
     <button type="submit">POST TO INTERNET</button>

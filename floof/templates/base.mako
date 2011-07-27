@@ -19,7 +19,7 @@
         <div id="logo"><a href="${request.route_url('root')}">floof</a></div>
         <div id="user">
             % if request.user:
-            ${h.secure_form(request.route_url('account.logout'), class_='compact')}
+            ${lib.secure_form(request.route_url('account.logout'), class_='compact')}
             <p>Hello, ${lib.user_link(request.user)}!</p>
                 % if request.auth.can_purge:
                 <p><input type="submit" value="Log out" /></p>
@@ -30,7 +30,7 @@
             ${h.end_form()}
             % elif request.auth.pending_user:
             <p><a href="${request.route_url('account.login')}">Complete log in for ${request.auth.pending_user.name}</a></p>
-            ${h.secure_form(request.route_url('account.logout'), class_='compact')}
+            ${lib.secure_form(request.route_url('account.logout'), class_='compact')}
                 % if request.auth.can_purge:
                 <p><input type="submit" value="Purge Authentication" /></p>
                 % else:

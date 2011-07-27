@@ -32,7 +32,7 @@
         identified you as ${auth.pending_user.name}.  However, your
         account authentication settings require SSL client certificate
         authentication to log in.</p>
-        ${h.secure_form(request.route_url('account.logout'))}
+        ${lib.secure_form(request.route_url('account.logout'))}
             <p>Click the following button to purge all satisfied
             authentication mechanisms.</p>
             <p><input type="submit" value="Purge Authentication"></p>
@@ -41,7 +41,7 @@
 % else:
     <h1>Log in or register with OpenID</h1>
 % endif
-${h.secure_form(request.route_url('account.login_begin'))}
+${lib.secure_form(request.route_url('account.login_begin'))}
     <p>
     ${lib.field(form.openid_identifier)}
     ${form.return_key() | n}

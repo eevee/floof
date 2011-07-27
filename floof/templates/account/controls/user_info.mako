@@ -13,7 +13,7 @@ fields = [
 %>
 
 <h2>User Info</h2>
-${h.secure_form(request.path_url)}
+${lib.secure_form(request.path_url)}
 
 <input type="submit" class="stylish-button" value="Update" />
 <dl>

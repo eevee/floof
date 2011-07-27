@@ -4,7 +4,7 @@
 <%def name="panel_title()">Authentication Options</%def>
 <%def name="panel_icon()">${lib.icon('key')}</%def>
 
-${h.secure_form(request.path_url)}
+${lib.secure_form(request.path_url)}
 <h2>Authentication Options</h2>
 <dl>
     ${lib.field(form.cert_auth)}
