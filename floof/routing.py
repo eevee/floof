@@ -87,6 +87,11 @@ def configure_routing(config):
     r('admin.dashboard', '/admin')
     r('admin.log', '/admin/log')
 
+    # Debugging
+    r('debug.status.400', '/debug/400')
+    r('debug.status.403', '/debug/403')
+    r('debug.status.404', '/debug/404')
+
     # Comments; made complex because they can attach to different parent URLs.
     # Rather than hack around how Pyramid's routes works, we can just use our
     # own class that does what we want!
