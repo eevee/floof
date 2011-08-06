@@ -25,7 +25,6 @@ from floof.model import Resource, Discussion, UserProfileRevision, IdentityURL, 
 #from floof.lib import helpers
 #from floof.lib.auth import CERT_CONFIDENCE_EXPIRY_SECONDS, CONFIDENCE_EXPIRY_SECONDS, fetch_stash_url, stash_keys
 #from floof.lib.base import BaseController, render
-#from floof.lib.decorators import logged_in, logged_out
 #from floof.lib.helpers import redirect
 #from floof.lib.openid_ import OpenIDError, openid_begin, openid_end
 #from floof import model
@@ -217,11 +216,14 @@ class RegistrationForm(wtforms.form.Form):
             raise wtforms.validators.ValidationError(
                 'Your username is already taken. Please try again.')
 
-#@logged_out
 @view_config(
     route_name='account.register',
     request_method='POST')
 def register(context, request):
+    if request.user:
+        # What are you doing here if you're already logged in?
+        return HTTPSeeOther(location=request.route_url('root'))
+
     # Check identity URL
     identity_url = request.session.get('pending_identity_url')
     if not identity_url or \
@@ -268,9 +270,9 @@ def register(context, request):
 class ProfileForm(wtforms.form.Form):
     profile = wtforms.fields.TextField(u'Profile')
 
-###@logged_in
 @view_config(
     route_name='account.profile',
+    permission='__authenticated__',
     renderer='account/profile.mako')
 def profile(context, request):
     form = ProfileForm(request.POST)

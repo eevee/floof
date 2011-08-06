@@ -49,9 +49,9 @@ def view_single_thread(comment, request):
     )
 
 
-# XXX @user_must('comments.add')
 @view_config(
     route_name='comments.write',
+    permission='comments.add',
     request_method='GET',
     renderer='comments/write.mako')
 def reply_to_discussion(discussion, request):
@@ -68,9 +68,9 @@ def reply_to_discussion(discussion, request):
         comment_form=CommentForm(),
     )
 
-# XXX @user_must('comments.add')
 @view_config(
     route_name='comments.reply',
+    permission='comments.add',
     request_method='GET',
     renderer='comments/write.mako')
 def reply_to_comment(comment, request):
@@ -87,13 +87,14 @@ def reply_to_comment(comment, request):
         comment_form=CommentForm(),
     )
 
-# XXX @user_must('comments.add')
 @view_config(
     route_name='comments.write',
+    permission='comments.add',
     request_method='POST',
     renderer='comments/write.mako')
 @view_config(
     route_name='comments.reply',
+    permission='comments.add',
     request_method='POST',
     renderer='comments/write.mako')
 # XXX split me up

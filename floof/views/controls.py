@@ -18,9 +18,9 @@ from floof.model import meta
 
 log = logging.getLogger(__name__)
 
-# XXX @logged_in
 @view_config(
     route_name='controls.index',
+    permission='__authenticated__',
     request_method='GET',
     renderer='account/controls/index.mako')
 def index(context, request):
@@ -75,9 +75,9 @@ def reduce_display_name(name):
 
     return name
 
-# XXX @logged_in
 @view_config(
     route_name='controls.info',
+    permission='__authenticated__',
     request_method='GET',
     renderer='account/controls/user_info.mako')
 def user_info(context, request):
@@ -86,9 +86,9 @@ def user_info(context, request):
         'form': form,
     }
 
-# XXX @logged_in
 @view_config(
     route_name='controls.info',
+    permission='__authenticated__',
     request_method='POST',
     renderer='account/controls/user_info.mako')
 def user_info_commit(context, request):
@@ -119,9 +119,9 @@ def user_info_commit(context, request):
     return HTTPSeeOther(location=request.path_url)
 
 
-# XXX @logged_in
 @view_config(
     route_name='controls.rels',
+    permission='__authenticated__',
     request_method='GET',
     renderer='account/controls/relationships.mako')
 def relationships(context, request):
@@ -145,7 +145,6 @@ class WatchForm(wtforms.form.Form):
     watch_of = wtforms.fields.BooleanField(u'')
 
 # XXX does this need a permission
-# XXX @logged_in
 # XXX not converted oops; needs userpages
 def relationships_watch(context, request):
     # XXX clean this crap up
@@ -163,7 +162,6 @@ def relationships_watch(context, request):
     return render('/account/controls/relationships_watch.mako')
 
 # XXX does this need a permission
-# XXX @logged_in
 # XXX not converted oops; needs userpages
 def relationships_watch_commit(context, request):
     # XXX clean this crap up
@@ -204,7 +202,6 @@ def relationships_watch_commit(context, request):
     redirect(url('user', user=target_user))
 
 # XXX does this need a permission
-# XXX @logged_in
 # XXX not converted oops; needs userpages
 def relationships_unwatch_commit(context, request):
     # XXX clean this crap up
@@ -252,9 +249,9 @@ class RemoveOpenIDForm(wtforms.form.Form):
         if len(field.data) >= len(field._get_object_list()):
             raise wtforms.ValidationError('You must keep at least one OpenID identity URL.')
 
-# XXX @user_must('auth.openid')
 @view_config(
     route_name='controls.openid',
+    permission='auth.openid',
     request_method='GET',
     renderer='account/controls/openid.mako')
 def openid(context, request):
@@ -268,9 +265,9 @@ def openid(context, request):
         remove_openid_form=remove_openid_form,
     )
 
-# XXX @user_must('auth.openid')
 @view_config(
     route_name='controls.openid.add',
+    permission='auth.openid',
     request_method='POST',
     renderer='account/controls/openid.mako')
 def openid_add(context, request):
@@ -297,9 +294,9 @@ def openid_add(context, request):
         return ret
 
 
-# XXX @user_must('auth.openid')
 @view_config(
     route_name='controls.openid.add_finish',
+    permission='auth.openid',
     request_method='GET',
     renderer='account/controls/openid.mako')
 def openid_add_finish(context, request):
@@ -341,9 +338,9 @@ def openid_add_finish(context, request):
     )
     return HTTPSeeOther(location=request.route_url('controls.openid'))
 
-# XXX @user_must('auth.openid')
 @view_config(
     route_name='controls.openid.remove',
+    permission='auth.openid',
     request_method='POST',
     renderer='account/controls/openid.mako')
 def openid_remove(context, request):
@@ -427,9 +424,9 @@ class AuthenticationForm(wtforms.form.Form):
                         'certificate is installed in your browser and being '
                         'successfully sent to the site.')
 
-# XXX @user_must('auth.certificates')
 @view_config(
     route_name='controls.certs',
+    permission='auth.certificates',
     request_method='GET',
     renderer='account/controls/certificates.mako')
 def certificates(context, request, err=None):
@@ -458,9 +455,9 @@ def certificates(context, request, err=None):
         form=form,
     )
 
-# XXX @user_must('auth.certificates')
 @view_config(
     route_name='controls.certs',
+    permission='auth.certificates',
     request_method='POST',
     renderer='account/controls/certificates.mako')
 def certificates_generate_client(context, request):
@@ -487,9 +484,9 @@ def certificates_generate_client(context, request):
         headerlist=[('Content-type', 'application/x-x509-user-cert')],
     )
 
-# XXX @user_must('auth.certificates')
 @view_config(
     route_name='controls.certs.generate_server',
+    permission='auth.certificates',
     request_method='POST',
     renderer='account/controls/certificates.mako')
 def certificates_generate_server(context, request):
@@ -514,9 +511,9 @@ def certificates_generate_server(context, request):
         headerlist=[('Content-type', 'application/x-pkcs12')],
     )
 
-# XXX @user_must('auth.certificates')
 @view_config(
     route_name='controls.certs.details',
+    permission='auth.certificates',
     request_method='GET',
     renderer='account/controls/certificates_details.mako')
 def certificates_details(context, request):
@@ -524,9 +521,9 @@ def certificates_details(context, request):
     # XXX check_cert(c.cert, c.user)
     return dict(cert=cert)
 
-# XXX @user_must('auth.certificates')
 @view_config(
     route_name='controls.certs.download',
+    permission='auth.certificates',
     request_method='GET')
 def certificates_download(context, request):
     cert = meta.Session.query(model.Certificate).get(request.matchdict['id'])
@@ -537,9 +534,9 @@ def certificates_download(context, request):
         headerlist=[('Content-type', 'application/x-pem-file')],
     )
 
-# XXX @user_must('auth.certificates')
 @view_config(
     route_name='controls.certs.revoke',
+    permission='auth.certificates',
     request_method='GET',
     renderer='account/controls/certificates_revoke.mako')
 def certificates_revoke(context, request, id=None):
@@ -554,9 +551,9 @@ def certificates_revoke(context, request, id=None):
         will_override_auth=will_override_auth,
     )
 
-# XXX @user_must('auth.certificates')
 @view_config(
     route_name='controls.certs.revoke',
+    permission='auth.certificates',
     request_method='POST')
 def certificates_revoke_commit(context, request):
     cert = meta.Session.query(model.Certificate).get(request.matchdict['id'])
@@ -570,9 +567,9 @@ def certificates_revoke_commit(context, request):
     )
     return HTTPSeeOther(location=request.route_url('controls.certs'))
 
-# XXX @user_must('auth.method')
 @view_config(
     route_name='controls.auth',
+    permission='auth.method',
     request_method='GET',
     renderer='account/controls/authentication.mako')
 def authentication(context, request):
@@ -581,10 +578,10 @@ def authentication(context, request):
         form=form,
     )
 
-# XXX @user_must('auth.method')
 # XXX this one is full of things to fix
 @view_config(
     route_name='controls.auth',
+    permission='auth.method',
     request_method='POST',
     renderer='account/controls/authentication.mako')
 def authentication_commit(context, request):

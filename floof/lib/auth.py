@@ -3,6 +3,7 @@ from pylons.controllers.util import abort
 
 import OpenSSL.crypto as ssl
 from pyramid.decorator import reify
+from pyramid.security import ACLAllowed, ACLDenied
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import NoResultFound
 
@@ -37,7 +38,7 @@ for lvl in req_confidence_levels:
     for priv in req_confidence_levels[lvl]:
         sensitive_privs.append(priv)
 
-class FloofAuthPolicy(object):
+class FloofAuthnPolicy(object):
     """Authentication policy bolted atop a beaker session.
 
     Most of the actual work here is done by the Auth class below.  The Pyramid
@@ -52,7 +53,27 @@ class FloofAuthPolicy(object):
         raise NotImplementedError()
 
     def effective_principals(self, request):
-        return ()
+        # XXX this basically spits on Pyramid's entire ACL thing
+        # XXX an ACL would be useful for multiple roles, where e.g. "user" has
+        # a bunch of permissions but "banned" removes them all
+        user = request.user
+        if user:
+            privs = set(priv.name for priv in user.role.privileges)
+
+            # TODO make these, like, pseudoroles, and replace them in code with
+            # actual privs
+            privs.add('__authenticated__')
+            # TODO the whole idea of 'levels' can kinda go away here I guess
+            if request.auth.trusted >= 1:
+                privs.add('trusted:recent')  # XXX make your mind up on syntax
+                # XXX additionally that's a bad name since 'cert' includes 'recent'
+            if request.auth.trusted >= 2:
+                privs.add('trusted:cert')
+
+            return privs
+
+        else:
+            return []
 
     def remember(self, request, principal, **kw):
         request.auth.login_openid(principal)
@@ -61,6 +82,35 @@ class FloofAuthPolicy(object):
     def forget(self, request):
         request.session.pop('auth', None)
 
+class FloofAuthzPolicy(object):
+    """Authorization policy that uses simple permissions stored in the db."""
+
+    def permits(self, context, principals, permission):
+        # XXX should these return Allowed/Denied too?
+
+        # XXX this basically spits on Pyramid's whole ACL thing.
+        # XXX a later thought: the role_privileges table IS the ACL, and we're
+        # kind of short-circuiting it here
+        if permission not in principals:
+            return ACLDenied('<default deny>', principals, permission, principals, context)
+
+        # TODO this stuff should be in the db as properties of the Privilege.
+        # alternatively, scrap the db and keep this stuff in code, since having
+        # roles in the db should already be plenty flexible.
+        addl_permission = None
+        if permission.startswith('auth.'):
+            addl_permission = 'trusted:recent'
+        elif permission.startswith('admin.'):
+            addl_permission = 'trusted:cert'
+        # XXX what about sensitive_required, ugh
+
+        # XXX this is stupid.  move it to a decorator or something on the actual view code.
+        if 0 and addl_permission and addl_permission not in principals:
+            # XXX preserve the messages from the deocorators
+            # XXX also, fix the user-facing error pages in general good lord
+            return ACLDenied('<addl default deny>', principals, addl_permission, principals, context)
+
+        return ACLAllowed('<woohoo>', principals, permission, principals, context)
 
 
 

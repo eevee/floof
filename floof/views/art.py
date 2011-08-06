@@ -73,7 +73,6 @@ class UploadArtworkForm(wtforms.form.Form):
     )
     tags = MultiTagField(u'Tags')
 
-# XXX @user_must('art.upload')
 @view_config(
     route_name='art.upload',
     # XXX request_method='GET',
@@ -250,9 +249,9 @@ def view(artwork, request):
     )
 
 
-# XXX @user_must('art.rate')
 @view_config(
     route_name='art.rate',
+    permission='art.rate',
     request_method='POST')
 @view_config(
     route_name='art.rate',
@@ -315,9 +314,9 @@ class AddTagForm(wtforms.form.Form):
                 if tag in form._artwork.tags:
                     raise ValueError("Already tagged with \"{0}\"".format(tag))
 
-# XXX @user_must('tags.add')
 @view_config(
     route_name='art.add_tags',
+    permission='tags.add',
     request_method='POST')
 def add_tags(artwork, request):
     form = AddTagForm(request.POST, artwork=artwork)
@@ -352,9 +351,9 @@ class RemoveTagForm(wtforms.form.Form):
                 if tag not in form._artwork.tags:
                     raise ValueError(u"Not tagged with \"{0}\"".format(tag))
 
-# XXX @user_must('tags.remove')
 @view_config(
     route_name='art.remove_tags',
+    permission='tags.remove',
     request_method='POST')
 def remove_tags(artwork, request):
     form = RemoveTagForm(request.POST, artwork=artwork)

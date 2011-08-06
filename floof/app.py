@@ -3,7 +3,6 @@ import subprocess
 
 from pyramid_beaker import session_factory_from_settings
 from pyramid import security
-from pyramid.authentication import AuthTktAuthenticationPolicy
 from pyramid.config import Configurator
 from pyramid.decorator import reify
 from pyramid.events import BeforeRender, NewRequest
@@ -12,7 +11,7 @@ from pyramid.settings import asbool
 from sqlalchemy import engine_from_config
 from zope.sqlalchemy import ZopeTransactionExtension
 
-from floof.lib.auth import Authenticizer, FloofAuthPolicy
+from floof.lib.auth import Authenticizer, FloofAuthnPolicy, FloofAuthzPolicy
 import floof.lib.debugging
 import floof.lib.helpers
 import floof.model
@@ -119,7 +118,8 @@ def main(global_config, **settings):
         settings=settings,
         request_factory=FloofRequest,
         session_factory=session_factory_from_settings(settings),
-        authentication_policy=FloofAuthPolicy(),
+        authentication_policy=FloofAuthnPolicy(),
+        authorization_policy=FloofAuthzPolicy(),
     )
 
     # Added manually because @subscriber only works with a

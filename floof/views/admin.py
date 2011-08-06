@@ -9,17 +9,17 @@ from floof.model import meta
 
 log = logging.getLogger(__name__)
 
-# XXX @user_must('admin.view')
 @view_config(
     route_name='admin.dashboard',
+    permission='admin.view',
     request_method='GET',
     renderer='admin/dashboard.mako')
 def dashboard(context, request):
     return dict(current_action='dashboard')
 
-# XXX @user_must('admin.view')
 @view_config(
     route_name='admin.log',
+    permission='admin.view',
     request_method='GET',
     renderer='admin/log.mako')
 def log_(context, request):
