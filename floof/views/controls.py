@@ -113,9 +113,7 @@ def user_info_commit(context, request):
 
     request.session.flash(
         u'Successfully updated user info.',
-        # XXX level=u'success'
-    )
-
+        level=u'success')
     return HTTPSeeOther(location=request.path_url)
 
 
@@ -197,8 +195,7 @@ def relationships_watch_commit(context, request):
     # XXX where should this redirect?
     helpers.flash(
         u"Saved watch settings for {0}.".format(target_user.display_name),
-        level=u'success',
-    )
+        level=u'success')
     redirect(url('user', user=target_user))
 
 # XXX does this need a permission
@@ -215,8 +212,7 @@ def relationships_unwatch_commit(context, request):
         # XXX better redirect whatever
         helpers.flash(
             u"If you REALLY REALLY want to unwatch {0}, check the box and try again.".format(target_user.display_name),
-            level=u'error',
-        )
+            level=u'error')
         redirect(url.current(
             action='relationships_watch', target_user=target_username),
             )
@@ -229,8 +225,7 @@ def relationships_unwatch_commit(context, request):
     # XXX where should this redirect?
     helpers.flash(
         u"Unwatched {0}.".format(target_user.display_name),
-        level=u'success',
-    )
+        level=u'success')
     redirect(url('user', user=target_user))
 
 
@@ -334,8 +329,7 @@ def openid_add_finish(context, request):
     user.identity_urls.append(openid)
     request.session.flash(
         u"Successfully added OpenID identifier: {0}".format(identity_url),
-        # XXX level=u'success'
-    )
+        level=u'success')
     return HTTPSeeOther(location=request.route_url('controls.openid'))
 
 @view_config(
@@ -360,8 +354,7 @@ def openid_remove(context, request):
     for target in form.openids.data:
         request.session.flash(
             u"Removed OpenID identifier: {0}".format(target.url),
-            # XXX level=u'success'
-        )
+            level=u'success')
         meta.Session.delete(target)
     return HTTPSeeOther(location=request.route_url('controls.openid'))
 
@@ -445,10 +438,9 @@ def certificates(context, request, err=None):
         request.user.certificates.append(cert)
         meta.Session.commit()
         helpers.flash(
-                u'New certificate generated.  You may need to restart '
-                'your browser to begin authenticating with it.',
-                level=u'success',
-                )
+            u'New certificate generated.  You may need to restart '
+            'your browser to begin authenticating with it.',
+            level=u'success')
         response.content_type = 'application/x-x509-user-cert'
         return cert.public_data_der
     return dict(
@@ -477,8 +469,7 @@ def certificates_generate_client(context, request):
     request.session.flash(
         u'New certificate generated.  You may need to restart '
         'your browser to begin authenticating with it.',
-        # XXX level=u'success',
-    )
+        level=u'success')
     return Response(
         body=cert.public_data_der,
         headerlist=[('Content-type', 'application/x-x509-user-cert')],
@@ -504,8 +495,7 @@ def certificates_generate_server(context, request):
     request.user.certificates.append(cert)
     request.session.flash(
         u'New certificate generated.',
-        # XXX level=u'success',
-    )
+        level=u'success')
     return Response(
         body=cert.pkcs12(form.passphrase.data, form.name.data, *ca),
         headerlist=[('Content-type', 'application/x-pkcs12')],
@@ -563,8 +553,7 @@ def certificates_revoke_commit(context, request):
     # XXX stop naming these by id; use the actual stamp, or date, or something
     request.session.flash(
         u"Certificate ID {0} revoked successfully.".format(cert.id),
-        # XXX level=u'success',
-    )
+        level=u'success')
     return HTTPSeeOther(location=request.route_url('controls.certs'))
 
 @view_config(
@@ -595,7 +584,7 @@ def authentication_commit(context, request):
         if 0 and not c.auth.authenticate() and not c.confirm_form.confirm.data:
             pass
         else:
-            request.session.flash(u'Authentication options updated.', )# XXX level=u'success')
+            request.session.flash(u'Authentication options updated.', level=u'success')
             if 0 and not c.auth.authenticate():
                 redirect(url(controller='account', action='login'))
             return HTTPSeeOther(location=request.path_url)

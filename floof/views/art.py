@@ -122,8 +122,9 @@ def upload(context, request):
         .filter_by(hash = hash) \
         .all()
     if existing_artwork:
-        request.session.flash(u'This artwork has already been uploaded.',
-            )# XXX level=u'warning', icon=u'image-import')
+        request.session.flash(
+            u'This artwork has already been uploaded.',
+            level=u'warning', icon=u'image-import')
         return HTTPSeeOther(location=request.route_url('art.view', artwork=existing_artwork[0]))
 
     ### By now, all error-checking should be done.
@@ -208,8 +209,7 @@ def upload(context, request):
 
     meta.Session.add_all([artwork, discussion, resource])
 
-    request.session.flash(u'Uploaded!',
-        )#XXX level=u'success', icon=u'image--plus')
+    request.session.flash(u'Uploaded!', level=u'success', icon=u'image--plus')
     return HTTPSeeOther(location=request.route_url('art.view', artwork=artwork))
 
 

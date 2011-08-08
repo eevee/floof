@@ -55,14 +55,12 @@
         </ul>
     </div>
 
-    <% flash = request.session.pop_flash() %>
-    % if flash:
-    ## XXX yeah this won't actually work yet.
+    <% flash_queue = request.session.pop_flash() %>
+    % if flash_queue:
     <ul id="flash">
-        % for messages in flash:
-        <li class="flash-level-${'' and messages.message[1]['level']}">
-            ##${lib.icon(messages.message[1]['icon'])}
-            ${messages}
+        % for flash in flash_queue:
+        <li class="flash-level-${flash['level']}">
+            ${lib.icon(flash['icon'])} ${flash['message']}
         </li>
         % endfor
     </ul>

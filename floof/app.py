@@ -5,7 +5,7 @@ from pyramid_beaker import session_factory_from_settings
 from pyramid import security
 from pyramid.config import Configurator
 from pyramid.decorator import reify
-from pyramid.events import BeforeRender, NewRequest
+from pyramid.events import BeforeRender, NewRequest, NewResponse
 from pyramid.request import Request
 from pyramid.settings import asbool
 from sqlalchemy import engine_from_config
@@ -34,6 +34,32 @@ class FloofRequest(Request):
     def user(self):
         return self.auth.user
 
+
+class _RichSessionFlashMixin(object):
+    """Tack me onto a standard Pyramid session class to store the flash as
+    dicts instead of strings.
+    """
+
+    _default_flash_icons = dict(
+        error='exclamation-red-frame',
+        warning='exclamation-diamond-frame',
+        notice='hand-point',
+        success='tick-circle',
+    )
+
+    def flash(self, message, icon=None, level='notice', **kwargs):
+        """Store your flash message with an optional icon and "level" (which
+        really just affects the CSS class).
+        """
+        assert level in self._default_flash_icons
+
+        if icon is None:
+            icon = self._default_flash_icons[level]
+
+        to_store = dict(message=message, icon=icon, level=level)
+        super(_RichSessionFlashMixin, self).flash(to_store, **kwargs)
+
+
 class HTTPOnlyCookieMiddleware(object):
     """Middleware that catches Set-Cookie headers and forces them to be
     HTTPOnly, preventing session hijacking attacks in most browsers.
@@ -61,6 +87,12 @@ def start_template_timer(event):
     """Inform the request's timer object to switch to recording rendering time.
     """
     event['request'].timer.switch_timer('mako')
+
+def flush_everything(event):
+    # XXX this is a hack to make the timer stuff not explode.  repoze.tm
+    # commits after the request has already gone away, which breaks it.  try
+    # flushing first so the commit doesn't trigger the sqla listeners.  :/
+    meta.Session.flush()
 
 def prevent_csrf(event):
     """Require a CSRF token on all POST requests.
@@ -114,10 +146,16 @@ def main(global_config, **settings):
     settings['filestore'] = filestore.get_storage(settings)
 
     ### Configuratify
+    # Session factory needs to subclass our mixin above.  Beaker's
+    # verbosely-named function just returns a class, so do some MI
+    FloofSessionFactory = type('FloofSessionFactory',
+        (_RichSessionFlashMixin,
+            session_factory_from_settings(settings)),
+        {})
     config = Configurator(
         settings=settings,
         request_factory=FloofRequest,
-        session_factory=session_factory_from_settings(settings),
+        session_factory=FloofSessionFactory,
         authentication_policy=FloofAuthnPolicy(),
         authorization_policy=FloofAuthzPolicy(),
     )
@@ -127,6 +165,7 @@ def main(global_config, **settings):
     config.add_subscriber(prevent_csrf, NewRequest)
     config.add_subscriber(start_template_timer, BeforeRender)
     config.add_subscriber(add_renderer_globals, BeforeRender)
+    config.add_subscriber(flush_everything, NewResponse)
 
     floof.routing.configure_routing(config)
     config.scan(floof.views)

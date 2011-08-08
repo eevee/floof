@@ -8,7 +8,6 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import NoResultFound
 
 from floof import model
-from floof.lib.helpers import flash
 from floof.model import meta, Certificate
 
 import calendar
@@ -421,7 +420,7 @@ def fetch_post(session, request):
         if stash_item:
             return stash_item.get('post_data', None)
         else:
-            flash(u'Unrecognised return key.  Timeout?', level='warning')
+            session.flash(u'Unrecognised return key.  Timeout?', level='warning')
     return request.POST
 
 def get_ca(settings):
