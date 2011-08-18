@@ -112,6 +112,11 @@ class FloofAuthzPolicy(object):
         return ACLAllowed('<woohoo>', principals, permission, principals, context)
 
 
+class CertNotFoundError(Exception): pass
+class CertAuthDisabledError(Exception): pass
+class CertRevokedError(Exception): pass
+class OpenIDAuthDisabledError(Exception): pass
+class CertAuthConflictError(Exception): pass
 
 class Authenticizer(object):
     """Manages the authentication and authorization state of the current user.
@@ -156,7 +161,19 @@ class Authenticizer(object):
             except KeyError:
                 cert_serial = None
 
-        self.login_certificate(cert_serial)
+        try:
+            self.login_certificate(cert_serial)
+        except CertNotFoundError:
+            # This should NEVER happen in production (certs should last
+            # forever)
+            request.session.flash("I don't recognize your client certificate.",
+                level='error', icon='key--exclamation')
+        except CertAuthDisabledError:
+            request.session.flash("Client certificates are disabled for your account.",
+                level='error', icon='key--exclamation')
+        except CertRevokedError:
+            request.session.flash("That client certificate has been revoked.",
+                level='error', icon='key--exclamation')
 
         # Check confidence level.
         # Guests are -1.
@@ -192,7 +209,6 @@ class Authenticizer(object):
         existing cert-related state is cleared.
         """
         if serial:
-            print type(serial)
             serial = serial.lower()
 
         # Certificates are sent on every request.  To avoid db churn looking
@@ -201,6 +217,8 @@ class Authenticizer(object):
             # Stored serial matches the new one (even if the new one is None),
             # so the state's user_id is correct and there's nothing to do
             return
+            # XXX surely we should check whether the cert was revoked in the
+            # meantime
 
         if not serial:
             # No cert given, but we had one before.  Clear the serial from the
@@ -217,20 +235,12 @@ class Authenticizer(object):
         try:
             cert = cert_q.one()
         except NoResultFound:
-            # XXX do something; probably abort with 500 or 400 (bad request)
-            raise
-            # Should never happen in production
-            # (Certificate records should stand eternal)
-            abort(500, detail='Unable to find certificate in store.  '
-                    '(Has the certificate record been deleted?)  '
-                    'Try not sending your SSL client certificate.')
+            raise CertNotFoundError
 
         if cert.user.cert_auth == u'disabled':
-            # This cert isn't supposed to be used!
-            raise ValueError  # XXX
+            raise CertAuthDisabledError
         if cert.revoked:
-            # Nor is this!
-            raise ValueError  # XXX
+            raise CertRevokedError
 
         if cert.user_id != self.state.get('user_id', None):
             # This is, essentially, a new login.  Start the state clean
@@ -249,11 +259,11 @@ class Authenticizer(object):
         Need to save the session after this!"""
         # XXX Temporarily drop auth level if user's certs have all expired
         if user.cert_auth == 'required':
-            raise ValueError("this user can't log in with openid")
+            raise OpenIDAuthDisabledError
 
         if user != self.user:
             if 'cert_serial' in self.state:
-                raise ValueError("can't log in with an openid when you're using a client cert")
+                raise CertAuthConflictError
 
             self.state.clear()
             del self.user
