@@ -10,10 +10,10 @@
         ('dashboard',    'question',         u'Dashboard'), \
         ('log',          'book-bookmark',    u'Log'), \
     ]:
-    % if action == c.current_action:
+    % if action == current_action:
     <li class="selected">${lib.icon(icon)} ${title}</li>
     % else:
-    <li><a href="${url(controller='admin', action=action)}">${lib.icon(icon)} ${title}</a></li>
+    <li><a href="${request.route_url('admin.' + action)}">${lib.icon(icon)} ${title}</a></li>
     % endif
     % endfor
 </ul>

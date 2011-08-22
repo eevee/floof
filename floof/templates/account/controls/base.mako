@@ -7,17 +7,17 @@
 
 <ul id="control-panel-navigation">
     % for action, icon, title in [ \
-        ('index',           'fruit',        u'Index??'), \
-        ('user_info',       'user',         u'User Info'), \
-        ('relationships',   'users',        u'Watches'), \
-        ('openid',          'user',         u'OpenID Identities'), \
-        ('certificates',    'key',          u'SSL Certificates'), \
-        ('authentication',  'key',          u'Authentication Options'), \
+        ('index',   'fruit',        u'Index??'), \
+        ('info',    'user',         u'User Info'), \
+        ('rels',    'users',        u'Watches'), \
+        ('openid',  'user',         u'OpenID Identities'), \
+        ('certs',   'key',          u'SSL Certificates'), \
+        ('auth',    'key',          u'Authentication Options'), \
     ]:
-    % if action == c.current_action:
+    % if action == request.matched_route.name.split('.')[1]:
     <li class="selected">${lib.icon(icon)} ${title}</li>
     % else:
-    <li><a href="${url(controller='controls', action=action)}">${lib.icon(icon)} ${title}</a></li>
+    <li><a href="${request.route_url('controls.' + action)}">${lib.icon(icon)} ${title}</a></li>
     % endif
     % endfor
 </ul>

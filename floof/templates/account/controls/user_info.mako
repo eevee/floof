@@ -13,13 +13,13 @@ fields = [
 %>
 
 <h2>User Info</h2>
-${h.secure_form(url.current())}
+${lib.secure_form(request.path_url)}
 
 <input type="submit" class="stylish-button" value="Update" />
 <dl>
     % for f in fields:
-        <% field = getattr(c.form, f) %>\
-        <% maxlen = getattr(c.form, '_{0}_maxlen'.format(f), None) %>\
+        <% field = form[f] %>\
+        <% maxlen = getattr(form, '_{0}_maxlen'.format(f), None) %>\
         % if maxlen:
             ${lib.field(field, size=maxlen, maxlength=maxlen)}
         % else:

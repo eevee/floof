@@ -4,7 +4,7 @@
 <%def name="panel_title()">Watch ${lib.user_link(c.target_user)}</%def>
 <%def name="panel_icon()">${lib.icon(u'user--plus')}</%def>
 
-${h.secure_form(url.current(target_user=c.target_user.name))}
+${lib.secure_form(url.current(target_user=c.target_user.name))}
 <h2>Watch...</h2>
 <ul>
     <li><label>
@@ -35,7 +35,7 @@ ${h.end_form()}
 
 % if c.watch:
 <h2>Or...</h2>
-${h.secure_form(url(controller='controls', action='relationships_unwatch_commit', target_user=c.target_user.name))}
+${lib.secure_form(url(controller='controls', action='relationships_unwatch_commit', target_user=c.target_user.name))}
 <p>
     <label><input type="checkbox" name="confirm"> Unwatch ${c.target_user.display_name} entirely</label>
     <br>

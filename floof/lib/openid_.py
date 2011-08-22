@@ -3,8 +3,6 @@ from openid.extensions.sreg import SRegRequest, SRegResponse
 from openid.extensions.draft.pape5 import Request as PAPERequest, Response as PAPEResponse
 from openid.store.filestore import FileOpenIDStore
 from openid.yadis.discover import DiscoveryFailure
-from pylons import request, response, session, tmpl_context as c, url
-from pylons.controllers.util import abort, redirect
 from routes import request_config
 from urllib2 import HTTPError, URLError
 
@@ -15,7 +13,7 @@ openid_store = FileOpenIDStore('/var/tmp')
 class OpenIDError(RuntimeError):
     pass
 
-def openid_begin(identifier, return_url, max_auth_age=False, sreg=False):
+def openid_begin(identifier, return_url, request, max_auth_age=False, sreg=False):
     """Step one of logging in with OpenID; we resolve a webfinger,
     if present, then redirect to the provider.
 
@@ -26,6 +24,7 @@ def openid_begin(identifier, return_url, max_auth_age=False, sreg=False):
     ensure that the user authenticated within that many seconds prior
     to the request, or else force immediate re-authentication."""
 
+    session = request.session
     openid_url = identifier
     # Does it look like an email address?
     # If so, try finding an OpenID URL via Webfinger.
@@ -59,6 +58,7 @@ def openid_begin(identifier, return_url, max_auth_age=False, sreg=False):
 
     cons = Consumer(session=session, store=openid_store)
 
+    print 1
     try:
         auth_request = cons.begin(openid_url)
     except DiscoveryFailure:
@@ -66,6 +66,7 @@ def openid_begin(identifier, return_url, max_auth_age=False, sreg=False):
                 "Can't connect to '{0}'.  Are you sure it's a valid OpenID URL or webfinger-enabled email address?"
                 .format(openid_url)
                 )
+    print 2
 
     if sreg:
         sreg_req = SRegRequest(optional=['nickname', 'email', 'dob', 'gender',
@@ -75,18 +76,19 @@ def openid_begin(identifier, return_url, max_auth_age=False, sreg=False):
         auth_age_req = PAPERequest(max_auth_age=max_auth_age)
         auth_request.addExtension(auth_age_req)
 
-    host = request.headers['host']
-    protocol = request_config().protocol
+    print 3
+    # XXX is this realm stuff correct
     new_url = auth_request.redirectURL(
             return_to=return_url,
-            realm=protocol + '://' + host,
+            realm=request.host_url,
             )
+    print new_url
     return new_url
 
-def openid_end(return_url):
+def openid_end(return_url, request):
     """Step two of logging in; the OpenID provider redirects back here."""
 
-    cons = Consumer(session=session, store=openid_store)
+    cons = Consumer(session=request.session, store=openid_store)
     host = request.headers['host']
     res = cons.complete(request.params, return_url)
 
@@ -94,9 +96,7 @@ def openid_end(return_url):
         raise OpenIDError('Error!  {0}'.format(res.message))
 
     identity_url = unicode(res.identity_url)
-    identity_webfinger = session.get('pending_identity_webfinger', None)
-    if identity_webfinger:
-        del session['pending_identity_webfinger']
+    identity_webfinger = request.session.pop('pending_identity_webfinger', None)
 
     sreg_res = SRegResponse.fromSuccessResponse(res) or dict()
     pape_res = PAPEResponse.fromSuccessResponse(res)

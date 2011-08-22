@@ -1,11 +1,7 @@
 <%inherit file="/base.mako" />
 
-<%def name="title()">${c.code}</%def>
+<%def name="title()">${http_status}</%def>
 
-<h1>${c.code}!</h1>
+<h1>${http_status}</h1>
 
-% if c.code == '404':
-<p><tt>${c.req.path_info}</tt> could not be found.</p>
-% else:
-<p>${c.message}</p>
-% endif
+<p>${message}</p>

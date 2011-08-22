@@ -7,7 +7,7 @@
 <h1>${title()}</h1>
 
 <div class="artwork-categories">
-    ${h.form(url.current(), method='GET', class_='inline')}
+    ${h.form(request.path_url, method='GET', class_='inline')}
         Browse:
         <button class="stylish-button selected" disabled="disabled">Everything</button>
         ## FILTERS: time < 24h.  not mine?  SORT: rating, desc
@@ -21,4 +21,4 @@
     ${h.end_form()}
 </div>
 
-${artlib.render_gallery_sieve(c.gallery_sieve)}
+${artlib.render_gallery_sieve(gallery_sieve)}

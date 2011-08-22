@@ -6,8 +6,8 @@
     <div class="avatar">${lib.avatar(comment.author)}</div>
     <div class="header">
         <ul class="links">
-            <li><a href="${h.comment_url(comment.discussion.resource, 'write', comment.id, anchor="comment")}">Reply</a></li>
-            <li><a href="${h.comment_url(comment.discussion.resource, 'view', comment.id, anchor="comment")}">Link</a></li>
+            <li><a href="${request.route_url('comments.reply', comment=comment, _anchor='comment')}">Reply</a></li>
+            <li><a href="${request.route_url('comments.view', comment=comment, _anchor='comment')}">Link</a></li>
         </ul>
         ${lib.user_link(comment.author)}
         at ${lib.time(comment.posted_time)}
@@ -55,12 +55,7 @@
 </%def>
 
 <%def name="write_form(form, resource, parent_comment=None)">
-<%
-    parent_comment_id = None
-    if parent_comment:
-        parent_comment_id = parent_comment.id
-%>\
-${h.secure_form(h.comment_url(resource, 'write_commit', comment_id=parent_comment_id), method='POST')}
+${lib.secure_form(request.route_url('comments.reply' if parent_comment else 'comments.write', resource=resource, comment=parent_comment), method='POST')}
 <p>${form.message(rows=25, cols=80)}</p>
 <p>
     <button type="submit">POST TO INTERNET</button>

@@ -8,14 +8,14 @@
     Upload
 </h1>
 
-${h.secure_form(url.current(), multipart=True)}
+${lib.secure_form(request.path_url, multipart=True)}
 <dl class="standard-form">
-    ${lib.field(c.form.file)}
-    ${lib.field(c.form.title, size=64, maxlength=133)}
-    ${lib.field(c.form.tags, size=64)}
+    ${lib.field(form.file)}
+    ${lib.field(form.title, size=64, maxlength=133)}
+    ${lib.field(form.tags, size=64)}
 
     ## Relationship stuff
-    % for field in c.form.relationship:
+    % for field in form.relationship:
     <dd>
         ${field() | n}
         % if field.data == u'by':
@@ -28,8 +28,8 @@ ${h.secure_form(url.current(), multipart=True)}
         ${field.label() | n}
     </dd>
     % endfor
-    % if c.form.relationship.errors:
-    <dd>${lib.field_errors(c.form.relationship)}</dd>
+    % if form.relationship.errors:
+    <dd>${lib.field_errors(form.relationship)}</dd>
     % endif
 
     <dd><button type="submit">Upload!</button></dd>

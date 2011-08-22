@@ -10,7 +10,7 @@
 </%def>
 
 <%def name="icon(which, alt='')">\
-<img src="${url('icon', which=which)}" alt="${alt}">\
+<img src="${request.static_url("floof:public/icons/{which}.png".format(which=which))}" alt="${alt}">\
 </%def>
 
 <%!
@@ -40,7 +40,7 @@
 
 ## User handling
 <%def name="time(t)">\
-${c.user.localtime(t).strftime('%A, %d %B %Y at %H:%M %Z')}\
+${request.user.localtime(t).strftime('%A, %d %B %Y at %H:%M %Z')}\
 </%def>
 
 <%def name="timedelta(td)">\
@@ -63,7 +63,7 @@ ${"{0} days, {1} hours, {2} mins".format(td.days, hours, mins)}\
 </%def>
 
 <%def name="user_link(user, show_trivial_username=False)">
-<a href="${url('user', user=user)}">\
+<a href="${request.route_url('users.view', user=user)}">\
 % if user.display_name is None:
 ${user.name}</a>\
 % elif user.has_trivial_display_name and not show_trivial_username:
@@ -74,13 +74,18 @@ ${user.display_name}</a> (${user.name})\
 </%def>
 
 <%def name="user_panel(user)">
-<a href="${url('user', user=user)}" class="user-panel">
+<a href="${request.route_url('users.view', user=user)}" class="user-panel">
     ${user.display_name}
 </a>
 </%def>
 
 
 ## Standard form rendering
+<%def name="secure_form(*args, **kwargs)">
+${h.tags.form(*args, **kwargs)}
+${h.tags.hidden('csrf_token', value=request.session.get_csrf_token(), id=None)}
+</%def>
+
 <%def name="field(form_field, **kwargs)">\
 % if isinstance(form_field.widget, wtforms.widgets.CheckboxInput):
 <dd>
@@ -106,7 +111,7 @@ ${user.display_name}</a> (${user.name})\
 ## Prints a short summary of a resource; used as the header in commenting
 <%def name="resource_summary(resource)">
 % if resource.type == u'artwork':
-<p><a href="${h.art_url(c.discussion.resource.member)}">Return</a></p>
+<p><a href="${request.route_url('art.view', artwork=resource.member)}">Return</a></p>
 % endif
 </%def>
 
@@ -150,7 +155,7 @@ for char in serial[:10]:
     </li>
     % else:
     <li>
-        <a href="${h.update_params(url.current(), \
+        <a href="${h.update_params(request.path_url, \
             **pager.formdata_for(page * pager.page_size))}">
             % if page == 0:
             ⇤
@@ -169,7 +174,7 @@ for char in serial[:10]:
 % endfor
 % if temporal_column_name and pager.is_last_allowable_page:
 <li>
-    <a href="${h.update_params(url.current(), \
+    <a href="${h.update_params(request.path_url, \
         **pager.formdata_for_temporal(temporal_column_name))}">More →</a>
 </li>
 % endif
@@ -180,7 +185,7 @@ for char in serial[:10]:
 <ol class="pager">
     % if pager.timeskip:
     <li>
-        <a href="${h.update_params(url.current(), \
+        <a href="${h.update_params(request.path_url, \
             **pager.formdata_for(None))}">⇤ Newest</a>
     </li>
     <li class="elided">…</li>
@@ -194,7 +199,7 @@ for char in serial[:10]:
 
     % if not pager.is_last_page:
     <li>
-        <a href="${h.update_params(url.current(), \
+        <a href="${h.update_params(request.path_url, \
             **pager.formdata_for(pager.next_item_timeskip))}">More →</a>
     </li>
     % endif

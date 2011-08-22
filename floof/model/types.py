@@ -32,7 +32,7 @@ class Timezone(types.TypeDecorator):
     def process_result_value(self, value, engine):
         if value is None:
             return pytz.utc
-        return pytz.timezone(value)
+        return pytz.timezone(value.encode('ascii'))
 
 # XXX: I need to check whether this actually gives any great gains over
 # using a string.

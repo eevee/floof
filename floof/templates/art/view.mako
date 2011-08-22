@@ -2,20 +2,20 @@
 <%namespace name="lib" file="/lib.mako" />
 <%namespace name="comments_lib" file="/comments/lib.mako" />
 
-<%def name="title()">${c.artwork.title or 'Untitled'} - Artwork</%def>
+<%def name="title()">${artwork.title or 'Untitled'} - Artwork</%def>
 <%def name="script_dependencies()">
-    ${h.javascript_link('/js/lib/jquery.ui-1.8.7.js')}
-    ${h.javascript_link('/js/lib/jquery.ui.rater.js')}
+    ${h.javascript_link(request.static_url('floof:public/js/lib/jquery.ui-1.8.7.js'))}
+    ${h.javascript_link(request.static_url('floof:public/js/lib/jquery.ui.rater.js'))}
 </%def>
 
 <h1>
     ${lib.icon('image')}
-    ${c.artwork.title or 'Untitled'}
+    ${artwork.title or 'Untitled'}
 </h1>
 
 ## Ye art itself
 <div class="artwork">
-    <img src="${url('filestore', class_=u'artwork', key=c.artwork.hash)}" alt="">
+    <img src="${request.route_url('filestore', class_=u'artwork', key=artwork.hash)}" alt="">
 </div>
 
 ## Metadata and whatever
@@ -27,14 +27,14 @@
     <div class="column-2x">
     <dl class="standard-form">
         <dt>Title</dt>
-        <dd>${c.artwork.title or 'Untitled'}</dd>
+        <dd>${artwork.title or 'Untitled'}</dd>
         <dt>Uploader</dt>
         <dd>
             ${lib.icon('disk')}
-            ${lib.user_link(c.artwork.uploader)}
+            ${lib.user_link(artwork.uploader)}
         </dd>
 
-        % for user_artwork in c.artwork.user_artwork:
+        % for user_artwork in artwork.user_artwork:
         <dt>${user_artwork.relationship_type}</dt>
         <dd>
             % if user_artwork.relationship_type == u'by':
@@ -54,27 +54,28 @@
     <div class="column">
         <div class="art-rater">
         <%
-            if c.artwork.rating_score is None:
+            if artwork.rating_score is None:
                 rating_score = None
             else:
-                rating_score = c.artwork.rating_score * config['rating_radius']
+                rating_score = artwork.rating_score # XXX * config['rating_radius']
         %>\
-        % if c.user.can('art.rate'):
+        % if 1 or request.user.can('art.rate'):
             <script type="text/javascript">
             $("div.art-rater").rater({
-                rate_url: "${url(controller='art', action='rate', id=c.artwork.id)}",
-                value: ${c.current_rating},
-                num_ratings: ${c.artwork.rating_count},
+                rate_url: "${request.route_url('art.rate', artwork=artwork)}",
+                value: ${current_rating or '0'},  // XXX ugghghuguhg
+                num_ratings: ${artwork.rating_count},
                 rating_sum: ${rating_score or 'null'},
-                auth_token: "${h.authentication_token()}", auth_token_field: "${h.token_key}"})
+                ##XXX auth_token: "${h.authentication_token()}", auth_token_field: "${h.token_key}"})
+                auth_token: "", auth_token_field: ""})
             </script>
             <noscript>
-                <div class="rater-info"><span class="rater-num-ratings">${c.artwork.rating_count}</span> (<span class="rater-rating-sum">${rating_score or u'—'}</span>)</div>
+                <div class="rater-info"><span class="rater-num-ratings">${artwork.rating_count}</span> (<span class="rater-rating-sum">${rating_score or u'—'}</span>)</div>
                 <% rating_chars = [u'\u2b06', u'\u2022', u'\u2b07'] %>
                 % for r in range(len(rating_chars)):
-                    ${h.secure_form(url(controller='art', action='rate', id=c.artwork.id), class_="rater-form")}
+                    ${lib.secure_form(request.route_url('art.rate', artwork=artwork), class_="rater-form")}
                         ${h.hidden(name="rating", value=(len(rating_chars) / 2 - r))}
-                    % if c.current_rating == (len(rating_chars) / 2 - r):
+                    % if current_rating == (len(rating_chars) / 2 - r):
                         ${h.submit(value=rating_chars[r], name="commit", disabled="disabled")}
                     % else:
                         ${h.submit(value=rating_chars[r], name="commit")}
@@ -82,11 +83,11 @@
                     ${h.end_form()}
                 % endfor
             </noscript>
-        % elif c.user:
-            <div class="rater-info"><span class="rater-num-ratings">${c.artwork.rating_count}</span> (<span class="rater-rating-sum">${rating_score or u'—'}</span>)</div>
+        % elif request.user:
+            <div class="rater-info"><span class="rater-num-ratings">${artwork.rating_count}</span> (<span class="rater-rating-sum">${rating_score or u'—'}</span>)</div>
             <div class="rater-info">You do not have permission to vote.</div>
         % else:
-            <div class="rater-info"><span class="rater-num-ratings">${c.artwork.rating_count}</span> (<span class="rater-rating-sum">${rating_score or u'—'}</span>)</div>
+            <div class="rater-info"><span class="rater-num-ratings">${artwork.rating_count}</span> (<span class="rater-rating-sum">${rating_score or u'—'}</span>)</div>
             <div class="rater-info">Log in to vote!</div>
         % endif
             </div>
@@ -94,17 +95,17 @@
     </div>
     <h2 id="tags">Tags</h2>
     <p>\
-    % for tag in c.artwork.tags:
-    <a href="${url(controller='tags', action='view', name=tag)}">${tag}</a>\
+    % for tag in artwork.tag_objs:
+    <a href="${request.route_url('tags.view', tag=tag)}">${tag.name}</a>\
     % endfor
     </p>
 
     % for perm, action, form in [ \
-        ('tags.add', 'add_tags', c.add_tag_form), \
-        ('tags.remove', 'remove_tags', c.remove_tag_form), \
+        ('tags.add', 'add_tags', add_tag_form), \
+        ('tags.remove', 'remove_tags', remove_tag_form), \
     ]:
-    % if c.user.can(perm):
-    ${h.secure_form(url(controller='art', action=action, id=c.artwork.id))}
+    % if request.user.can(perm):
+    ${lib.secure_form(request.route_url('art.' + action, artwork=artwork))}
     <p>
         ${form.tags.label()}:
         ${form.tags()}
@@ -120,29 +121,29 @@
     <dl class="standard-form">
         ## XXX some of these only apply to some media types
         <dt>Filename</dt>
-        <dd>${c.artwork.original_filename}</dd>
+        <dd>${artwork.original_filename}</dd>
         <dt>Uploaded at</dt>
-        <dd>${lib.time(c.artwork.uploaded_time)}</dd>
+        <dd>${lib.time(artwork.uploaded_time)}</dd>
         <dt>File size</dt>
-        <dd>${c.artwork.file_size}</dd>
+        <dd>${artwork.file_size}</dd>
         <dt>Dimensions</dt>
-        <dd>${c.artwork.width} × ${c.artwork.height}</dd>
+        <dd>${artwork.width} × ${artwork.height}</dd>
     </dl>
 </div>
 </div>
 
 ## Comments
-<% comments = c.artwork.discussion.comments %>\
+<% comments = artwork.discussion.comments %>\
 <h1>
     ${lib.icon('balloons-white')}
     ${len(comments)} comment${'' if len(comments) == 1 else 's'}
 </h1>
 ${comments_lib.comment_tree(comments)}
 
-% if c.user.can('comments.add'):
+% if request.user.can('comments.add'):
 <h2>
     ${lib.icon('balloon-white')}
     Write your own
 </h2>
-${comments_lib.write_form(c.comment_form, c.artwork.resource)}
+${comments_lib.write_form(comment_form, artwork.resource)}
 % endif

@@ -3,23 +3,23 @@
 <%namespace name="comments_lib" file="/comments/lib.mako" />
 
 <%def name="title()">\
-Commenting on: ${c.discussion.resource.member.resource_title}\
+Commenting on: ${discussion.resource.member.resource_title}\
 </%def>
 
 
 <h1>
     ${lib.icon('balloon-ellipsis')}
-    Commenting on: ${c.discussion.resource.member.resource_title}
+    Commenting on: ${discussion.resource.member.resource_title}
 </h1>
-${lib.resource_summary(c.discussion.resource)}
+${lib.resource_summary(discussion.resource)}
 
 
-% if c.comment:
+% if comment:
 <h1>
     ${lib.icon('balloons')}
     Parent comments
 </h1>
-% for ancestor in c.comment_ancestors:
+% for ancestor in comment_ancestors:
 ${comments_lib.single_comment(ancestor)}
 % endfor
 
@@ -27,15 +27,15 @@ ${comments_lib.single_comment(ancestor)}
     ${lib.icon('balloons-white')}
     Comment
 </h1>
-${comments_lib.single_comment(c.comment)}
+${comments_lib.single_comment(comment)}
 % endif
 
 
-% if c.user.can('comments.add'):
-<% hlevel = 'h2' if c.comment else 'h1' %>\
+% if request.user.can('comments.add'):
+<% hlevel = 'h2' if comment else 'h1' %>\
 <${hlevel}>
     ${lib.icon('balloon-white')}
     Reply
 </${hlevel}>
-${comments_lib.write_form(c.comment_form, c.discussion.resource, parent_comment=c.comment)}
+${comments_lib.write_form(comment_form, discussion.resource, parent_comment=comment)}
 % endif
