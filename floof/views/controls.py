@@ -3,7 +3,8 @@ import logging
 import re
 import unicodedata
 
-from pyramid.httpexceptions import HTTPSeeOther
+from pyramid.exceptions import NotFound
+from pyramid.httpexceptions import HTTPBadRequest, HTTPSeeOther
 from pyramid.renderers import render_to_response
 from pyramid.response import Response
 from pyramid.view import view_config
@@ -143,45 +144,56 @@ class WatchForm(wtforms.form.Form):
     watch_of = wtforms.fields.BooleanField(u'')
 
 # XXX does this need a permission
-# XXX not converted oops; needs userpages
+@view_config(
+    route_name='controls.rels.watch',
+    permission='__authenticated__',
+    request_method='GET',
+    renderer='account/controls/relationships_watch.mako')
 def relationships_watch(context, request):
-    # XXX clean this crap up
     target_username = request.params.get('target_user', None)
-    c.target_user = meta.Session.query(model.User) \
+    target_user = meta.Session.query(model.User) \
         .filter_by(name=target_username).one()
-    if not c.target_user:
-        abort(404)
+    if not target_user:
+        raise NotFound()
 
-    c.watch = meta.Session.query(model.UserWatch) \
-        .filter_by(user_id=c.user.id, other_user_id=c.target_user.id) \
+    watch = meta.Session.query(model.UserWatch) \
+        .filter_by(user=request.user, other_user=target_user) \
         .first()
-    c.watch_form = WatchForm(obj=c.watch)
+    watch_form = WatchForm(obj=watch)
 
-    return render('/account/controls/relationships_watch.mako')
+    return dict(
+        target_user=target_user,
+        watch=watch,
+        watch_form=watch_form,
+    )
 
 # XXX does this need a permission
-# XXX not converted oops; needs userpages
+@view_config(
+    route_name='controls.rels.watch',
+    permission='__authenticated__',
+    request_method='POST',
+    renderer='account/controls/relationships_watch.mako')
 def relationships_watch_commit(context, request):
     # XXX clean this crap up
     target_username = request.params.get('target_user', None)
     target_user = meta.Session.query(model.User) \
         .filter_by(name=target_username).one()
     if not target_user:
-        abort(404)
+        raise NotFound()
 
     watch_form = WatchForm(request.POST)
     if not watch_form.validate():
         # XXX better redirect whatever
-        helpers.flash(u"Yo form is jacked", level=u'error')
-        redirect(url.current(target_user=target_username))
+        request.session.flash(u"Yo form is jacked", level=u'error')
+        return HTTPBadRequest()
 
     watch = meta.Session.query(model.UserWatch) \
-        .filter_by(user_id=c.user.id, other_user_id=target_user.id) \
+        .filter_by(user=request.user, other_user=target_user) \
         .first()
     if not watch:
         watch = model.UserWatch(
-            user_id=c.user.id,
-            other_user_id=target_user.id,
+            user=request.user,
+            other_user=target_user,
         )
 
     watch.watch_upload = watch_form.watch_upload.data
@@ -190,16 +202,18 @@ def relationships_watch_commit(context, request):
     watch.watch_of = watch_form.watch_of.data
 
     meta.Session.add(watch)
-    meta.Session.commit()
 
     # XXX where should this redirect?
-    helpers.flash(
-        u"Saved watch settings for {0}.".format(target_user.display_name),
+    request.session.flash(
+        u"Saved watch settings for {0}.".format(target_user.name),
         level=u'success')
-    redirect(url('user', user=target_user))
+    return HTTPSeeOther(request.route_url('users.view', user=target_user))
 
 # XXX does this need a permission
-# XXX not converted oops; needs userpages
+@view_config(
+    route_name='controls.rels.unwatch',
+    permission='__authenticated__',
+    request_method='POST')
 def relationships_unwatch_commit(context, request):
     # XXX clean this crap up
     target_username = request.params.get('target_user', None)
@@ -210,23 +224,20 @@ def relationships_unwatch_commit(context, request):
 
     if not request.POST.get('confirm', False):
         # XXX better redirect whatever
-        helpers.flash(
-            u"If you REALLY REALLY want to unwatch {0}, check the box and try again.".format(target_user.display_name),
+        request.session.flash(
+            u"If you REALLY REALLY want to unwatch {0}, check the box and try again.".format(target_user.name),
             level=u'error')
-        redirect(url.current(
-            action='relationships_watch', target_user=target_username),
-            )
+        return HTTPBadRequest()
 
     meta.Session.query(model.UserWatch) \
-        .filter_by(user_id=c.user.id, other_user_id=target_user.id) \
+        .filter_by(user=request.user, other_user=target_user) \
         .delete()
-    meta.Session.commit()
 
     # XXX where should this redirect?
-    helpers.flash(
-        u"Unwatched {0}.".format(target_user.display_name),
+    request.session.flash(
+        u"Unwatched {0}.".format(target_user.name),
         level=u'success')
-    redirect(url('user', user=target_user))
+    return HTTPSeeOther(request.route_url('users.view', user=target_user))
 
 
 # XXX this all needs cleaning up, and some ajax, and whatever.
