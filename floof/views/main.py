@@ -8,7 +8,6 @@ from pyramid.response import Response
 from pyramid.view import view_config
 
 from floof import model
-from floof.lib.log import ADMIN
 from floof.model import meta
 
 log = logging.getLogger(__name__)
@@ -140,7 +139,6 @@ def cookies_disabled(context, request):
     renderer='log.mako')
 def view_log(context, request):
     records = meta.Session.query(model.Log) \
-        .filter_by(level=ADMIN) \
         .offset(0) \
         .limit(50)
     return dict(
