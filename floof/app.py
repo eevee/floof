@@ -1,3 +1,5 @@
+from datetime import timedelta
+import logging
 import os
 import subprocess
 
@@ -18,6 +20,8 @@ import floof.model
 from floof.model import User, filestore, meta
 import floof.routing
 import floof.views
+
+log = logging.getLogger(__name__)
 
 class FloofRequest(Request):
     def __init__(self, *args, **kwargs):
@@ -94,6 +98,26 @@ def flush_everything(event):
     # flushing first so the commit doesn't trigger the sqla listeners.  :/
     meta.Session.flush()
 
+def log_timers(event):
+    """Log the state of the timers; for production when super_debug is off.
+    """
+    if not event.request.registry.settings.get('super_debug', False):
+        total_time = event.request.timer.total_time  # NB: this stops all timing
+
+        # Don't log if Mako doesn't appear to have been invoked, thus avoiding
+        # the logging of requests for static content
+        # TODO: Work out if this is too hackish as a criterion
+        if event.request.timer.timers.get('mako', timedelta(0)) <= timedelta(0):
+            return
+
+        t = []
+        for name, delta in event.request.timer.timers.iteritems():
+            t.append('{0}: {1}.{2:0>6}s'.format(
+                    name, delta.seconds, delta.microseconds))
+
+        log.debug('Request process times: TOTAL: {0}.{1:0>6}s, {2}'.format(
+            total_time.seconds, total_time.microseconds, ', '.join(t)))
+
 def prevent_csrf(event):
     """Require a CSRF token on all POST requests.
 
@@ -166,6 +190,7 @@ def main(global_config, **settings):
     config.add_subscriber(start_template_timer, BeforeRender)
     config.add_subscriber(add_renderer_globals, BeforeRender)
     config.add_subscriber(flush_everything, NewResponse)
+    config.add_subscriber(log_timers, NewResponse)
 
     floof.routing.configure_routing(config)
     config.scan(floof.views)

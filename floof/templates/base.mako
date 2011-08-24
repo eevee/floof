@@ -72,13 +72,13 @@
 
     <div id="footer-spacer"></div>
     <div id="footer">
-        ## TODO: make this only show for devs.  nobody else cares.
-        ## TODO: of course, if you do that, do more logging!
+        % if request.registry.settings.get('super_debug', False):
         <p id="footer-stats">
             built in ${lib.timedelta(request.timer.total_time)} <br>
             ${request.timer.sql_query_count} quer${ 'y' if request.timer.sql_query_count == 1 else 'ies' }
                 in ${lib.timedelta(request.timer.timers['sql'])}
         </p>
+        % endif
         <p>Icons from the <a href="http://p.yusukekamiyamane.com/">Fugue set</a></p>
         <p><a href="${request.route_url('log')}">Admin log</a></p>
     </div>
