@@ -67,14 +67,18 @@ def setup_floof(conf, model, meta, is_test=False):
         if os.path.isfile(filepath):
             generate_ca = False
             break
+
     if generate_ca:
+        # Found no existing CA key or cert; generate new ones
         now = datetime.now(pytz.utc)
         expire = now + timedelta(days=3653)
         site_title = conf.local_conf['site_title']
 
+        # Generate a new private key
         ca_key = ssl.PKey()
         ca_key.generate_key(ssl.TYPE_RSA, 2048)
 
+        # Generate a new (public) CA certificate from the key
         ca = ssl.X509()
         ca.set_version(2)  # Value 2 means v3
         ca.set_serial_number(1)
@@ -91,6 +95,7 @@ def setup_floof(conf, model, meta, is_test=False):
                 ])
         ca.sign(ca_key, 'sha256')
 
+        # Save the new key and certificate out to files
         if not os.path.isdir(cert_dir):
             os.makedirs(cert_dir)
         with open(os.path.join(cert_dir, 'ca.key'), 'w') as f:
@@ -103,8 +108,8 @@ def setup_floof(conf, model, meta, is_test=False):
                 os.path.join(cert_dir, 'ca.key'),
                 )
     else:
+        # Found existing CA files; briefly test them
         print "  Encountered existing CA certificate file {0}".format(filepath)
-        # Breifly test the found files
         with open(os.path.join(cert_dir, 'ca.key'), 'rU') as f:
             ca_key = ssl.load_privatekey(ssl.FILETYPE_PEM, f.read())
         with open(os.path.join(cert_dir, 'ca.pem'), 'rU') as f:
@@ -116,8 +121,11 @@ if __name__ == '__main__':
         print 'usage: python {0} config-file.ini#app-name'.format(sys.argv[0])
         sys.exit(0)
 
+    # Get paster to interpret the passed config file
     ini_spec = os.path.abspath(sys.argv[1])
     conf = appconfig('config:' + ini_spec)
+
+    # Set up the SQLAlchemy environment
     engine = engine_from_config(conf, 'sqlalchemy.')
     model.meta.Session.configure(bind=engine, extension=ZopeTransactionExtension())
     model.TableBase.metadata.bind = engine
