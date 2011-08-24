@@ -1,8 +1,8 @@
 floof is a communal art gallery Web site.  It's powered by Python and runs atop
-Pylons.
+Pyramid.
 
 * http://www.python.org/
-* http://www.pylonshq.com/
+* http://www.pylonsproject.org/
 
 
 # Installation
@@ -17,7 +17,7 @@ separate from the rest of your system.
 
 Create a configuration file:
 
-    paster make-config floof config.ini
+    cp paster.ini config.ini
 
 You may call this file whatever you want, for example `development.ini` or
 `production.ini`.
@@ -46,3 +46,7 @@ You have two options for storing files, controlled by the `filestore` setting:
 
     See the mogile docs for creating a basic mogile environment:
     http://code.google.com/p/mogilefs/wiki/InstallHowTo
+
+For development, invoke the application with:
+
+    bin/dev-server.sh config.ini

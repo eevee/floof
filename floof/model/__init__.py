@@ -20,7 +20,6 @@ from sqlalchemy.types import *
 from floof.model.extensions import *
 from floof.model.types import *
 from paste.deploy.converters import asint
-from pylons import config
 
 from floof.model import meta
 

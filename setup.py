@@ -22,10 +22,6 @@ setup(
         'sqlalchemy-migrate>=0.6',
         'pytz',
         'iso8601',
-        # We need pyOpenSSL to be at least 0.11 for CRL support.
-        # At the time of writing, easy_install chokes on pyOpenSSL > 0.10. Try:
-        # $ wget http://launchpad.net/pyopenssl/main/0.11/+download/pyOpenSSL-0.11.tar.gz
-        # $ easy_install pyOpenSSL-0.11.tar.gz
         'pyOpenSSL>=0.11',
         'pyramid>=1.1',
         'pyramid_beaker',
@@ -42,7 +38,7 @@ setup(
     #        ('templates/**.mako', 'mako', {'input_encoding': 'utf-8'}),
     #        ('public/**', 'ignore', None)]},
     zip_safe=False,
-    paster_plugins=['PasteScript', 'Pylons', 'pyramid'],
+    paster_plugins=['PasteScript', 'pyramid'],
     entry_points="""
     [paste.app_factory]
     main = floof.config.middleware:make_app

@@ -3,8 +3,6 @@
 Consists of functions to typically be used within templates, but also
 available to Controllers. This module is available to templates as 'h'.
 """
-from pylons import url
-from pylons.controllers.util import redirect as orig_redirect
 from webhelpers.html import escape, HTML, literal, tags, url_escape
 #from webhelpers.html.tags import *
 # XXX replace the below with tags.?

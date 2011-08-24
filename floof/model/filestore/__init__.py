@@ -14,9 +14,9 @@ A storage object can be constructed with the `get_storage` function.
 
 from __future__ import absolute_import
 
-def get_storage(pylons_config, prefix='filestore'):
-    """Uses the Pylons configuration to construct and return an instance of a
-    `FileStorage` subclass.
+def get_storage(settings, prefix='filestore'):
+    """Uses a Pyramid deployment settings dictionary to construct and return
+    an instance of a `FileStorage` subclass.
 
     The `prefix` will be used to extract storage configuration.  The package to
     use is determined by the `$prefix` config setting, and any setting named
@@ -25,12 +25,12 @@ def get_storage(pylons_config, prefix='filestore'):
     # Pull prefix.key out of the config object
     kwargs = {}
     plen = len(prefix)
-    for key, val in pylons_config.iteritems():
+    for key, val in settings.iteritems():
         if key[0:plen] == prefix and len(key) > plen:
             kwargs[ key[plen+1:] ] = val
 
     # Import and make the object
-    package = __import__('floof.model.filestore.' + pylons_config[prefix],
+    package = __import__('floof.model.filestore.' + settings[prefix],
         globals(), locals(), ['FileStorage'], 0)
     return package.FileStorage(**kwargs)
 

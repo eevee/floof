@@ -117,7 +117,7 @@ class GallerySieve(object):
         """Parameters:
 
         `session`
-            The SQLAlchemy session to use.  If omitted, the current Pylons
+            The SQLAlchemy session to use.  If omitted, the current Pyramid
             thread-local session will be used.
         `user`
             The currently-logged-in user, used for a handful of filters (e.g.

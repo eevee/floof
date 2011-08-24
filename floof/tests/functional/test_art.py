@@ -1,7 +1,5 @@
 import os, os.path
 
-from pylons import session
-
 from floof import model
 from floof.model import meta
 from floof.tests import *

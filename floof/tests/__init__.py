@@ -11,11 +11,11 @@ from unittest import TestCase
 
 from paste.deploy import loadapp
 from paste.script.appinstall import SetupCommand
-from pylons import url
+###from pylons import url
 from routes.util import URLGenerator
 from webtest import TestApp
 
-import pylons.test
+###import pylons.test
 
 from floof.model import meta
 

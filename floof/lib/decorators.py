@@ -2,8 +2,6 @@ import functools
 from inspect import getargspec
 import logging
 
-from pylons import request, session, tmpl_context as c, url
-from pylons.controllers.util import abort
 from decorator import decorator
 
 from floof.lib.auth import stash_request
@@ -15,6 +13,11 @@ log = logging.getLogger(__name__)
 
 def user_must(priv):
     """Decorator to automatically abort if a user isn't permissed enough."""
+    # This decorator uses functions from Pylons and is probably no longer
+    # necessary.
+    raise NotImplementedError(
+            "This hasn't been updated for Pyramid yet (and may be"
+            "inappropriate for Pyramid anyway).")
     @decorator
     def deco(f, *a, **kw):
         success, reason = c.auth.can(priv, log=True)

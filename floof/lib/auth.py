@@ -1,6 +1,3 @@
-from pylons import config, request
-from pylons.controllers.util import abort
-
 import OpenSSL.crypto as ssl
 from pyramid.decorator import reify
 from pyramid.security import ACLAllowed, ACLDenied
@@ -29,8 +26,8 @@ req_confidence_levels = {
         2: ['admin']
         }
 
-CONFIDENCE_EXPIRY_SECONDS = int(config.get('auth_confidence_expiry_seconds', 60 * 10))
-CERT_CONFIDENCE_EXPIRY_SECONDS = int(config.get('cert_auth_confidence_expiry_seconds', 60 * 30))
+DEFAULT_CONFIDENCE_EXPIRY = 60 * 10  # seconds
+DEFAULT_CERT_CONFIDENCE_EXPIRY = 60 * 30  # seconds
 
 sensitive_privs = []
 for lvl in req_confidence_levels:
@@ -128,6 +125,14 @@ class Authenticizer(object):
     State is contained within a dictionary, passed to the constructor.
     """
     def __init__(self, request):
+        config = request.registry.settings
+        confidence_expiry_secs = int(config.get(
+            'auth_confidence_expiry_seconds',
+            DEFAULT_CONFIDENCE_EXPIRY))
+        cert_confidence_expiry_secs = int(config.get(
+            'cert_auth_confidence_expiry_seconds',
+            DEFAULT_CERT_CONFIDENCE_EXPIRY))
+
         # The point of this whole method is really just to get a user id.
         # Note: everything within the state is meant to be consistent at all
         # times; i.e., there should never be a cert serial, openid, or user id
@@ -188,7 +193,7 @@ class Authenticizer(object):
             self.trusted = 2
         elif 'openid_timestamp' in self.state and self.user.cert_auth != u'required':
             age = datetime.now() - datetime.fromtimestamp(self.state['openid_timestamp'])
-            if age <= timedelta(seconds=CONFIDENCE_EXPIRY_SECONDS) and self.user.cert_auth != u'sensitive_required':
+            if age <= timedelta(seconds=confidence_expiry_secs) and self.user.cert_auth != u'sensitive_required':
                 self.trusted = 1
             else:
                 self.trusted = 0
