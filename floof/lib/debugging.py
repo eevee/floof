@@ -37,7 +37,7 @@ def attach_sqlalchemy_listeners(engine, debug=False):
     """
     if debug:
         listen(engine, 'before_cursor_execute', handle_before_cursor_execute)
-    listen(engine, 'after_cursor_execute', handle_after_cursor_execute)
+        listen(engine, 'after_cursor_execute', handle_after_cursor_execute)
     listen(engine, 'before_execute', handle_before_execute)
     listen(engine, 'after_execute', handle_after_execute)
 
