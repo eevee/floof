@@ -26,6 +26,7 @@ setup(
         'pyramid>=1.1',
         'pyramid_beaker',
         'repoze.tm2>=1.0b1',  # default_commit_veto
+        'WebError',
         'zope.sqlalchemy',
     ],
     setup_requires=["PasteScript>=1.6.3"],

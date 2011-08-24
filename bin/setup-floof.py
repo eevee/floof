@@ -1,28 +1,24 @@
 """Setup the floof application"""
+from datetime import datetime, timedelta
 import logging
 import os
 import pytz
+import sys
 
-from floof.config.environment import load_environment
 from floof.model import meta
 from floof import model
 
-from datetime import datetime, timedelta
 import OpenSSL.crypto as ssl
+from paste.deploy import appconfig
+from sqlalchemy import engine_from_config
+import transaction
+from zope.sqlalchemy import ZopeTransactionExtension
 
 log = logging.getLogger(__name__)
 
-def setup_app(command, conf, vars):
+def setup_floof(conf, model, meta, is_test=False):
     """Place any commands to setup floof here"""
-    # Don't reload the app if it was loaded under the testing environment
-###    if not pylons.test.pylonsapp:
-###            load_environment(conf.global_conf, conf.local_conf)
-
-    ### DB stuff
-    meta.metadata.bind = meta.engine
-
-    _, conf_file = os.path.split(conf.filename)
-    if conf_file == 'test.ini':
+    if is_test:
         # Drop all existing tables during a test
         meta.metadata.drop_all(checkfirst=True)
 
@@ -61,7 +57,6 @@ def setup_app(command, conf, vars):
     )
 
     meta.Session.add_all([base_user, admin_user])
-    meta.Session.commit()
 
     ### Client SSL/TLS certificate stuff
     # Generate the CA.  Attempt to load it from file first.
@@ -115,3 +110,19 @@ def setup_app(command, conf, vars):
         with open(os.path.join(cert_dir, 'ca.pem'), 'rU') as f:
             ca_cert = ssl.load_certificate(ssl.FILETYPE_PEM, f.read())
         print "  Will use this file as the SSL Client Certificate CA."
+
+if __name__ == '__main__':
+    if len(sys.argv) < 2 or sys.argv[1] in ('-h', '--help'):
+        print 'usage: python {0} config-file.ini#app-name'.format(sys.argv[0])
+        sys.exit(0)
+
+    ini_spec = os.path.abspath(sys.argv[1])
+    conf = appconfig('config:' + ini_spec)
+    engine = engine_from_config(conf, 'sqlalchemy.')
+    model.meta.Session.configure(bind=engine, extension=ZopeTransactionExtension())
+    model.TableBase.metadata.bind = engine
+
+    setup_floof(conf, model, meta)
+
+    # XXX: This may be bad juju
+    transaction.commit()

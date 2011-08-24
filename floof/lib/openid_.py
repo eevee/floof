@@ -3,7 +3,6 @@ from openid.extensions.sreg import SRegRequest, SRegResponse
 from openid.extensions.draft.pape5 import Request as PAPERequest, Response as PAPEResponse
 from openid.store.filestore import FileOpenIDStore
 from openid.yadis.discover import DiscoveryFailure
-from routes import request_config
 from urllib2 import HTTPError, URLError
 
 from floof.lib.webfinger import finger

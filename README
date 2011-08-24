@@ -22,9 +22,10 @@ Create a configuration file:
 You may call this file whatever you want, for example `development.ini` or
 `production.ini`.
 
-Configure as appropriate, then run the setup to populate the database:
+Configure as appropriate, then run the setup script to populate the database
+and configure the CA:
 
-    paster setup-app config.ini
+    python bin/setup-floof.py config.ini#floof-prod
 
 ## File storage
 
