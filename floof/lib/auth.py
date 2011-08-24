@@ -125,6 +125,11 @@ class Authenticizer(object):
     State is contained within a dictionary, passed to the constructor.
     """
     def __init__(self, request):
+        # The point of this whole method is really just to get a user id.
+        # Note: everything within the state is meant to be consistent at all
+        # times; i.e., there should never be a cert serial, openid, or user id
+        # that don't all match.
+
         config = request.registry.settings
         confidence_expiry_secs = int(config.get(
             'auth_confidence_expiry_seconds',
@@ -133,10 +138,6 @@ class Authenticizer(object):
             'cert_auth_confidence_expiry_seconds',
             DEFAULT_CERT_CONFIDENCE_EXPIRY))
 
-        # The point of this whole method is really just to get a user id.
-        # Note: everything within the state is meant to be consistent at all
-        # times; i.e., there should never be a cert serial, openid, or user id
-        # that don't all match.
         self.state = request.session.setdefault('auth', {})
         mechanisms = []
 
@@ -282,7 +283,7 @@ class Authenticizer(object):
         """Returns the currently logged-in user, or a falsey proxy object if
         there is none.
         """
-        if 'user_id' in self.state:
+        if 'user_id' in self.state and self.state['user_id']:
             user = meta.Session.query(model.User) \
                 .options(joinedload(model.User.role)) \
                 .get(self.state['user_id'])

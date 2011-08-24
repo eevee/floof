@@ -257,7 +257,7 @@ def register(context, request):
 
     # Log 'em in
     del request.session['pending_identity_url']
-    request.auth.login_openid(session, user.id, identity_url)
+    request.auth.login_openid(user)
     request.session.save()
 
     # And off we go
