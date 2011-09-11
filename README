@@ -51,3 +51,10 @@ You have two options for storing files, controlled by the `filestore` setting:
 For development, invoke the application with:
 
     bin/dev-server.sh config.ini
+
+
+# Testing
+
+To invoke testing, run from the top level directory:
+
+    python setup.py test
