@@ -149,7 +149,7 @@ class Authenticizer(object):
             # Override user id manually
             self.clear()
             self.state['user_id'] = request.environ['tests.user_id']
-            self.confidence = 2  # maximum!
+            self.trusted = 2  # maximum!
             request.session.changed()
             return
         # If testing, override mechanism states as requested

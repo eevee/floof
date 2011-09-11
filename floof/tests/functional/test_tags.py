@@ -1,13 +1,14 @@
-from floof.tests import *
-import floof.tests.sim as sim
+from pyramid import testing
 
 from floof.model import meta
+from floof.tests import FunctionalTests
+import floof.tests.sim as sim
 
-class TestTagsController(TestController):
+class TestTags(FunctionalTests):
 
-    def test_index(self):
+    def test_list(self):
         """Test display of tags index page."""
-        response = self.app.get(url(controller='tags', action='index'))
+        response = self.app.get(self.url('tags.list'))
         # Test response...
 
     def test_artwork(self):
@@ -17,8 +18,8 @@ class TestTagsController(TestController):
         artwork = sim.sim_artwork(user=user)
         tag = sim.sim_tag()
         artwork.tag_objs.append(tag)
-        meta.Session.commit()
+        meta.Session.flush()
 
         # Ensure it shows in the tag's gallery
-        res = self.app.get(url(controller='tags', action='artwork', name=tag.name))
-        assert artwork in res.tmpl_context.gallery_sieve.query
+        res = self.app.get(self.url('tags.artwork', tag=tag))
+        assert artwork.title in res

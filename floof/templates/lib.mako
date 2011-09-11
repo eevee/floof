@@ -4,9 +4,9 @@
 <%! import wtforms.widgets %>
 <%! from datetime import datetime %>
 
-<%def name="avatar(user)">\
+<%def name="avatar(user, size=100)">\
 <% hash = hashlib.md5(user.email.lower()).hexdigest() %>\
-<img src="https://secure.gravatar.com/avatar/${hash}?r=r&s=100&d=mm" />\
+<img src="https://secure.gravatar.com/avatar/${hash}?r=r&s=${size}&d=mm" />\
 </%def>
 
 <%def name="icon(which, alt='')">\

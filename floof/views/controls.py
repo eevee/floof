@@ -572,7 +572,7 @@ def authentication_commit(context, request):
         else:
             request.session.flash(u'Authentication options updated.', level=u'success')
             if 0 and not c.auth.authenticate():
-                redirect(url(controller='account', action='login'))
+                return HTTPSeeOther(request.route_url('account.login'))
             return HTTPSeeOther(location=request.path_url)
     return dict(
         form=form,

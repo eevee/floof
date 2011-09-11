@@ -44,7 +44,7 @@ to log on at all.</p>
     ${h.end_form()}
 </div>
 <div class="halfsplit">
-    ${lib.secure_form(request.route_url('controls.certs.generate_server', name=user.name))}
+    ${lib.secure_form(request.route_url('controls.certs.generate_server', name=request.user.name))}
     <h3>Generate Certificate on Server</h3>
     <p>This will return a PKCS12 certificate file for download and
     manual installation.</p>
@@ -64,7 +64,7 @@ to log on at all.</p>
 </div>
 
 <h2 style="clear:both;">Your Currently Active Certificates</h2>
-% if not user.valid_certificates:
+% if not request.user.valid_certificates:
 <p>You have no active certificates.</p>
 % else:
 <table>
@@ -78,7 +78,7 @@ to log on at all.</p>
         <th>Download</th>
         <th>Revoke</th>
     </tr>
-    % for cert in user.valid_certificates:
+    % for cert in request.user.valid_certificates:
     <tr>
         <td>${lib.cert_serial(cert.serial)}</td>
         <td>${cert.bits}</td>
@@ -94,7 +94,7 @@ to log on at all.</p>
 % endif
 
 <h2>Your Revoked and Expired Certificates</h2>
-% if not user.invalid_certificates:
+% if not request.user.invalid_certificates:
 <p>You have no revoked or expired certificates.</p>
 % else:
 <table>
@@ -107,7 +107,7 @@ to log on at all.</p>
         <th>Details</th>
         <th>Download</th>
     </tr>
-    % for cert in user.invalid_certificates:
+    % for cert in request.user.invalid_certificates:
     <tr>
         <td>${lib.cert_serial(cert.serial)}</td>
         <td>${cert.bits}</td>
@@ -118,8 +118,8 @@ to log on at all.</p>
         % else:
         <td>${lib.time(cert.revoked_time)}</td>
         % endif
-        <td><a href="${url(controller='controls', action='certificates_details', id=cert.id)}" title="Full text of the certificate">Details</a></td>
-        <td><a href="${url(controller='controls', action='certificates_download', id=cert.id, name=user.name)}" title="Download this certificate (public component only) in PEM-encoded X.509 format">Download</td>
+        <td><a href="${request.route_url('controls.certs.details', id=cert.id)}" title="Full text of the certificate">Details</a></td>
+        <td><a href="${request.route_url('controls.certs.download', id=cert.id, name=request.user.name)}" title="Download this certificate (public component only) in PEM-encoded X.509 format">Download</td>
     </tr>
     % endfor
 </table>

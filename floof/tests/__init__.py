@@ -1,57 +1,79 @@
-"""Pylons application test package
+"""floof test package
 
-This package assumes the Pylons environment is already loaded, such as
-when this script is imported from the `nosetests --with-pylons=test.ini`
-command.
+This module provides sub-classes of unittest.TestCase that are provided with
+and manage an in-memory SQLite database, populated with the default entries
+from floof.lib.setup.
 
-This module initializes the application via ``websetup`` (`paster
-setup-app`) and provides the base testing objects.
+A transaction is begun before each request and aborted immediately following.
+
+Designed to be run with py.test
 """
-from unittest import TestCase
+import functools
+import transaction
+import unittest
+import webtest
 
-from paste.deploy import loadapp
-from paste.script.appinstall import SetupCommand
-###from pylons import url
-from routes.util import URLGenerator
-from webtest import TestApp
+from pyramid import testing
+from pyramid.paster import get_app
+from pyramid.url import route_path
+from sqlalchemy import create_engine
+from zope.sqlalchemy import ZopeTransactionExtension
 
-###import pylons.test
-
+from floof.lib.setup import populate_db
+from floof.model import initialize
 from floof.model import meta
+from floof.routing import configure_routing
 
-__all__ = ['environ', 'url', 'TestController']
+__all__ = ['FunctionalTests', 'UnitTests']
 
-# Invoke websetup with the current config file
-SetupCommand('setup-app').run([pylons.test.pylonsapp.config['__file__']])
+def _prepare_env():
+    """Configure the floof model and set up a database the default entries."""
+    meta.Session.remove()
+    engine = create_engine('sqlite://')
+    initialize(engine)
+    meta.Session.configure(bind=meta.engine, extension=ZopeTransactionExtension())
 
-environ = {}
+    transaction.begin()
+    populate_db(meta, is_test=True)
+    transaction.commit()
 
-class TestController(TestCase):
+# XXX: major import side-effects ahoy!
+_prepare_env()
+
+class UnitTests(unittest.TestCase):
+    """Brings up a lightweight db and threadlocal environment."""
 
     def setUp(self):
-        # See: http://www.sqlalchemy.org/docs/orm/session.html#joining-a-session-into-an-external-transaction
-        # This will allow app code to commit() and otherwise use the session as
-        # normal, but undoes everything between individual tests
-        # Ditch any existing session first
-        meta.Session.remove()
-        # Create a non-ORM transaction, which tricks ORM .commit() into not
-        # actually committing
-        conn = meta.engine.connect()
-        self._transaction = conn.begin()
-        meta.Session.configure(bind=conn)
+        # Initialize a db session and a threadlocal environment
+        transaction.begin()
+        self.session = meta.Session()
+        # The config will be picked up automatically by Pyramid as a thread
+        # local
+        self.config = testing.setUp()
 
     def tearDown(self):
-        # Roll back everything, discard the session, and un-reconfigure it
-        self._transaction.rollback()
-        meta.Session.remove()
-        meta.Session.configure(bind=meta.engine)
+        # Roll back everything and discard the threadlocal environment
+        testing.tearDown()
+        transaction.abort()
+
+class FunctionalTests(UnitTests):
+    """Brings up the full Pyramid app."""
+
+    def setUp(self):
+        super(FunctionalTests, self).setUp()
+
+        # HACK: Get Route / URL Dispatch name-to-path lookups working by using
+        # a BS request object
+        # NOTE: Will blow up on routes with pregenrators that inspect request
+        class BS:
+            script_name = ''
+
+        configure_routing(self.config)
+        self.url = functools.partial(route_path, request=BS())
 
     def __init__(self, *args, **kwargs):
-        if pylons.test.pylonsapp:
-            wsgiapp = pylons.test.pylonsapp
-        else:
-            wsgiapp = loadapp('config:%s' % config['__file__'])
-        config = wsgiapp.config
-        self.app = TestApp(wsgiapp)
-        url._push_object(URLGenerator(config['routes.map'], environ))
-        TestCase.__init__(self, *args, **kwargs)
+        # FIXME: Hardcoded!
+        wsgiapp = get_app('paster.ini', 'floof-test')
+        self.app = webtest.TestApp(wsgiapp)
+
+        super(FunctionalTests, self).__init__(*args, **kwargs)

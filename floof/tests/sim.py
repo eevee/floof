@@ -24,7 +24,7 @@ def sim_user(role='user'):
 
 def sim_artwork(user):
     artwork = model.MediaImage(
-        title = 'dummy image',
+        title = ''.join(random.choice(string.letters) for i in xrange(10)),
         hash = '123',
         uploader = user,
         original_filename = 'dummy.jpg',

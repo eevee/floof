@@ -1,18 +1,20 @@
-from floof.tests import *
+from pyramid import testing
 
-class TestMainController(TestController):
+from floof.tests import FunctionalTests
+
+class TestMain(FunctionalTests):
 
     def test_index(self):
         """Test display of the front page."""
-        response = self.app.get(url(controller='main', action='index'))
-        # Test response...
+        response = self.app.get(self.url('root', my_thing='is_this'))
+        assert 'floof' in response.body
 
     def test_log(self):
         """Test display of the public admin log page."""
-        response = self.app.get(url(controller='main', action='log'))
+        response = self.app.get(self.url('log'))
         assert 'Public Admin Log' in response
 
     def test_cookies_disabled(self):
         """Test display of the "cookies disabled" error page."""
-        response = self.app.get(url(controller='main', action='cookies_disabled'))
+        response = self.app.get(self.url('cookies_disabled'))
         assert 'Cookies Disabled' in response
