@@ -2,6 +2,7 @@ import OpenSSL.crypto as ssl
 from pyramid.decorator import reify
 from pyramid.security import ACLAllowed, ACLDenied
 from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload_all
 from sqlalchemy.orm.exc import NoResultFound
 
 from floof import model
@@ -114,6 +115,7 @@ class FloofAuthzPolicy(object):
 
 class CertNotFoundError(Exception): pass
 class CertAuthDisabledError(Exception): pass
+class CertExpiredError(Exception): pass
 class CertRevokedError(Exception): pass
 class OpenIDAuthDisabledError(Exception): pass
 class CertAuthConflictError(Exception): pass
@@ -180,6 +182,9 @@ class Authenticizer(object):
         except CertAuthDisabledError:
             request.session.flash("Client certificates are disabled for your account.",
                 level='error', icon='key--exclamation')
+        except CertExpiredError:
+            request.session.flash("That client certificate has expired.",
+                level='error', icon='key--exclamation')
         except CertRevokedError:
             request.session.flash("That client certificate has been revoked.",
                 level='error', icon='key--exclamation')
@@ -213,31 +218,32 @@ class Authenticizer(object):
     def login_certificate(self, serial):
         """Log in via client certificate serial.
 
-        `serial` may be `None`, in which case no actual login is done, but
-        existing cert-related state is cleared.
-        """
-        if serial:
-            serial = serial.lower()
+        There are 3 possible outcomes:
 
-        # Certificates are sent on every request.  To avoid db churn looking
-        # them up constantly, the last seen serial is saved in the session
-        if serial == self.state.get('cert_serial', None):
-            # Stored serial matches the new one (even if the new one is None),
-            # so the state's user_id is correct and there's nothing to do
-            return
-            # XXX surely we should check whether the cert was revoked in the
-            # meantime
+          1. `serial` is `None` or points to an invalid cert
+            --> cert-related state is dropped
+
+          2. `serial` points to a valid cert that agress with existing user_id
+            --> cert-related state is added
+
+          3. `serial` points to a valid cert but conflicts with existing user_id
+            --> all auth state is flushed, cert-related state is added, and the
+            user_id is set to the cert's
+
+        """
+        # The old serial state will always either be blanked or replaced by
+        # the new serial
+        self.state.pop('cert_serial', None)
 
         if not serial:
-            # No cert given, but we had one before.  Clear the serial from the
-            # state.  If this was the only login mechanism the user had,
-            # __init__ will wipe out user_id too
-            self.state.pop('cert_serial', None)
+            # No cert given.  If this was the only login mechanism the user
+            # had, __init__ will wipe out user_id too
             return
 
-        # OK, figure out what certificate and user this serial belongs to
+        # Figure out what certificate and user this serial belongs to
+        serial = serial.lower()
         cert_q = model.session.query(model.Certificate) \
-            .options(joinedload(model.Certificate.user)) \
+            .options(joinedload_all('user.role')) \
             .filter_by(serial=serial)
 
         try:
@@ -247,18 +253,23 @@ class Authenticizer(object):
 
         if cert.user.cert_auth == u'disabled':
             raise CertAuthDisabledError
+        if cert.expired:
+            raise CertExpiredError
         if cert.revoked:
             raise CertRevokedError
 
+        # At this point, we're confident that the supplied cert is valid
+
         if cert.user_id != self.state.get('user_id', None):
-            # This is, essentially, a new login.  Start the state clean
+            # Certs take precedence when determining identity, so this is,
+            # essentially, a new login.  Start the state clean
             self.clear()
             self.state['user_id'] = cert.user_id
 
         self.state['cert_serial'] = serial
 
-        # Avoid a second "lazy" query later
-        # XXX above needs to eagerload the right stuff ugh
+        # Avoid a second "lazy" query later (this is why we eagerloaded 'role'
+        # above)
         self.user = cert.user
 
     def login_openid(self, user):
@@ -292,7 +303,7 @@ class Authenticizer(object):
         """Returns the currently logged-in user, or a falsey proxy object if
         there is none.
         """
-        if 'user_id' in self.state and self.state['user_id']:
+        if self.state.get('user_id', None):
             user = model.session.query(model.User) \
                 .options(joinedload(model.User.role)) \
                 .get(self.state['user_id'])
