@@ -37,9 +37,9 @@ for lvl in req_confidence_levels:
 class FloofAuthnPolicy(object):
     """Authentication policy bolted atop a beaker session.
 
-    Most of the actual work here is done by the Auth class below.  The Pyramid
-    auth interface is extremely clunky, and this class only exists so standard
-    Pyramid authorization stuff still works.
+    Most of the actual work here is done by the Authenticizer class below.
+    The Pyramid auth interface is extremely clunky, and this class only exists
+    so standard Pyramid authorization stuff still works.
     """
 
     def authenticated_userid(self, request):
@@ -401,6 +401,25 @@ class Auth():
         return False, 'openid_reauth_required'
 
 
+def get_ca(settings):
+    """Fetches the Certifiacte Authority certificate and key.
+
+    Returns a (ca_cert, ca_key) tuple, where ca_cert is a pyOpenSSL
+    X509 object and ca_key is a pyOpenSSL PKey object.
+
+    """
+    cert_dir = settings['client_cert_dir']
+    ca_cert_file = os.path.join(cert_dir, 'ca.pem')
+    ca_key_file = os.path.join(cert_dir, 'ca.key')
+
+    with open(ca_cert_file, 'rU') as f:
+        ca_cert = ssl.load_certificate(ssl.FILETYPE_PEM, f.read())
+
+    with open(ca_key_file, 'rU') as f:
+        ca_key = ssl.load_privatekey(ssl.FILETYPE_PEM, f.read())
+
+    return ca_cert, ca_key
+
 def stash_request(session, url, post_data=None):
     """Stash the given url and, optionlly, post_data MultiDict, in the given
     session.  Returns a key that may be used to retrieve the stash later.
@@ -447,32 +466,3 @@ def fetch_post(session, request):
         else:
             session.flash(u'Unrecognised return key.  Timeout?', level='warning')
     return request.POST
-
-def get_ca(settings):
-    """Fetches the Certifiacte Authority certificate and key.
-
-    Returns a (ca_cert, ca_key) tuple, where ca_cert is a pyOpenSSL
-    X509 object and ca_key is a pyOpenSSL PKey object.
-
-    """
-    cert_dir = settings['client_cert_dir']
-    ca_cert_file = os.path.join(cert_dir, 'ca.pem')
-    ca_key_file = os.path.join(cert_dir, 'ca.key')
-    with open(ca_cert_file, 'rU') as f:
-        ca_cert = ssl.load_certificate(ssl.FILETYPE_PEM, f.read())
-    with open(ca_key_file, 'rU') as f:
-        ca_key = ssl.load_privatekey(ssl.FILETYPE_PEM, f.read())
-    return ca_cert, ca_key
-
-def update_crl(settings):
-    """Generates a new Certificate Revocation List and writes it to file."""
-    crl = ssl.CRL()
-    for cert in model.session.query(Certificate).filter_by(revoked=True).all():
-        r = ssl.Revoked()
-        r.set_serial(cert.serial)
-        r.set_rev_date(cert.revoked_time.strftime('%Y%m%d%H%M%SZ'))
-        crl.add_revoked(r)
-    ca_cert, ca_key = get_ca()
-    crl_file = os.path.join(settings['client_cert_dir'], 'crl.pem')
-    with open(crl_file, 'w') as f:
-        f.write(crl.export(ca_cert, ca_key, ssl.FILETYPE_PEM))

@@ -12,7 +12,7 @@ import wtforms
 from wtforms.ext.sqlalchemy.fields import QuerySelectMultipleField
 
 from floof.forms import DisplayNameField, IDNAField, KeygenField, MultiCheckboxField, TimezoneField
-from floof.lib.auth import get_ca, update_crl
+from floof.lib.auth import get_ca
 from floof.lib.openid_ import OpenIDError, openid_begin, openid_end
 from floof import model
 
@@ -534,7 +534,6 @@ def certificates_revoke_commit(context, request):
     cert = model.session.query(model.Certificate).get(request.matchdict['id'])
     # XXX check_cert(cert, user, check_validity=True)
     cert.revoke()
-    update_crl(request.registry.settings)
     # XXX stop naming these by id; use the actual stamp, or date, or something
     request.session.flash(
         u"Certificate ID {0} revoked successfully.".format(cert.id),
