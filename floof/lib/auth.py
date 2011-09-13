@@ -259,26 +259,8 @@ class Authenticizer(object):
         request.session.changed()
 
     def check_certificate(self, serial):
-        """Check a client certificate serial and add authentication if valid.
+        """Check a client certificate serial and add authentication if valid."""
 
-        There are 3 possible outcomes:
-
-          1. `serial` is `None` or points to an invalid cert
-            --> cert-related state is dropped
-
-          2. `serial` points to a valid cert that agrees with existing user_id
-            --> cert-related state is added
-
-          3. `serial` points to a valid cert but conflicts with existing user_id
-            --> all auth state is flushed, cert-related state is added, and the
-            user_id is set to the cert's
-
-        Note that this method assumes that it is the first check_* method
-        called during __init__.
-
-        """
-        # The old serial state will always either be blanked or replaced by
-        # the new serial
         self.state.pop('cert_serial', None)
 
         if not serial:
@@ -316,6 +298,7 @@ class Authenticizer(object):
 
     def check_openid(self):
         """Check OpenID state and add authentication if valid, else clear."""
+
         url = self.state.pop('openid_url', None)
         timestamp = self.state.pop('openid_timestamp', None)
 
