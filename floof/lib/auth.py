@@ -73,6 +73,7 @@ class FloofAuthnPolicy(object):
             return []
 
     def remember(self, request, principal, **kw):
+        # XXX: Fix one thing, embugger another, ugh
         if 'openid_url' in kw:
             request.auth.login_openid(principal, kw['openid_url'])
         request.session.save()
@@ -161,13 +162,14 @@ class Authenticizer(object):
             DEFAULT_CERT_CONFIDENCE_EXPIRY))
 
         self.state = request.session.setdefault('auth', {})
-        mechanisms = []
 
         # Test amenity
         if 'tests.user_id' in request.environ:
             # Override user id manually
             self.clear()
-            self.state['user_id'] = request.environ['tests.user_id']
+            self.user = meta.Session.query(model.User) \
+                    .options(joinedload(model.User.role)) \
+                    .get(request.environ['tests.user_id'])
             self.trusted = 2  # maximum!
             request.session.changed()
             return
@@ -181,27 +183,27 @@ class Authenticizer(object):
             cert_serial = request.environ['tests.auth_cert_serial']
         except KeyError:
             try:
-                if config.get('client_cert_auth', 'false').lower() == 'true':
+                if config.get('client_cert_auth', '').lower() == 'true':
                     cert_serial = request.headers['X-Floof-SSL-Client-Serial']
             except KeyError:
                 cert_serial = None
 
+        # Authentication and identity resolution.
         # The login_* functions below have the following obligations:
         #
         #   1. If they cannot resolve a valid authentication, they must clear
         #      any related authentication information from self.state
         #
         #   2. If they resolve a valid authentication, and this differs from
-        #      the prevailing self.state['user_id'], they again must clear any
-        #      related authentication information from self.state
+        #      the prevailing self.user, they again must clear any related
+        #      authentication information from self.state
         #
         #   3. If they resolve a valid authentication, and this agrees with
-        #      the prevailing self.state['user_id'] (or user_id is None), they
-        #      must add any related authentication information to self.state.
-        #      If user_id is None, they must set it and add the resolved user
-        #      to self.user
+        #      the prevailing self.user (or self.user is None), they must add
+        #      any related authentication information to self.state.
+        #      If self.user is None, they must set it to the resolved user
 
-        self.state['user_id'] = None  # Make no assumptions
+        self.user = model.AnonymousUser()  # Make no assumptions
 
         try:
             self.check_certificate(cert_serial)
@@ -270,12 +272,12 @@ class Authenticizer(object):
         # Figure out what certificate and user this serial belongs to
         # TODO: Optimize eagerloading
         serial = serial.lower()
-        cert_q = model.session.query(model.Certificate) \
+        q = model.session.query(model.Certificate) \
             .options(joinedload_all('user.role')) \
             .filter_by(serial=serial)
 
         try:
-            cert = cert_q.one()
+            cert = q.one()
         except NoResultFound:
             raise CertNotFoundError
 
@@ -285,13 +287,12 @@ class Authenticizer(object):
             raise CertExpiredError
         if cert.revoked:
             raise CertRevokedError
+        if self.user and self.user.id != cert.user_id:
+            raise AuthConflictError
 
         # At this point, we're confident that the supplied cert is valid
 
         self.state['cert_serial'] = serial
-
-        if cert.user_id != self.state.get('user_id', None):
-            self.state['user_id'] = cert.user_id
 
         if not self.user:
             self.user = cert.user
@@ -328,30 +329,24 @@ class Authenticizer(object):
         self.state['openid_url'] = url
         self.state['openid_timestamp'] = timestamp
 
-        if not self.state.get('user_id', None):
-            self.state['user_id'] = openid.user_id
-
         if not self.user:
             self.user = openid.user
-
 
     def login_openid(self, user, url):
         """Log in via OpenID, adding appropriate authentication state.
 
-        Need to save the session after this!"""
+        Remember that any authentication change will only take effect on the
+        next request.  The typical scenario is that the user is redirected at
+        the end of a request that calls this method.
+
+        Also remember to save the session after this!
+        """
         # XXX Temporarily drop auth level if user's certs have all expired
 
         if user.cert_auth == 'required':
             raise OpenIDAuthDisabledError
-
-        assert url in (u.url for u in user.identity_urls)
-
-        if user != self.user:
-            if 'cert_serial' in self.state:
-                raise AuthConflictError
-
-            self.clear()
-            self.state['user_id'] = user.id
+        if not url in (u.url for u in user.identity_urls):
+            raise OpenIDNotFoundError
 
         self.state['openid_url'] = url
         self.state['openid_timestamp'] = calendar.timegm(datetime.now().timetuple())
@@ -360,26 +355,7 @@ class Authenticizer(object):
         """Log the user out completely."""
         # TODO what shall this do with certificates
         self.state.clear()
-        try:
-            del self.user  # defeat reify
-        except AttributeError:
-            pass
-
-    @reify
-    def user(self):
-        """Returns the currently logged-in user, or a falsey proxy object if
-        there is none.
-        """
-        if self.state.get('user_id', None):
-            user = model.session.query(model.User) \
-                .options(joinedload(model.User.role)) \
-                .get(self.state['user_id'])
-        else:
-            user = None
-
-        if not user:
-            user = model.AnonymousUser()  # XXX probably move into this file
-        return user
+        self.user = model.AnonymousUser()
 
     @property
     def can_purge(self):
