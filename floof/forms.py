@@ -33,6 +33,7 @@ class PassthroughListWidget(widgets.ListWidget):
         return HTMLString(u''.join(html))
 
 class IDNAField(fields.TextField):
+    """Field for internationalised domain names."""
     def process_formdata(self, valuelist):
         if valuelist:
             self.data = valuelist[0].encode('idna')

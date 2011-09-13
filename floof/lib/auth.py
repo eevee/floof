@@ -73,7 +73,8 @@ class FloofAuthnPolicy(object):
             return []
 
     def remember(self, request, principal, **kw):
-        request.auth.login_openid(principal)
+        if 'openid_url' in kw:
+            request.auth.login_openid(principal, kw['openid_url'])
         request.session.save()
         return []
 
@@ -118,7 +119,8 @@ class CertAuthDisabledError(Exception): pass
 class CertExpiredError(Exception): pass
 class CertRevokedError(Exception): pass
 class OpenIDAuthDisabledError(Exception): pass
-class CertAuthConflictError(Exception): pass
+class OpenIDNotFoundError(Exception): pass
+class AuthConflictError(Exception): pass
 
 class Authenticizer(object):
     """Manages the authentication and authorization state of the current user.
@@ -129,6 +131,21 @@ class Authenticizer(object):
 
     State is contained within a dictionary, passed to the constructor.
     """
+    def __repr__(self):
+        openid_age = None
+        if 'openid_timestamp' in self.state:
+            openid_age = datetime.now() - datetime.fromtimestamp(
+                    self.state['openid_timestamp'])
+
+        return ("<Authenticizer ( User: {0}, Cert: {1}, OpenID URL: {2}, "
+                "OpenID Age: {3}, Trust Lvl: {4} )>".format(
+                    self.user.name if self.user else None,
+                    self.state.get('cert_serial', None),
+                    self.state.get('openid_url', None),
+                    openid_age,
+                    self.trusted,
+                    ))
+
     def __init__(self, request):
         # The point of this whole method is really just to get a user id.
         # Note: everything within the state is meant to be consistent at all
@@ -154,26 +171,40 @@ class Authenticizer(object):
             self.trusted = 2  # maximum!
             request.session.changed()
             return
-        # If testing, override mechanism states as requested
-        # XXX uhh support these I guess maybe.
-        #for var in persistant_variables:
-        #    if 'tests.auth_{0}'.format(var) in request.environ:
-        #        setattr(self, var, request.environ['tests.auth_{0}'.format(var)])
 
-        # Check for client certificate login; the cert serial is passed by the
-        # frontend server in an HTTP header.  This effectively acts as a login
-        # if it changes
+        # Check for client certificate serial; ATM, the cert serial is passed by
+        # the frontend server in an HTTP header.
         # XXX thinking the secret stuff should become a general "don't be world-readable"
+        # XXX or rather, "make sure your server clobbers X-Floof-SSL-Client-Serial'!"
+        cert_serial = None
         try:
             cert_serial = request.environ['tests.auth_cert_serial']
         except KeyError:
             try:
-                cert_serial = request.headers['X-Floof-SSL-Client-Serial']
+                if config.get('client_cert_auth', 'false').lower() == 'true':
+                    cert_serial = request.headers['X-Floof-SSL-Client-Serial']
             except KeyError:
                 cert_serial = None
 
+        # The login_* functions below have the following obligations:
+        #
+        #   1. If they cannot resolve a valid authentication, they must clear
+        #      any related authentication information from self.state
+        #
+        #   2. If they resolve a valid authentication, and this differs from
+        #      the prevailing self.state['user_id'], they again must clear any
+        #      related authentication information from self.state
+        #
+        #   3. If they resolve a valid authentication, and this agrees with
+        #      the prevailing self.state['user_id'] (or user_id is None), they
+        #      must add any related authentication information to self.state.
+        #      If user_id is None, they must set it and add the resolved user
+        #      to self.user
+
+        self.state['user_id'] = None  # Make no assumptions
+
         try:
-            self.login_certificate(cert_serial)
+            self.check_certificate(cert_serial)
         except CertNotFoundError:
             # This should NEVER happen in production (certs should last
             # forever)
@@ -189,7 +220,19 @@ class Authenticizer(object):
             request.session.flash("That client certificate has been revoked.",
                 level='error', icon='key--exclamation')
 
-        # Check confidence level.
+        try:
+            self.check_openid()
+        except OpenIDNotFoundError:
+            request.session.flash("I don't recognize your OpenID identity.",
+                level='error', icon='key--exclamation')
+        except OpenIDAuthDisabledError:
+            request.session.flash("Your OpenID is no longer accepted as your account has disabled OpenID authentication.",
+                level='error', icon='key--exclamation')
+        except AuthConflictError:
+            request.session.flash("Your OpenID conflicted with your certificate and has been cleared.",
+                level='error', icon='key--exclamation')
+
+        # Determine trust (authentication confidence) level.
         # Guests are -1.
         # A regular OpenID login is 0 (standard).
         # If performed fairly recently, it's 1 (semi-trusted).
@@ -212,23 +255,26 @@ class Authenticizer(object):
             # Wipe the slate clean
             self.clear()
 
-        print self.state
+        print self
         request.session.changed()
 
-    def login_certificate(self, serial):
-        """Log in via client certificate serial.
+    def check_certificate(self, serial):
+        """Check a client certificate serial and add authentication if valid.
 
         There are 3 possible outcomes:
 
           1. `serial` is `None` or points to an invalid cert
             --> cert-related state is dropped
 
-          2. `serial` points to a valid cert that agress with existing user_id
+          2. `serial` points to a valid cert that agrees with existing user_id
             --> cert-related state is added
 
           3. `serial` points to a valid cert but conflicts with existing user_id
             --> all auth state is flushed, cert-related state is added, and the
             user_id is set to the cert's
+
+        Note that this method assumes that it is the first check_* method
+        called during __init__.
 
         """
         # The old serial state will always either be blanked or replaced by
@@ -236,11 +282,11 @@ class Authenticizer(object):
         self.state.pop('cert_serial', None)
 
         if not serial:
-            # No cert given.  If this was the only login mechanism the user
-            # had, __init__ will wipe out user_id too
+            # No cert. Our obligation to wipe cert state is fulfilled above.
             return
 
         # Figure out what certificate and user this serial belongs to
+        # TODO: Optimize eagerloading
         serial = serial.lower()
         cert_q = model.session.query(model.Certificate) \
             .options(joinedload_all('user.role')) \
@@ -260,33 +306,71 @@ class Authenticizer(object):
 
         # At this point, we're confident that the supplied cert is valid
 
-        if cert.user_id != self.state.get('user_id', None):
-            # Certs take precedence when determining identity, so this is,
-            # essentially, a new login.  Start the state clean
-            self.clear()
-            self.state['user_id'] = cert.user_id
-
         self.state['cert_serial'] = serial
 
-        # Avoid a second "lazy" query later (this is why we eagerloaded 'role'
-        # above)
-        self.user = cert.user
+        if cert.user_id != self.state.get('user_id', None):
+            self.state['user_id'] = cert.user_id
 
-    def login_openid(self, user):
-        """Log in via OpenID.
+        if not self.user:
+            self.user = cert.user
+
+    def check_openid(self):
+        """Check OpenID state and add authentication if valid, else clear."""
+        url = self.state.pop('openid_url', None)
+        timestamp = self.state.pop('openid_timestamp', None)
+
+        if not url or not timestamp:
+            # No (or corrupted) OpenID login. By popping, our obligation to
+            # clear relevent state is already fulfilled, so just return
+            return
+
+        # TODO: Optimize eagerloading
+        q = meta.Session.query(model.IdentityURL) \
+            .options(joinedload_all('user.role')) \
+            .filter_by(url=url)
+
+        try:
+            openid = q.one()
+        except NoResultFound:
+            raise OpenIDNotFoundError
+
+        if openid.user.cert_auth == 'required':
+            raise OpenIDAuthDisabledError
+        if self.user and self.user.id != openid.user_id:
+            raise AuthConflictError
+
+        # XXX Check timestamp sanity?
+        # At this point, we're confident that the stored OpenID login is valid
+
+        self.state['openid_url'] = url
+        self.state['openid_timestamp'] = timestamp
+
+        if not self.state.get('user_id', None):
+            self.state['user_id'] = openid.user_id
+
+        if not self.user:
+            self.user = openid.user
+
+
+    def login_openid(self, user, url):
+        """Log in via OpenID, adding appropriate authentication state.
 
         Need to save the session after this!"""
         # XXX Temporarily drop auth level if user's certs have all expired
+
         if user.cert_auth == 'required':
             raise OpenIDAuthDisabledError
 
+        assert url in (u.url for u in user.identity_urls)
+
         if user != self.user:
             if 'cert_serial' in self.state:
-                raise CertAuthConflictError
+                raise AuthConflictError
 
             self.clear()
             self.state['user_id'] = user.id
 
+        self.state['openid_url'] = url
         self.state['openid_timestamp'] = calendar.timegm(datetime.now().timetuple())
 
     def clear(self):

@@ -146,7 +146,7 @@ def login_finish(context, request):
 
     elif identity_owner == request.user:
         # Someone is just freshening up their cookie
-        request.auth.login_openid(identity_owner)
+        request.auth.login_openid(identity_owner, identity_url)
         request.session.save()
         request.session.flash(u'Re-authentication successful', icon='user')
 
@@ -168,7 +168,8 @@ def login_finish(context, request):
         # Log the successful authentication
         # TODO try/except, catch all the things that can be thrown
         auth_headers = security.forget(request)
-        auth_headers += security.remember(request, identity_owner)
+        auth_headers += security.remember(
+            request, identity_owner, openid_url=identity_url)
         request.session.flash(
             u"Welcome back, {0}!".format(identity_owner.display_name or identity_owner.name),
             level=u'success', icon='user')
@@ -277,7 +278,7 @@ def register(context, request):
     # Log 'em in
     del request.session['pending_identity_url']
     auth_headers = security.forget(request)
-    auth_headers += security.remember(request, user)
+    auth_headers += security.remember(request, user, openid_url=identity_url)
     print auth_headers
 
     # And off we go
