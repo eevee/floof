@@ -14,26 +14,8 @@ import os
 import random
 import time
 
-persistant_variables = [
-        'openid_uid',
-        'openid_url',
-        'openid_time',
-        'cert_uid',
-        'cert_serial',
-        ]
-
-req_confidence_levels = {
-        1: ['auth', 'money'],
-        2: ['admin']
-        }
-
 DEFAULT_CONFIDENCE_EXPIRY = 60 * 10  # seconds
 DEFAULT_CERT_CONFIDENCE_EXPIRY = 60 * 30  # seconds
-
-sensitive_privs = []
-for lvl in req_confidence_levels:
-    for priv in req_confidence_levels[lvl]:
-        sensitive_privs.append(priv)
 
 class FloofAuthnPolicy(object):
     """Authentication policy bolted atop a beaker session.
@@ -176,17 +158,10 @@ class Authenticizer(object):
 
         # Check for client certificate serial; ATM, the cert serial is passed by
         # the frontend server in an HTTP header.
-        # XXX thinking the secret stuff should become a general "don't be world-readable"
-        # XXX or rather, "make sure your server clobbers X-Floof-SSL-Client-Serial'!"
-        cert_serial = None
-        try:
-            cert_serial = request.environ['tests.auth_cert_serial']
-        except KeyError:
-            try:
-                if config.get('client_cert_auth', '').lower() == 'true':
-                    cert_serial = request.headers['X-Floof-SSL-Client-Serial']
-            except KeyError:
-                cert_serial = None
+        cert_serial = request.environ.get('tests.auth_cert_serial', None)
+        if config.get('client_cert_auth', '').lower() == 'true':
+            cert_serial = request.headers.get(
+                    'X-Floof-SSL-Client-Serial', None) or cert_serial
 
         # Authentication and identity resolution.
         # The login_* functions below have the following obligations:
@@ -373,86 +348,6 @@ class Authenticizer(object):
         there isn't one.
         """
         return self.state.get('cert_serial', None)
-
-
-class Auth():
-    """
-    Class for managing the authentication status of a user.
-
-    Variables:
-
-    user: model.User() or None
-        Instance of a successfully authenticated user, if the Auth
-        instance has sufficient authentication mechanisms satisfied
-        to meet the requirements of the user's ``User.auth_method``,
-        else None.
-
-    satisfied_mechanisms: list [ str:mechanism_name ]
-        List of mechansims that have successfully authenticated a user
-        with the same id as the ``user`` or ``pending_user``, as
-        appropriate.
-        If more than one mechanism has been satisfied but for different
-        accounts, then the pending user is chosen from the first
-        satisfied mechanism as ordered by ``auth_mechanisms``, and this
-        list will contain only mechanisms that have been satisfied with
-        the ``pending_user``s id.
-        If a user is successfully logged in, ``satisfied_mechanisms`` 
-        is pruned to only those mechanisms that were used in the
-        authentication process.
-        Only mechanisms appearing here will be placed in the session
-        by save() for re-populating ``mechanisms`` in the following
-        request.
-        
-    required_mechanisms:
-    list [ ( str:display_name, str:'required' or str:'sufficient', bool:satisfied ) ]
-        List of mechanisms required by the pending user's chosen auth method.
-        Essentially just a convenience attribute for showing what mechanisms
-        are outstanding to users with pending sessions on the login page.
-        Will always be empty if ``pending_user`` is None.
-
-    cert_serial: string (40-digit lower-case hex) or None
-        Initialised as the client certificate serial seen in the
-        previous request of the session, if any.  Is used by
-        _load_certificate() to see if the presented certificate has
-        changed and if so is updated to the serial of the certificate
-        given in the current session.
-        It's main purpose is to act as a staleness indicator for
-        _load_certificate(), so the method doesn't have to touch the
-        database on every request, but only when a certificate is first
-        presented or is changed.
-        Necessarily, it persists between requests.
-
-    """
-
-    def can(self, priv, log):
-        """Return (True, '') if the current user has the permission priv and
-        a sufficient session confidence level to exercise if.  Else return
-        a (False, error_string) tuple.
-
-        If log is True, ask the user object to log the privilege exercise.
-
-        """
-        if not self.user:
-            return False, 'no_user'
-        if not self.user.can(priv, log=log):
-            return False, 'no_privilege'
-        req_confidence = 0
-        for lvl in req_confidence_levels:
-            for key in req_confidence_levels[lvl]:
-                if priv.startswith(key + '.'):
-                    req_confidence = lvl
-                    break
-        if self.confidence_level >= req_confidence:
-            return True, ''
-        if req_confidence > 1 or (
-                req_confidence > 0 and
-                self.user.cert_auth in ['required', 'sensitive_required']
-                ):
-            if not 'cert' in self.satisfied:
-                return False, 'cert_auth_required'
-            elif self.user.cert_auth not in ['required', 'sensitive_required']:
-                return False, 'cert_auth_option_too_weak'
-        return False, 'openid_reauth_required'
 
 
 def get_ca(settings):
