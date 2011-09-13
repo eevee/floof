@@ -1,18 +1,16 @@
-import OpenSSL.crypto as ssl
-from pyramid.decorator import reify
 from pyramid.security import ACLAllowed, ACLDenied
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm import joinedload_all
 from sqlalchemy.orm.exc import NoResultFound
 
 from floof import model
-from floof.model import Certificate
 
 import calendar
-from datetime import datetime, timedelta
-import os
+import OpenSSL.crypto as ssl
+import os.path
 import random
-import time
+
+from datetime import datetime, timedelta
 
 DEFAULT_CONFIDENCE_EXPIRY = 60 * 10  # seconds
 DEFAULT_CERT_CONFIDENCE_EXPIRY = 60 * 30  # seconds
@@ -149,7 +147,7 @@ class Authenticizer(object):
         if 'tests.user_id' in request.environ:
             # Override user id manually
             self.clear()
-            self.user = meta.Session.query(model.User) \
+            self.user = model.session.query(model.User) \
                     .options(joinedload(model.User.role)) \
                     .get(request.environ['tests.user_id'])
             self.trusted = 2  # maximum!
@@ -284,7 +282,7 @@ class Authenticizer(object):
             return
 
         # TODO: Optimize eagerloading
-        q = meta.Session.query(model.IdentityURL) \
+        q = model.session.query(model.IdentityURL) \
             .options(joinedload_all('user.role')) \
             .filter_by(url=url)
 
