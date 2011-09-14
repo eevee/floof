@@ -241,7 +241,7 @@ class TestControls(FunctionalTests):
                 extra_environ=self.default_environ,
                 )
         response = self.app.get(
-                self.url(controller='controls.certs'),
+                self.url('controls.certs'),
                 extra_environ=self.default_environ,
                 )
         assert self.url('controls.certs.details', id=1) in response, 'Revoked cert not found on certificates pasge at all/'

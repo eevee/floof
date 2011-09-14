@@ -464,6 +464,8 @@ class Certificate(TableBase):
         """Returns True if the certificate is neither expired nor revoked."""
         return not self.expired and not self.revoked
 
+    class InvalidSPKACError(Exception): pass
+
     def __init__(self, user, ca_cert, ca_key, spkac=None, bits=2048, days=3653, digest='sha256'):
         """Creates a new certificate for ``user``, signed by the passed CA.
 
@@ -477,7 +479,10 @@ class Certificate(TableBase):
             # Strip all whitespace
             spkac = str(spkac)
             spkac = spkac.translate(None, string.whitespace)
-            cert_key = ssl.NetscapeSPKI(spkac).get_pubkey()
+            try:
+                cert_key = ssl.NetscapeSPKI(spkac).get_pubkey()
+            except ssl.Error:
+                raise Certificate.InvalidSPKACError
             bits = cert_key.bits()
         else:
             cert_key = ssl.PKey()
@@ -489,7 +494,7 @@ class Certificate(TableBase):
         # Uniqueness should be supplied by the user name and the certificate
         # number.  The rand element is mostly for ease of development, to
         # protect old CRLs from clobbering new certs, etc.
-        rand = str(random.getrandbits(40))
+        rand = str(random.getrandbits(80))
         hasher = hashlib.sha1(user.name + str(len(user.certificates)) + rand)
 
         cert = ssl.X509()
@@ -530,12 +535,14 @@ class Certificate(TableBase):
             raise NameError('Certificate private data and hence PKCS12 '
             'files are only available on freshly created Certificate '
             'objects as private keys are not retained in the database.')
+
         cert = ssl.load_certificate(ssl.FILETYPE_PEM, self.public_data)
         pkcs12 = ssl.PKCS12()
         pkcs12.set_certificate(cert)
         pkcs12.set_privatekey(self._key)
         pkcs12.set_ca_certificates([ca_cert])
         pkcs12.set_friendlyname(str(name))
+
         return pkcs12.export(passphrase)
 
     def revoke(self):

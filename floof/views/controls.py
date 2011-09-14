@@ -353,27 +353,31 @@ def check_cert(cert, user, check_validity=False):
     if check_validity and not c.cert.valid:
         abort(404, detail='That certificate has already expired or been revoked.')
 
+# XXX also include CryptoAPI method?
 class CertificateForm(wtforms.form.Form):
-    # XXX split this in two
-    pubkey = KeygenField(u'Public Key')
     days = wtforms.fields.SelectField(u'New Certificate Validity Period',
             coerce=int,
             choices=[(31, '31 days'), (366, '1 year'), (1096, '3 years')]
             )
-    name = wtforms.fields.TextField(u'PKCS12 Friendly Name', [
-            wtforms.validators.Length(max=64),
-            ])
-    passphrase = wtforms.fields.PasswordField(u'PKCS12 Passphrase', [
-            wtforms.validators.Length(max=64),
-            ])
+
+class BrowserCertificateForm(CertificateForm):
+    pubkey = KeygenField(u'Public Key')
     generate_browser = wtforms.fields.SubmitField(u'Generate In Browser')
-    generate_server = wtforms.fields.SubmitField(u'Generate On Server')
 
     def validate_pubkey(form, field):
         if not field.data and form.generate_browser.data:
             raise wtforms.ValidationError('It looks like your browser '
                     'doesn\'t support this method.  Try &quot;Generate '
                     'Certificate on Server&quot;.')
+
+class ServerCertificateForm(CertificateForm):
+    name = wtforms.fields.TextField(u'PKCS12 Friendly Name', [
+            wtforms.validators.Length(max=64),
+            ])
+    passphrase = wtforms.fields.PasswordField(u'PKCS12 Passphrase', [
+            wtforms.validators.Length(max=64),
+            ])
+    generate_server = wtforms.fields.SubmitField(u'Generate On Server')
 
 class RevokeCertificateForm(wtforms.form.Form):
     ok = wtforms.fields.SubmitField(u'Revoke Certificate')
@@ -408,28 +412,9 @@ class AuthenticationForm(wtforms.form.Form):
     request_method='GET',
     renderer='account/controls/certificates.mako')
 def certificates(context, request, err=None):
-    form = CertificateForm()
-    if request.method == 'POST' and \
-            form.validate() and \
-            form.generate_browser.data:
-        # Generate a new certificate from UA-supplied key.
-        spkac = form.pubkey.data
-        cert = model.Certificate(
-                request.user,
-                *get_ca(),
-                spkac=spkac,
-                days=form.days.data
-                )
-        request.user.certificates.append(cert)
-        model.session.commit()
-        helpers.flash(
-            u'New certificate generated.  You may need to restart '
-            'your browser to begin authenticating with it.',
-            level=u'success')
-        response.content_type = 'application/x-x509-user-cert'
-        return cert.public_data_der
     return dict(
-        form=form,
+        browser_form=BrowserCertificateForm(),
+        server_form=ServerCertificateForm(),
     )
 
 @view_config(
@@ -438,18 +423,30 @@ def certificates(context, request, err=None):
     request_method='POST',
     renderer='account/controls/certificates.mako')
 def certificates_generate_client(context, request):
-    form = CertificateForm(request.POST) # XXX fetch_post(session, request))
+    form = BrowserCertificateForm(request.POST) # XXX fetch_post(session, request))
+
+    ret = dict(
+        browser_form=form,
+        server_form=ServerCertificateForm(),
+    )
+
     if not form.validate():
-        return dict(form=form)
+        return ret
 
     # Generate a new certificate from UA-supplied key.
     spkac = form.pubkey.data
-    cert = model.Certificate(
-        request.user,
-        *get_ca(request.registry.settings),
-        spkac=spkac,
-        days=form.days.data
-    )
+    try:
+        cert = model.Certificate(
+            request.user,
+            *get_ca(request.registry.settings),
+            spkac=spkac,
+            days=form.days.data
+        )
+    except model.Certificate.InvalidSPKACError:
+        form.pubkey.errors.append("Invalid SPKAC; "
+                "try using a server-generated certificate")
+        return ret
+
     request.user.certificates.append(cert)
     request.session.flash(
         u'New certificate generated.  You may need to restart '
@@ -466,7 +463,7 @@ def certificates_generate_client(context, request):
     request_method='POST',
     renderer='account/controls/certificates.mako')
 def certificates_generate_server(context, request):
-    form = CertificateForm(request.POST)
+    form = ServerCertificateForm(request.POST)
     if not form.validate():
         return dict(form=form)
 

@@ -37,10 +37,10 @@ to log on at all.</p>
     as a backup and will allow you to import and use the one certificate
     on multiple computers.</p>
     <dl>
-        ${lib.field(form.days)}
-        ${lib.field(form.pubkey)}
+        ${lib.field(browser_form.days)}
+        ${lib.field(browser_form.pubkey)}
     </dl>
-    ${form.generate_browser()}
+    ${browser_form.generate_browser()}
     ${h.end_form()}
 </div>
 <div class="halfsplit">
@@ -55,11 +55,11 @@ to log on at all.</p>
     <p>Be sure to save the file when prompted -- you will not be able to
     download the generated private key again.</p>
     <dl>
-        ${lib.field(form.days)}
-        ${lib.field(form.name)}
-        ${lib.field(form.passphrase)}
+        ${lib.field(server_form.days)}
+        ${lib.field(server_form.name)}
+        ${lib.field(server_form.passphrase)}
     </dl>
-    ${form.generate_server()}
+    ${server_form.generate_server()}
     ${h.end_form()}
 </div>
 
