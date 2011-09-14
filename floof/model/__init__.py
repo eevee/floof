@@ -510,7 +510,7 @@ class Certificate(TableBase):
         cert.add_extensions([
                 ssl.X509Extension('authorityKeyIdentifier', False, 'keyid:always,issuer:always', cert, ca_cert),
                 ssl.X509Extension('subjectKeyIdentifier', False, 'hash', cert),
-                ssl.X509Extension('basicConstraints', False, 'CA:FALSE'),
+                ssl.X509Extension('basicConstraints', True, 'CA:FALSE'),
                 ssl.X509Extension('keyUsage', True, 'digitalSignature'),
                 ssl.X509Extension('extendedKeyUsage', True, 'clientAuth'),
                 ])

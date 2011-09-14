@@ -4,15 +4,17 @@ import re
 import unicodedata
 
 from pyramid.exceptions import NotFound
-from pyramid.httpexceptions import HTTPBadRequest, HTTPSeeOther
+from pyramid.httpexceptions import HTTPBadRequest, HTTPNotFound, HTTPSeeOther
 from pyramid.renderers import render_to_response
 from pyramid.response import Response
 from pyramid.view import view_config
+from sqlalchemy.orm.exc import NoResultFound
 import wtforms
 from wtforms.ext.sqlalchemy.fields import QuerySelectMultipleField
 
 from floof.forms import DisplayNameField, IDNAField, KeygenField, MultiCheckboxField, TimezoneField
 from floof.lib.auth import get_ca
+from floof.lib.helpers import friendly_serial
 from floof.lib.openid_ import OpenIDError, openid_begin, openid_end
 from floof import model
 
@@ -344,14 +346,25 @@ def openid_remove(context, request):
     return HTTPSeeOther(location=request.route_url('controls.openid'))
 
 
-# XXX not used atm
-def check_cert(cert, user, check_validity=False):
+def get_cert(serial, user=None, check_validity=False):
+    """Helper for fetching certs and running common authorization checks."""
+    # XXX return a tuple or check result with isinstance()?
+    try:
+        cert = model.session.query(model.Certificate) \
+                .filter_by(serial=serial) \
+                .one()
+    except NoResultFound:
+        return None, HTTPNotFound(detail="Certificate not found.")
+
     if cert is None:
-        abort(404, detail='Certificate not found.')
-    if cert not in user.certificates:
-        abort(403, detail='That does not appear to be your certificate.')
-    if check_validity and not c.cert.valid:
-        abort(404, detail='That certificate has already expired or been revoked.')
+        return None, HTTPNotFound(detail="Certificate not found.")
+    if user and cert not in user.certificates:
+        return None, HTTPForbidden(detail="That does not appear to be your certificate.")
+    if check_validity and not cert.valid:
+        return None, HTTPNotFound(detail="That certificate has already expired or "
+                "been revoked.")
+
+    return cert, None
 
 # XXX also include CryptoAPI method?
 class CertificateForm(wtforms.form.Form):
@@ -452,6 +465,7 @@ def certificates_generate_client(context, request):
         u'New certificate generated.  You may need to restart '
         'your browser to begin authenticating with it.',
         level=u'success')
+
     return Response(
         body=cert.public_data_der,
         headerlist=[('Content-type', 'application/x-x509-user-cert')],
@@ -478,6 +492,7 @@ def certificates_generate_server(context, request):
     request.session.flash(
         u'New certificate generated.',
         level=u'success')
+
     return Response(
         body=cert.pkcs12(form.passphrase.data, form.name.data, *ca),
         headerlist=[('Content-type', 'application/x-pkcs12')],
@@ -489,8 +504,10 @@ def certificates_generate_server(context, request):
     request_method='GET',
     renderer='account/controls/certificates_details.mako')
 def certificates_details(context, request):
-    cert = model.session.query(model.Certificate).get(request.matchdict['id'])
-    # XXX check_cert(c.cert, c.user)
+    cert, error = get_cert(request.matchdict['serial'], request.user)
+    if error:
+        return error
+
     return dict(cert=cert)
 
 @view_config(
@@ -498,8 +515,10 @@ def certificates_details(context, request):
     permission='auth.certificates',
     request_method='GET')
 def certificates_download(context, request):
-    cert = model.session.query(model.Certificate).get(request.matchdict['id'])
-    # XXX check_cert(cert, c.user)
+    cert, error = get_cert(request.matchdict['serial'], request.user)
+    if error:
+        return error
+
     # TODO: Redirect to the cert overview page.  Somehow.
     return Response(
         body=cert.public_data,
@@ -513,10 +532,13 @@ def certificates_download(context, request):
     renderer='account/controls/certificates_revoke.mako')
 def certificates_revoke(context, request, id=None):
     form = RevokeCertificateForm()
-    cert = model.session.query(model.Certificate).get(request.matchdict['id'])
-    # XXX check_cert(cert, user, check_validity=True)
+    cert, error = get_cert(request.matchdict['serial'], request.user)
+    if error:
+        return error
+
     will_override_auth = len(request.user.valid_certificates) == 1 and \
             user.cert_auth in ['required', 'sensitive_required']
+
     return dict(
         form=form,
         cert=cert,
@@ -528,13 +550,15 @@ def certificates_revoke(context, request, id=None):
     permission='auth.certificates',
     request_method='POST')
 def certificates_revoke_commit(context, request):
-    cert = model.session.query(model.Certificate).get(request.matchdict['id'])
-    # XXX check_cert(cert, user, check_validity=True)
+    cert, error = get_cert(request.matchdict['serial'], request.user)
+    if error:
+        return error
+
     cert.revoke()
-    # XXX stop naming these by id; use the actual stamp, or date, or something
     request.session.flash(
-        u"Certificate ID {0} revoked successfully.".format(cert.id),
+        u"Certificate {0} revoked successfully.".format(friendly_serial(cert.serial)),
         level=u'success')
+
     return HTTPSeeOther(location=request.route_url('controls.certs'))
 
 @view_config(

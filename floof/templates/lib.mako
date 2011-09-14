@@ -122,18 +122,8 @@ ${h.tags.hidden('csrf_token', value=request.session.get_csrf_token(), id=None)}
 % endif
 </%def>
 
-<%def name="cert_serial(serial)">\
-<%
-id = ''
-i = 0
-for char in serial[:10]:
-    if i % 2 == 0:
-        id += char
-    else:
-        id += char + ':'
-    i += 1
-%>\
-<span class="monospace">${id[:-1]}</span>\
+<%def name="cert_serial(cert)">\
+<span class="monospace">${h.friendly_serial(cert.serial)}</span>\
 </%def>
 
 

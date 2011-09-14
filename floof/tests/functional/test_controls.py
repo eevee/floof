@@ -7,6 +7,7 @@ from openid import oidutil
 from urlparse import parse_qs, urlparse
 
 from floof import model
+from floof.lib.helpers import friendly_serial
 from floof.tests import FunctionalTests
 import floof.tests.openidspoofer as oidspoof
 import floof.tests.sim as sim
@@ -48,6 +49,7 @@ class TestControls(FunctionalTests):
                 self.url('controls.index'),
                 extra_environ={'tests.user_id': self.user.id},
                 )
+        assert 'Index' in response
         # Test response...
 
     def test_user_info(self):
@@ -198,7 +200,10 @@ class TestControls(FunctionalTests):
                 extra_environ=self.default_environ,
                 )
         assert 'Generate New Certificate' in response, 'Could not find the anticipated page title.'
-        for days, time in [(31, '30 days, 23 hours'), (366, '365 days, 23 hours')]:
+
+        times = ((31, '30 days, 23 hours'), (366, '365 days, 23 hours'))
+        serials = []
+        for days, time in times:
             response = self.app.post(
                     self.url('controls.certs.generate_server', name=self.user.name),
                     params=[
@@ -210,19 +215,20 @@ class TestControls(FunctionalTests):
                     )
             assert response.content_type == 'application/x-pkcs12', 'Anticipated a response MIME type of "application/x-pkcs12", got {0}'.format(response.content_type)
             pkcs12 = ssl.load_pkcs12(response.body, u'1234')
+            serials.append('{0:x}'.format(pkcs12.get_certificate().get_serial_number()))
             # TODO: Test pkcs12 further... ?
 
         # Test viewing details
         response = self.app.get(
-                self.url('controls.certs.details', id=2),
+                self.url('controls.certs.details', serial=serials[1]),
                 extra_environ=self.default_environ,
                 )
-        assert 'Certificate ID 2' in response, 'Unable to find appropriate time to expiry for new certificate.'
+        assert friendly_serial(serials[1]) in response, 'Unable to find new certificate details page serial.'
         assert 'OU=Users, CN={0}'.format(self.user.name) in response, 'Unable to find appropriate Subject field.'
         assert 'X509v3 Authority Key Identifier:' in response, 'Unable to find Authority Key Identifier X.509 extension.'
         assert 'X509v3 Subject Key Identifier:' in response, 'Unable to find Subject Key Identifier X.509 extension.'
         assert """
-            X509v3 Basic Constraints: 
+            X509v3 Basic Constraints: critical
                 CA:FALSE
             X509v3 Key Usage: critical
                 Digital Signature
@@ -231,12 +237,13 @@ class TestControls(FunctionalTests):
 
         # Test revocation
         response = self.app.get(
-                self.url('controls.certs.revoke', id=1),
+                self.url('controls.certs.revoke', serial=serials[0]),
                 extra_environ=self.default_environ,
                 )
-        assert 'Permanently Revoke Certificate ID 1' in response, 'Unable to find anticipated heading in page.'
+        assert 'Permanently Revoke Certificate <span class="monospace">{0}'.format(friendly_serial(serials[0])) in response, 'Unable to find anticipated heading in page.old'
+        assert 'Permanently Revoke Certificate <span class="monospace">{0}</span>'.format(friendly_serial(serials[0])) in response, 'Unable to find anticipated heading in page.'
         response = self.app.post(
-                self.url('controls.certs.revoke', id=1),
+                self.url('controls.certs.revoke', serial=serials[0]),
                 params=[('ok', u'Revoke Certificate')],
                 extra_environ=self.default_environ,
                 )
@@ -244,8 +251,8 @@ class TestControls(FunctionalTests):
                 self.url('controls.certs'),
                 extra_environ=self.default_environ,
                 )
-        assert self.url('controls.certs.details', id=1) in response, 'Revoked cert not found on certificates pasge at all/'
-        assert self.url('controls.certs.revoke', id=1) not in response, 'Revocation link found for supposedly revoked certificate.'
+        assert self.url('controls.certs.details', serial=serials[0]) in response, 'Revoked cert not found on certificates page at all.'
+        assert self.url('controls.certs.revoke', serial=serials[0]) not in response, 'Revocation link found for supposedly revoked certificate.'
 
 
     def test_cert_auth_change(self):

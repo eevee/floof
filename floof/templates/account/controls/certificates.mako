@@ -80,14 +80,14 @@ to log on at all.</p>
     </tr>
     % for cert in request.user.valid_certificates:
     <tr>
-        <td>${lib.cert_serial(cert.serial)}</td>
+        <td>${lib.cert_serial(cert)}</td>
         <td>${cert.bits}</td>
         <td>${lib.time(cert.created_time)}</td>
         <td>${lib.time(cert.expiry_time)}</td>
         <td>${lib.longtimedelta(cert.expiry_time)}</td>
-        <td><a href="${request.route_url('controls.certs.details', id=cert.id)}" title="Full text of the certificate">Details</a></td>
-        <td><a href="${request.route_url('controls.certs.download', id=cert.id, name=request.user.name)}" title="Download this certificate (public component only) in PEM-encoded X.509 format">Download</a></td>
-        <td><a href="${request.route_url('controls.certs.revoke', id=cert.id)}" title="Revoke this certificate">Revoke...</a></td>
+        <td><a href="${request.route_url('controls.certs.details', serial=cert.serial)}" title="Full text of the certificate">Details</a></td>
+        <td><a href="${request.route_url('controls.certs.download', serial=cert.serial, name=request.user.name)}" title="Download this certificate (public component only) in PEM-encoded X.509 format">Download</a></td>
+        <td><a href="${request.route_url('controls.certs.revoke', serial=cert.serial)}" title="Revoke this certificate">Revoke...</a></td>
     </tr>
     % endfor
 </table>
@@ -109,7 +109,7 @@ to log on at all.</p>
     </tr>
     % for cert in request.user.invalid_certificates:
     <tr>
-        <td>${lib.cert_serial(cert.serial)}</td>
+        <td>${lib.cert_serial(cert)}</td>
         <td>${cert.bits}</td>
         <td>${lib.time(cert.created_time)}</td>
         <td>${lib.time(cert.expiry_time)}</td>
@@ -118,8 +118,8 @@ to log on at all.</p>
         % else:
         <td>${lib.time(cert.revoked_time)}</td>
         % endif
-        <td><a href="${request.route_url('controls.certs.details', id=cert.id)}" title="Full text of the certificate">Details</a></td>
-        <td><a href="${request.route_url('controls.certs.download', id=cert.id, name=request.user.name)}" title="Download this certificate (public component only) in PEM-encoded X.509 format">Download</td>
+        <td><a href="${request.route_url('controls.certs.details', serial=cert.serial)}" title="Full text of the certificate">Details</a></td>
+        <td><a href="${request.route_url('controls.certs.download', serial=cert.serial, name=request.user.name)}" title="Download this certificate (public component only) in PEM-encoded X.509 format">Download</td>
     </tr>
     % endfor
 </table>

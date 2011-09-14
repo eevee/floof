@@ -54,10 +54,14 @@ def configure_routing(config):
     r('controls.info', '/account/controls/user_info')
 
     r('controls.certs', '/account/controls/certificates')
-    r('controls.certs.generate_server', '/account/controls/certificates/gen/cert-{name}.p12')
-    r('controls.certs.details', '/account/controls/certificates/details/{id}')
-    r('controls.certs.download', '/account/controls/certificates/download/cert-{name}-{id}.pem')
-    r('controls.certs.revoke', '/account/controls/certificates/revoke/{id}')
+    r('controls.certs.generate_server',
+            '/account/controls/certificates/gen/cert-{name}.p12')
+    r('controls.certs.details',
+            '/account/controls/certificates/details/{serial:[0-9a-f]+}')
+    r('controls.certs.download',
+            '/account/controls/certificates/download/cert-{name}-{serial:[0-9a-f]+}.pem')
+    r('controls.certs.revoke',
+            '/account/controls/certificates/revoke/{serial:[0-9a-f]+}')
 
     # User pages
     kw = sqla_route_options('user', 'name', model.User.name)

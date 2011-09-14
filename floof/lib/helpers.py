@@ -15,7 +15,6 @@ from webhelpers.html import escape, HTML, literal, tags, url_escape
 from webhelpers.html.tags import form, end_form, hidden, submit, javascript_link
 from webhelpers.util import update_params
 
-
 def render_rich_text(raw_text, chrome=False):
     """Takes a unicode string of Markdown source.  Returns literal'd HTML."""
 
@@ -80,3 +79,16 @@ def render_rich_text(raw_text, chrome=False):
         friendly_html = match.group(1)
 
     return literal(friendly_html)
+
+
+def friendly_serial(serial):
+    """Returns a more user-friendly rendering of the passed cert serial."""
+
+    result = ''
+    length = min(len(serial), 10)
+    for i, char in enumerate(serial[:length]):
+        result += char
+        if i % 2 == 1:
+            result += ':'
+
+    return result[:-1]
