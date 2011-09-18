@@ -105,8 +105,16 @@ def login_finish(context, request):
             return_url=return_url,
             request=request)
     except OpenIDError as exc:
-        # XXX this is some ass UI
-        return Response(repr(exc.args[0]))
+        request.session.flash(
+            u'Authentication unsuccessful: {0}'.format(exc),
+            level='error', icon='key--exclamation')
+
+        # XXX is a redirect to login_begin appropriate?
+        location = request.route_url('account.login')
+        if return_key:
+            location = update_params(location, dict(return_key=return_key))
+
+        return HTTPSeeOther(location=location)
 
     # Find who owns this URL, if anyone
     identity_owner = meta.Session.query(User) \
