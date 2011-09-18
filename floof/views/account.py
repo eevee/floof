@@ -35,6 +35,7 @@ def account_login(context, request):
     # XXX worth mentioning on this page how to log in with SSL, and offer a
     # crypto link if they already hit cancel and want to try again
     # XXX why do we need this?: form.openid_identifier.data = request.auth.openid_url
+    # ^^^ that was to pre-fill the form in the (maybe) common case of re-auth
     form.return_key.data = request.GET.get('return_key', None)
     return {'form': form}
 

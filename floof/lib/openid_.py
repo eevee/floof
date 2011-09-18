@@ -1,4 +1,5 @@
 from openid.consumer.consumer import Consumer
+from openid.consumer.consumer import CANCEL, FAILURE, SUCCESS
 from openid.extensions.sreg import SRegRequest, SRegResponse
 from openid.extensions.draft.pape5 import Request as PAPERequest, Response as PAPEResponse
 from openid.store.filestore import FileOpenIDStore
@@ -25,6 +26,7 @@ def openid_begin(identifier, return_url, request, max_auth_age=False, sreg=False
 
     session = request.session
     openid_url = identifier
+
     # Does it look like an email address?
     # If so, try finding an OpenID URL via Webfinger.
     if len(identifier.split('@')) == 2:
@@ -71,12 +73,15 @@ def openid_begin(identifier, return_url, request, max_auth_age=False, sreg=False
         sreg_req = SRegRequest(optional=['nickname', 'email', 'dob', 'gender',
                                          'country', 'language', 'timezone'])
         auth_request.addExtension(sreg_req)
+
     if max_auth_age is not False and max_auth_age >= 0:
         auth_age_req = PAPERequest(max_auth_age=max_auth_age)
         auth_request.addExtension(auth_age_req)
 
     print 3
     # XXX is this realm stuff correct
+    # ^^^ AFAICT, yes, as long as we don't need the assertion to be valid for
+    # sub-domains
     new_url = auth_request.redirectURL(
             return_to=return_url,
             realm=request.host_url,
@@ -91,8 +96,14 @@ def openid_end(return_url, request):
     host = request.headers['host']
     res = cons.complete(request.params, return_url)
 
-    if res.status != 'success':
-        raise OpenIDError('Error!  {0}'.format(res.message))
+    if res.status == SUCCESS:
+        pass
+    elif res.status == FAILURE:
+        raise OpenIDError(res.message)
+    elif res.status == CANCEL:
+        raise OpenIDError("OpenID transaction cancelled by user.")
+    else:
+        raise OpenIDError("Unanticaipated response status.")
 
     identity_url = unicode(res.identity_url)
     identity_webfinger = request.session.pop('pending_identity_webfinger', None)
