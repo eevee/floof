@@ -133,7 +133,6 @@ body {
 #content {
     overflow: hidden;
     margin: 0 2em;
-    padding: 1em;
     border: 1px solid darken($content-bg, 37%);
     border-top: none;
     background: $content-bg;
@@ -164,6 +163,15 @@ body {
 ////////////////////////////////////////////////////////////////////////////////
 // Simple elements
 
+// Structure???  XXX
+section {
+    display: block;
+    overflow: auto;  // floatproofing
+}
+#content section {
+  margin: 0 1em 2em;
+}
+
 a {
     font-weight: bold;
     text-decoration: none;
@@ -184,7 +192,8 @@ img {
 }
 
 p {
-    margin-bottom: 0.5em;
+    line-height: 1.5;
+    margin: 0.5em 0 1em;
 }
 
 pre {
@@ -204,11 +213,13 @@ h1 {
     font-family: serif;
     text-shadow: 1px 1px 1px $darker-text;
 
-    #content > & {
-        margin: 1em -0.5em 0.5em;
-    }
     #content > &:first-child {
-        margin: -0.5em -0.5em 0.5em;
+        margin-top: 0;
+    }
+
+    section > &,
+    header > & {
+        margin: 0 0 0.5em;
     }
 
     img:first-child {
@@ -218,10 +229,15 @@ h1 {
 
 h2 {
     font-size: 1.5em;
-    margin: 1em 0 0.5em;
+    margin: 0 0 0.5em;
     padding: 0.25em 0.5em;
     background: $header2-bg;
     border-bottom: 1px solid $header2-border;
+
+    section > &,
+    header > & {
+        margin: 0 0 0.5em;
+    }
 }
 
 h3 {
@@ -289,6 +305,19 @@ dl.standard-form {
 
 ////////////////////////////////////////////////////////////////////////////////
 // Globally useful div/span classes
+
+code {
+    font-family: Monaco, DejaVu Sans Mono, Bitstream Vera Sans Mono, Andale Mono, Consolas, Courier New, monospace;
+    color: #404040;
+}
+kbd {
+    @extend code;
+    letter-spacing: 0.08em;
+}
+
+var {
+    color: $darker-text;
+}
 
 strong {
     font-weight: bold;

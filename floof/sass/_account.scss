@@ -1,0 +1,99 @@
+@import "_colors";
+
+#big-ol-openid-box {
+    font-size: 2em;
+    margin-bottom: 1em;
+    text-align: center;
+
+    input[type="text"] {
+        // XXX should we just bite the bullet and style all our own controls?
+        // would be nice to have consistency but flexibility, and would be nice to make all these special buttons actually match the others.
+        font-size: inherit;
+        background: url(/icons/openid.png) white 2px center no-repeat;
+
+
+
+        color: #404040;
+        padding: 0.25em;
+        padding-left: 20px;
+        border: 1px solid #999;
+        border-radius: 2px;
+        -moz-box-shadow: inset 1px 1px 2px -1px $shadow;
+
+        &:focus {
+            border-color: #666;
+        }
+    }
+    // nb: DO NOT consolidate these blocks; each selector looks bogus to the
+    // other browser and the whole thing gets ignored
+    ::-webkit-input-placeholder {
+        color: #ccc;
+    }
+    input[type="text"]:-moz-placeholder {
+        color: #ccc;
+    }
+
+    button {
+        font-size: inherit;
+
+        background: $button-bg;
+        border: 1px solid #999;
+        padding: 0.25em 0.5em;
+
+
+        -moz-box-shadow:
+            inset 0 0 1px white,
+            inset 0 -2em 2em -2em rgba(0, 0, 0, 0.3);
+
+        &:hover {
+            background: $button-hover-bg;
+        }
+        &:focus {
+            border-color: #444;
+        }
+        &:active {
+            background: $button-hover-bg;
+            -moz-box-shadow:
+                inset 0 2em 2em -2em rgba(0, 0, 0, 0.3),
+                inset 0 1px 2px -1px black;
+        }
+    }
+
+    ::-moz-focus-inner {
+        border: 0;
+    }
+}
+
+
+.text-plus-button {
+    word-spacing: -1em;
+
+    * {
+        word-spacing: normal;
+    }
+
+    input[type="text"],
+    input[type="search"] {
+        border-right: none !important;
+        border-radius: 2px 0 0 2px !important;
+    }
+}
+
+
+
+
+aside.sidebar {
+    float: right;
+    width: 40%;
+    margin: 0 1em 1em;
+}
+
+ul.standard-list {
+    margin: 0.5em 0;
+    line-height: 1.5;
+
+    & > li {
+        list-style-type: disc;
+        margin: 0.33em 0 0.33em 2em;
+    }
+}
