@@ -66,9 +66,9 @@
     </ul>
     % endif
 
-    <div id="content">
+    <section id="content">
         ${next.body()}
-    </div>
+    </section>
 
     <div id="footer-spacer"></div>
     <div id="footer">
