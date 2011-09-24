@@ -5,18 +5,20 @@
 <%def name="panel_title()">OpenID Identity Settings</%def>
 <%def name="panel_icon()">${lib.icon('user')}</%def>
 
-<h2>Add a New OpenID Identity</h2>
 ${lib.secure_form(request.route_url('controls.openid.add'))}
-<dl>
+<dl class="standard-form">
     ${lib.field(add_openid_form.new_openid)}
+    <dd class="standard-form-footer">
+        <button>Add</button>
+    </dd>
 </dl>
-<p><button>Add OpenID</button></p>
 ${h.end_form()}
-
-<h2>Delete Existing OpenID Identities</h2>
+<br />
 ${lib.secure_form(request.route_url('controls.openid.remove'))}
-<dl>
+<dl class="standard-form">
     ${lib.field(remove_openid_form.openids)}
+    <dd class="standard-form-footer">
+        <button>Remove</button>
+    </dd>
 </dl>
-<p><button>Remove selected OpenIDs</button></p>
 ${h.end_form()}

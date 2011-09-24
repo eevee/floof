@@ -2,6 +2,7 @@
 <%namespace name="lib" file="/lib.mako" />
 <%def name="title()">Public Admin Log</%def>
 
+<section>
 <h1>Public Admin Log</h1>
 
 <p>This is a log of all administrative actions, for purposes of
@@ -40,3 +41,4 @@ off = "odd" %>
 % endfor
 </tbody>
 </table>
+</section>

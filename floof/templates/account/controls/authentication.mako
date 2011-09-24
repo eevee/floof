@@ -5,9 +5,11 @@
 <%def name="panel_icon()">${lib.icon('key')}</%def>
 
 ${lib.secure_form(request.path_url)}
-<h2>Authentication Options</h2>
-<dl>
+<dl class="standard-form">
     ${lib.field(form.cert_auth)}
+    <dd class="standard-form-footer">
+        <button>Update</button>
+    </dd>
 </dl>
 <p>This is intended for use by <strong>advanced users</strong> only.
 There are important things to be aware of when choosing any non-default
@@ -24,5 +26,4 @@ option.  Some of them are listed below.</p>
     your Certificate Authentication Option will be automatically changed to
     &quot;Allow using client certificates for login&quot;.</li>
 </ol>
-<input type="submit" name="update" value="Update" />
 ${h.end_form()}

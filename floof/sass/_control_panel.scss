@@ -1,29 +1,22 @@
-ul#control-panel-navigation {
+nav.side-navigation{
     float: left;
     width: 20em;
-    padding-bottom: 32767px;
-    margin: -1em;
     margin-right: 1em;
-    margin-bottom: -32767px;
-    background: lighten($body-bg, 12%);
 
     li {
         &.selected {
             padding: 0.5em;
-            background: $content-bg;
+            background: darken($body-bg, 4%);
         }
 
         a {
             display: block;
             padding: 0.5em;
+            text-decoration: none;
 
             &:hover {
-                background: lighten($body-bg, 8%);
+                background: darken($body-bg, 4%);
             }
         }
     }
-}
-
-#control-panel-content {
-    margin-left: 20em;
 }

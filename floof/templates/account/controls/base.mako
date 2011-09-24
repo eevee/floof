@@ -3,9 +3,11 @@
 
 <%def name="title()">${self.panel_title()} - Control panel</%def>
 
+<section>
 <h1>${self.panel_icon()} Control panel » ${self.panel_title()}</h1>
 
-<ul id="control-panel-navigation">
+<nav class="side-navigation">
+<ul>
     % for action, icon, title in [ \
         ('index',   'fruit',        u'Index??'), \
         ('info',    'user',         u'User Info'), \
@@ -21,7 +23,11 @@
     % endif
     % endfor
 </ul>
+</nav>
 
-<div id="control-panel-content">
+
+
+<section>
 ${next.body()}
-</div>
+</section>
+</section>

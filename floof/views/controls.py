@@ -247,7 +247,7 @@ class AddOpenIDForm(wtforms.form.Form):
 
 class RemoveOpenIDForm(wtforms.form.Form):
     #openids = MultiCheckboxField(u'', coerce=int)
-    openids = QuerySelectMultipleField(u'', get_label=lambda row: row.url)
+    openids = QuerySelectMultipleField(u'Remove OpenIDs', get_label=lambda row: row.url)
 
     def validate_openids(form, field):
         if not field.data:
@@ -406,7 +406,7 @@ class RevokeCertificateForm(wtforms.form.Form):
     cancel = wtforms.fields.SubmitField(u'Cancel')
 
 class AuthenticationForm(wtforms.form.Form):
-    cert_auth = wtforms.fields.SelectField(u'Certificate Authentication Control', choices=[
+    cert_auth = wtforms.fields.SelectField(u'Client Certificates', choices=[
             (u'disabled', u'Disallow using client certificates for login (default)'),
             (u'allowed', u'Allow using client certificates for login'),
             (u'sensitive_required', u'Allow using client certificates for login; Require for Sensitive Operations'),

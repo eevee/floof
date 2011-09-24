@@ -308,15 +308,18 @@ input[type="submit"], input[type="button"], input[type="submit"], input[type="im
     cursor: pointer;
 }
 
+select,
 input[type="text"] {
-    font-size: inherit;
-
-
-
     color: #404040;
+    background: #fff;
     padding: 0.25em;
     border: 1px solid #999;
     border-radius: 3px;
+}
+
+input[type="text"] {
+    font-size: inherit;
+
     -moz-box-shadow:
         inset 1px 1px 2px -1px $shadow;
 
