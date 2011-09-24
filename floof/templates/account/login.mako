@@ -3,6 +3,7 @@
 
 <%def name="title()">Log in or register</%def>
 
+<section>
 <% auth = object() %>
 % if request.user:
     <h1>Hey!  You're already logged in</h1>
@@ -58,7 +59,7 @@ ${h.end_form()}
     ]
 %>
 <aside class="sidebar">
-    <h2>Examples</h2>
+    <h1>Examples</h1>
     <p>Not every service supports OpenID.  Here are some common services you might already be using:</p>
     <ul class="standard-list">
         % for provider_name, provider_domain, provider_openid in openid_webfinger_shims:
@@ -70,7 +71,7 @@ ${h.end_form()}
 
 
 <section>
-    <h2>Wait, what?</h2>
+    <h1>Wait, what?</h1>
 
     <ul class="standard-list">
         <li>We don't ask you for a password.  Just tell us about an account you already have with another service, and we'll use that to confirm who you are.</li>
@@ -82,9 +83,11 @@ ${h.end_form()}
 </section>
 
 <section>
-    <h2>How it works</h2>
+    <h1>How it works</h1>
     <p>You shouldn't have to care, but...</p>
     <p>This system is called OpenID, and it's designed to let you prove you own a URL.</p>
     <p>You can enter something that looks like an email address because we also support Webfinger, a system for asking a Web site about its users.  For common OpenID providers that don't also support Webfinger, we fake it.</p>
     <p>You can read a bunch of stuff on <a href="http://en.wikipedia.org/wiki/OpenID">Wikipedia</a> or at the <a href="http://openid.net/">OpenID Foundation</a>.</p>
+</section>
+
 </section>

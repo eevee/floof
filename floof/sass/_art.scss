@@ -21,8 +21,12 @@ ul.thumbnail-grid {
             text-align: center;
 
             img {
+                padding: 2px;
+                border: 1px solid #ccc;
                 vertical-align: middle;
-                @include box-shadow(1px 1px 3px rgba(0, 0, 0, 0.5));
+                @include box-shadow(1px 1px 3px #ccc);
+                @include transition-property(-moz-box-shadow);
+                @include transition-duration(0.2s);
             }
         }
 
@@ -60,10 +64,12 @@ ul.thumbnail-grid {
             z-index: 10;
 
             .thumbnail-meta {
-                display: block;
+                //display: block;
             }
             a img {
-                @include box-shadow(none);
+                //@include box-shadow(none);
+                border-color: hsl(216, 40%, 70%);
+                @include box-shadow(1px 1px 3px hsl(216, 40%, 70%));
             }
         }
     }
@@ -134,9 +140,10 @@ table.detailed-artwork-table {
 
 // Generic filters for art displays
 .art-filter {
-    margin: 1em -1em;
+    margin: 1em 0;
     padding: 1em;
-    background: $header2-bg;
+    background: #eee;
+    border: 1px solid #ddd;
 
     .column-container {
         margin-top: 0;

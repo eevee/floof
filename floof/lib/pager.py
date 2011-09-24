@@ -134,11 +134,9 @@ class DiscretePager(object):
         pages = []
 
         # First through current
-        if before_current - delta <= 2:
-            # <= 2 is so we don't have "1 ... 3 4 5"
+        if before_current - delta <= 1:
             pages.extend(range(0, before_current + 1))
         else:
-            pages.append(0)
             pages.append(None)
             pages.extend(range(
                 before_current - delta, before_current + 1))
@@ -156,13 +154,12 @@ class DiscretePager(object):
                 pages.append(None)
             return pages
 
-        if after_current + delta >= self.last_page - 2:
+        if after_current + delta >= self.last_page - 1:
             pages.extend(range(
                 after_current, self.last_page + 1))
         else:
             pages.extend(range(after_current, after_current + delta + 1))
             pages.append(None)
-            pages.append(self.last_page)
 
         return pages
 

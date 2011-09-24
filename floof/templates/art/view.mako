@@ -8,6 +8,7 @@
     ${h.javascript_link(request.static_url('floof:public/js/lib/jquery.ui.rater.js'))}
 </%def>
 
+<section class="neutral-background">
 <h1>
     ${lib.icon('image')}
     ${artwork.title or 'Untitled'}
@@ -21,8 +22,8 @@
 ## Metadata and whatever
 <div class="column-container">
 
-<div class="column-2x">
-    <h2>Art</h2>
+<section class="column-2x">
+    <h1>Art</h1>
     <div class="column-container">
     <div class="column-2x">
     <dl class="standard-form">
@@ -93,7 +94,7 @@
             </div>
         </div>
     </div>
-    <h2 id="tags">Tags</h2>
+    <h1 id="tags">Tags</h1>
     <p>\
     % for tag in artwork.tag_objs:
     <a href="${request.route_url('tags.view', tag=tag)}">${tag.name}</a>\
@@ -115,9 +116,9 @@
     ${lib.field_errors(form.tags)}
     % endif
     % endfor
-</div>
-<div class="column">
-    <h2>Stats</h2>
+</section>
+<section class="column">
+    <h1>Stats</h1>
     <dl class="standard-form">
         ## XXX some of these only apply to some media types
         <dt>Filename</dt>
@@ -129,9 +130,12 @@
         <dt>Dimensions</dt>
         <dd>${artwork.width} × ${artwork.height}</dd>
     </dl>
-</div>
+</section>
+</section>
 </div>
 
+
+<section>
 ## Comments
 <% comments = artwork.discussion.comments %>\
 <h1>
@@ -147,3 +151,4 @@ ${comments_lib.comment_tree(comments)}
 </h2>
 ${comments_lib.write_form(comment_form, artwork.resource)}
 % endif
+</section>

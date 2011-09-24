@@ -78,4 +78,4 @@
     </div>
 </li>
 </ul>
-<div id="x-debugging-toggler">debug</div>
+<div id="x-debugging-toggler"><img src="${request.static_url('floof:public/icons/system-monitor.png')}" alt="dbg"></div>

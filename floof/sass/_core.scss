@@ -15,23 +15,38 @@ body {
     font-family: DejaVu Sans, Arial, sans-serif;
 }
 
-#header {
+body > header {
+    display: block;
     position: relative;
     overflow: hidden;
-    height: 100px;
     background: black;
 
-    #logo {
-        position: absolute;
-        font-size: 3em;
-        top: 0.33em;
-        left: 0.33em;
-        font-family: "Brush Script MT", cursive, serif;
-        font-weight: bold;
-        color: white;
+    a {
+        text-decoration: none;
 
-        a {
+        &:link, &:visited, &:hover {
             color: white;
+        }
+    }
+
+    #banner {
+        position: relative;
+        overflow: hidden;
+        height: 200px;
+        background: url(/images/test-banner.png) -600px 0;
+
+        #site-title {
+            display: block;
+            position: absolute;
+            font-size: 5em;
+            left: 0.5em;
+            bottom: -0.14em;  // try to get the baseline to sit on the navbar
+
+            font-family: "Trebuchet MS", Helvetica, Arial, sans-serif;
+            font-weight: bold;
+            letter-spacing: 0.08em;
+            color: black;
+            text-shadow: 0 0 2px rgba(0, 0, 0, 0.33);
         }
     }
 
@@ -45,40 +60,63 @@ body {
         background: $header-bg;
         background: rgba($header-bg, 0.75);
         color: white;
-
-        a {
-            &:link {
-                color: lighten($link-default, 25%);
-            }
-            &:visited {
-                color: lighten($link-visited, 25%);
-            }
-            &:hover {
-                color: lighten($link-hover, 25%);
-            }
-        }
     }
 
-    #navigation {
-        position: absolute;
-        left: 0;
-        right: 18em;
-        bottom: 0;
-        background: $header-bg;
-        background: rgba($header-bg, 0.75);
+    > nav {
+        font-size: 1.33em;
+        line-height: 2;
+        height: 2em;
+        padding: 1px 0;
+        background: #404040;
 
-        li {
-            display: inline-block;
+        -moz-box-shadow:
+            inset 0 -2em 3em -2em black,
+            inset 0 0 1px rgba(100%, 100%, 100%, 0.5);
 
-            a {
+        > ul > li > a,
+        #user2 span a {
+            display: block;
+            padding: 0 1em;
+
+            &:hover {
+                background: hsl(216, 60%, 40%);
+                -moz-box-shadow:
+                    inset 0 -2em 3em -2em hsl(216, 60%, 20%);
+            }
+            &:active {
+                background: hsl(216, 60%, 40%);
+                -moz-box-shadow:
+                    inset 0 0.22em 0.33em 0.11em hsl(216, 60%, 30%);
+            }
+        }
+
+        #user2 span {
+            display: block;
+            float: right;
+
+            img {
                 display: block;
-                margin: 0 0.5em;
-                padding: 0.5em 1em;
-                color: white;
+                float: right;  // say whaaaat; this makes it ignore the padding
+                height: 2em;
+                max-width: 2em;
+                margin-left: 1em;
+                margin-right: -1em;
+            }
+        }
+        #user { display: none; }
 
-                &:hover {
-                    background: $header-bg;
-                }
+        > ul {
+            > li {
+                display: inline-block;
+                vertical-align: bottom;
+            }
+            > li#mini-site-title > a {
+                font-size: 2em;
+                line-height: 1;
+                font-family: "Trebuchet MS", Helvetica, Arial, sans-serif;
+                font-weight: bold;
+                padding: 0 0.25em;
+                margin-right: 0.5em;
             }
         }
     }
@@ -130,29 +168,66 @@ body {
     }
 }
 
-#content {
-    overflow: hidden;
-    margin: 0 2em;
-    border: 1px solid darken($content-bg, 37%);
-    border-top: none;
-    background: $content-bg;
-    @include box-shadow(0 0 4px rgba(0, 0, 0, 0.75));
-    @include border-radius(0 0 1em 1em);
+body > section {
+    margin: 2em;
+
+    > h1 {
+        // This is the main page title, and sometimes major sections below
+        font-size: 3em;
+        font-family: serif;  // XXX
+        color: #111;
+        border-bottom: 3px double #ccc;
+        margin-bottom: 0.33em;
+        text-shadow: 1px 1px 1px #ccc;
+
+        > img {
+            // Accompanying icon; scale it up to a more reasonable size
+            height: 32px;
+            width: 32px;
+            vertical-align: baseline;
+
+            @include pixel-scaling;
+        }
+    }
+
+    section h1,
+    aside h1 {
+        font-size: 2em;
+        text-shadow: 1px 1px 1px #ddd;
+        border-bottom: 1px solid #ccc;
+        -moz-box-shadow: inset 0 -0.33em 0 #eee;
+    }
 }
 
-#footer-spacer {
-    height: 8em;
+// Generic content styling
+section, aside {
+    display: block;
+    overflow: auto;
+    margin: 2em 0;
 }
-#footer {
-    position: absolute;
-    left: 2em;
-    right: 2em;
-    bottom: 0;
-    height: 4em;
-    padding: 1em;
-    line-height: 1.33;
-    background: darken($body-bg, 10%);
-    @include border-radius(0.25em 0.25em 0 0);
+
+// Class used on artwork pages, to avoid giving art a powerful background color
+// (like, say, white).  Unfortunately, needs to swap out the margin for padding
+section.neutral-background {
+    margin: 0;
+    padding: 2em;
+    background: #e8e8e8;
+}
+
+body > footer {
+    margin: 8em 2em 2em;
+    padding: 0.5em 1em;
+    border-top: 1px solid #666;
+    color: #666;
+
+    &:before {
+        content: ' ';
+        display: block;
+        height: 1px;
+        background: -moz-linear-gradient(left, transparent, #999, transparent);
+
+        display: none;
+    }
 }
 #footer-stats {
     float: right;
@@ -163,27 +238,17 @@ body {
 ////////////////////////////////////////////////////////////////////////////////
 // Simple elements
 
-// Structure???  XXX
-section {
-    display: block;
-    overflow: auto;  // floatproofing
-}
-#content section {
-  margin: 0 1em 2em;
-}
-
 a {
-    font-weight: bold;
-    text-decoration: none;
+    text-decoration: underline;
 
     &:link {
-        color: $link-default;
+        color: hsl(216, 70%, 50%);
     }
     &:visited {
-        color: $link-visited;
+        color: hsl(270, 70%, 50%);
     }
     &:hover {
-        color: $link-hover;
+        color: hsl(0, 70%, 50%);
     }
 }
 
@@ -201,53 +266,35 @@ pre {
     font-family: monospace;
 }
 
-// -----------------------------------------------------------------------------
-// Headers
-
-h1 {
-    font-size: 2em;
-    margin: 1em 0 0.5em;
-    padding: 0.5em 1em;
-    border-bottom: 1px solid $darker-text;
-    background: url(/images/h1-background.png) $header1-bg left center repeat-x;
-    font-family: serif;
-    text-shadow: 1px 1px 1px $darker-text;
-
-    #content > &:first-child {
-        margin-top: 0;
-    }
-
-    section > &,
-    header > & {
-        margin: 0 0 0.5em;
-    }
-
-    img:first-child {
-        margin-left: -16px;
-    }
-}
-
-h2 {
-    font-size: 1.5em;
-    margin: 0 0 0.5em;
+code {
     padding: 0.25em 0.5em;
-    background: $header2-bg;
-    border-bottom: 1px solid $header2-border;
-
-    section > &,
-    header > & {
-        margin: 0 0 0.5em;
-    }
+    font-family: Monaco, DejaVu Sans Mono, Bitstream Vera Sans Mono, Andale Mono, Consolas, Courier New, monospace;
+    color: #404040;
+    background: hsl(45, 70%, 92%);
+    border-radius: 2px;
+}
+kbd {
+    @extend code;
+    letter-spacing: 0.08em;
 }
 
-h3 {
-    font-size: 1.2em;
+var {
+    color: hsl(45, 70%, 40%);
+}
+
+strong {
     font-weight: bold;
-    margin: 0 0 0.5em;
+}
+
+em {
+    font-style: italic;
 }
 
 // -----------------------------------------------------------------------------
 // Forms
+
+// XXX: i want a label:hover
+// XXX: i also want some highlight for checked checkboxes
 
 input, button, select {
     vertical-align: middle;
@@ -255,8 +302,87 @@ input, button, select {
 input[type="radio"] {
     margin: 0.25em;
 }
+label,
+input[type="radio"], input[type="checkbox"],
 input[type="submit"], input[type="button"], input[type="submit"], input[type="image"], button {
     cursor: pointer;
+}
+
+input[type="text"] {
+    font-size: inherit;
+
+
+
+    color: #404040;
+    padding: 0.25em;
+    border: 1px solid #999;
+    border-radius: 3px;
+    -moz-box-shadow:
+        inset 1px 1px 2px -1px $shadow;
+
+    -moz-transition-property: -moz-box-shadow, border-color;
+    -moz-transition-duration: 0.2s;
+
+    &:focus {
+        z-index: 1;
+        border-color: hsl(216, 60%, 50%);
+        -moz-box-shadow: inset 1px 1px 2px -1px $shadow,
+            0 0 0.25em 0.25em hsl(216, 60%, 90%);
+    }
+
+    // nb: DO NOT consolidate these blocks; each selector looks bogus to the
+    // other browser and the whole thing gets ignored
+    &::-webkit-input-placeholder {
+        color: #ccc;
+    }
+    &:-moz-placeholder {
+        color: #ccc;
+    }
+
+
+    // Variants
+    &.with-icon {
+        background: url(/icons/ui-text-field.png) white 2px center no-repeat;
+        padding-left: 20px;
+    }
+}
+
+button {
+    font-size: inherit;
+
+    background: hsl(0, 0%, 95%);
+    border: 1px solid hsl(0, 0%, 70%);
+    padding: 0.25em 0.5em;
+
+
+    -moz-box-shadow:
+        inset 0 0 1px white,
+        inset 0 -2em 2em -2em hsl(0, 0%, 80%);
+
+    -moz-transition-property: -moz-box-shadow, border-color, background-color;
+    -moz-transition-duration: 0.2s;
+
+
+    &:hover {
+        background-color: hsl(216, 60%, 95%);
+        border-color: hsl(216, 60%, 70%);
+    -moz-box-shadow:
+        inset 0 0 1px white,
+        inset 0 -2em 2em -2em hsl(216, 60%, 80%);
+    }
+    &:focus {
+        border-color: #444;
+    }
+    &:active {
+        background: $button-hover-bg;
+        -moz-box-shadow:
+            inset 0 2em 2em -2em rgba(0, 0, 0, 0.3),
+            inset 0 1px 2px -1px black;
+    }
+}
+
+::-moz-focus-inner {
+    border: 0;
 }
 
 .form-error {
@@ -267,27 +393,20 @@ input[type="submit"], input[type="button"], input[type="submit"], input[type="im
 }
 
 // -----------------------------------------------------------------------------
-// Lists
+// Form container
 
 dl.standard-form {
-    dl {
-        overflow: hidden /* new float context */;
-        margin-bottom: 0.75em;
-    }
-    dt {
+    > dt {
         float: left;
         clear: left;
-        width: 11.5em;
-        margin-right: 0.5em;
+        width: 11em;
+        padding: 0.5em 0;
         text-align: right;
-        color: $darker-text;
-
-        &:after {
-            content: ':';
-        }
+        color: #999;
     }
-    dd {
-        padding-left: 12em /* float width, so hover highlight includes dt but lines wrap correctly */;
+    > dd {
+        padding: 0.5em 0;
+        margin-left: 12em;  // float width
 
         &:after {
             content: 'float clear';
@@ -295,37 +414,24 @@ dl.standard-form {
             clear: both;
             height: 0;
             visibility: hidden;
+            overflow: hidden;
         }
     }
-    dt, dd {
-        line-height: 1.5;
+    > dt,
+    > dd {
+        line-height: 2;
+    }
+
+    > dd.standard-form-footer {
+        button {
+            font-size: 1.5em;
+        }
     }
 }
 
 
 ////////////////////////////////////////////////////////////////////////////////
 // Globally useful div/span classes
-
-code {
-    font-family: Monaco, DejaVu Sans Mono, Bitstream Vera Sans Mono, Andale Mono, Consolas, Courier New, monospace;
-    color: #404040;
-}
-kbd {
-    @extend code;
-    letter-spacing: 0.08em;
-}
-
-var {
-    color: $darker-text;
-}
-
-strong {
-    font-weight: bold;
-}
-
-em {
-    font-style: italic;
-}
 
 .halfsplit {
     float: left;
@@ -373,32 +479,44 @@ span.monospace {
 
 // Pager
 ol.pager {
-    margin: 1em -1em -1em -1em;
-    padding: 0.25em 0;
+    font-size: 1.5em;
+    margin: 0.67em 0;
+    background: #fcfcfc;
     text-align: center;
-    background: $header2-bg;
+    border: 1px solid #ccc;
+    color: #ccc;
+    @include border-radius(0 0 0.33em 0.33em);
+    -moz-box-shadow: inset 0 -2em 2em -2em #ddd;
 
     > li {
         display: inline-block;
-        line-height: 1.33;
         vertical-align: middle;
 
         > a {
             display: block;
-            @include border-radius(0.33em);
+            color: hsl(216, 70%, 50%);
+            text-decoration: none;
 
             &:hover {
-                background: $content-bg;
+                background: hsl(216, 70%, 95%);
+                -moz-box-shadow: inset 0 -2em 2em -2em hsl(216, 70%, 75%);
+                background: #eee;
+                -moz-box-shadow: inset 0 -2em 2em -2em #ccc;
             }
         }
-        > a, &.elided {
-            font-size: 1.66em;
-            padding: 0.33em 0.5em;
-            line-height: 1;
+        > a, &.elided, &.current {
+            padding: 0.33em 1em;
         }
         &.current {
-            //font-size: 0.8em;
-            padding: 0 1.2em;
+            color: black;
+            font-weight: bold;
+        }
+
+        &.pager-first {
+            float: left;
+        }
+        &.pager-last {
+            float: right;
         }
     }
 }
@@ -439,53 +557,6 @@ ol.pager {
         ");
     }
 }
-
-// Custom-styled button
-.stylish-button {
-    font-size: 1.2em;
-    padding: 0.25em 0.5em;
-    border: 1px solid $darker-text;
-    @include border-radius(0.75em);
-    @include box-shadow("
-        0.1em 0.1em 0.1em -0.1em white inset,
-        0 2em 1em -1em #{rgba(white, 0.4)} inset
-    ");
-
-    &:hover {
-        @include box-shadow("
-            0 0 0.17em #{$link-hover},
-            0.1em 0.1em 0.1em -0.1em white inset,
-            0 2em 1em -1em #{rgba(white, 0.4)} inset
-        ");
-    }
-    &:active {
-        @include box-shadow("
-            0 0 0.17em #{$link-hover},
-            0.1em 0.1em 0.1em -0.1em black inset,
-            0 2em 1em -1em #{rgba(black, 0.1)} inset
-        ");
-    }
-
-    &.selected {
-        @include box-shadow("
-            0 2em 1em -1em #{rgba(black, 0.1)} inset
-        ");
-        font-weight: bold;
-        color: inherit;
-    }
-
-    &.confirm {
-        background: hsl(120, 40%, 50%);
-    }
-    &.destroy {
-        background: hsl(0, 40%, 50%);
-    }
-
-    &.mini {
-        font-size: 0.8em;
-    }
-}
-
 
 ////////////////////////////////////////////////////////////////////////////////
 // App-specific components

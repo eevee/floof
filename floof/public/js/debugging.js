@@ -16,15 +16,15 @@ $(function() {
 
     // Toggler for the entire panel
     $('#x-debugging-toggler').click(function() {
-        $('#x-debugging').toggleClass('visible');
         $.cookie(
             'debug-panel',
-            $('#x-debugging').hasClass('visible') ? 'on' : null
+            $('#x-debugging').is(':visible') ? null : 'on'
         );
+        $('#x-debugging').fadeToggle('fast');
     });
 
     // Preserve visibility across page loads
     if ($.cookie('debug-panel')) {
-        $('#x-debugging').addClass('visible');
+        $('#x-debugging').show();
     }
 });

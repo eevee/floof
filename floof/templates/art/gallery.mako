@@ -4,6 +4,7 @@
 
 <%def name="title()">Artwork</%def>
 
+<section>
 <h1>${title()}</h1>
 
 <div class="artwork-categories">
@@ -22,3 +23,4 @@
 </div>
 
 ${artlib.render_gallery_sieve(gallery_sieve)}
+</section>
