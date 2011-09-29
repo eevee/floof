@@ -8,14 +8,13 @@ A transaction is begun before each request and aborted immediately following.
 
 Designed to be run with py.test
 """
-import functools
 import transaction
 import unittest
 import webtest
 
 from pyramid import testing
 from pyramid.paster import get_app
-from pyramid.url import route_path
+from pyramid.url import URLMethodsMixin
 from sqlalchemy import create_engine
 from zope.sqlalchemy import ZopeTransactionExtension
 
@@ -65,11 +64,12 @@ class FunctionalTests(UnitTests):
         # HACK: Get Route / URL Dispatch name-to-path lookups working by using
         # a BS request object
         # NOTE: Will blow up on routes with pregenrators that inspect request
-        class BS:
+        class FakeRequest(URLMethodsMixin):
             script_name = ''
 
         configure_routing(self.config)
-        self.url = functools.partial(route_path, request=BS())
+        self._fake_request = FakeRequest()
+        self.url = self._fake_request.route_path
 
     def __init__(self, *args, **kwargs):
         # FIXME: Hardcoded!

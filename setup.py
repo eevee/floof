@@ -61,7 +61,7 @@ setup(
         'pytz',
         'iso8601',
         'pyOpenSSL>=0.11',
-        'pyramid>=1.1',
+        'pyramid>=1.2',
         'pyramid_beaker',
         'repoze.tm2>=1.0b1',  # default_commit_veto
         'WebError',
