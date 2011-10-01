@@ -19,13 +19,10 @@
     border-radius: $def;
 }
 
-@mixin box-shadow($def) {
-    // If there are multiple shadows, the def needs quoting to avoid ambiguity
-    // with Sass commas.  This unquotes it
-    $raw-def: unquote($def);
-    -moz-box-shadow: $raw-def;
-    -webkit-box-shadow: $raw-def;
-    box-shadow: $raw-def;
+@mixin box-shadow($defs) {
+    -moz-box-shadow: $defs;
+    -webkit-box-shadow: $defs;
+    box-shadow: $defs;
 }
 
 @mixin outline-radius($def) {
@@ -38,7 +35,7 @@
 
 @mixin transform($def) {
     // Same deal here
-    $raw-def: unquote($def);
+    $raw-def: $def;
     -moz-transform: $raw-def;
     -webkit-transform: $raw-def;
     -o-transform: $raw-def;
