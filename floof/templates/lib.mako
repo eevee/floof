@@ -86,19 +86,20 @@ ${h.tags.form(*args, **kwargs)}
 ${h.tags.hidden('csrf_token', value=request.session.get_csrf_token(), id=None)}
 </%def>
 
-<%def name="field(form_field, **kwargs)">\
+<%def name="field(form_field, hint_text=None, **kwargs)">\
 % if isinstance(form_field.widget, wtforms.widgets.CheckboxInput):
 <dd>
     ${form_field(**kwargs) | n} ${form_field.label() | n}
-    ${field_errors(form_field)}
-</dd>
 % else:
 <dt>${form_field.label() | n}</dt>
 <dd>
     ${form_field(**kwargs) | n}
+% endif
+    % if hint_text:
+    <p class="standard-form-hint">${hint_text}</p>
+    % endif
     ${field_errors(form_field)}
 </dd>
-% endif
 </%def>
 
 <%def name="field_errors(form_field)">\
@@ -136,6 +137,7 @@ for char in serial[:10]:
 ## their maximum allowed limit will switch to temporal pagers.  Used for
 ## GallerySieve
 <ol class="pager">
+% if pager.current_page > 0:
     <li class="pager-first">
         <a href="${h.update_params(request.path_url, **pager.formdata_for(int(pager.current_page - 1) * pager.page_size))}">
             ←
@@ -146,6 +148,10 @@ for char in serial[:10]:
             ⇤
         </a>
     </li>
+% else:
+    <li class="pager-first elided">←</li>
+    <li class="pager-first elided">⇤</li>
+% endif
 % for page in pager.pages():
     % if page is None:
     <li class="elided">…</li>

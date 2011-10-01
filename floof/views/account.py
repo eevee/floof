@@ -1,5 +1,6 @@
 # encoding: utf8
 import logging
+import re
 
 from pyramid import security
 from pyramid.httpexceptions import HTTPSeeOther
@@ -104,8 +105,8 @@ def login_finish(context, request):
             return_url=return_url,
             request=request)
     except OpenIDError as exc:
-        # XXX this is some ass UI
-        return Response(repr(exc.args[0]))
+        request.session.flash(exc.message, level=u'error')
+        return HTTPSeeOther(location=request.route_url('account.login'))
 
     # Find who owns this URL, if anyone
     identity_owner = meta.Session.query(User) \
@@ -161,18 +162,20 @@ def login_finish(context, request):
         # A non-user has used a new OpenID; offer a registration form
         request.session['pending_identity_url'] = identity_url
         request.session.save()
-        identity_webfinger = request.session.get('pending_identity_webfinger', None)
 
         # Try to pull a name and email address out of the SReg response
+        username = re.sub(u'[^_a-z0-9]', u'',
+            sreg_res.get('nickname', u'').lower())
         form = RegistrationForm(
-            username=sreg_res.get('nickname', u''),
+            username=username,
             email=sreg_res.get('email', u''),
             timezone=sreg_res.get('timezone', u'UTC'),
         )
-        form.validate()
         return render_to_response(
             'account/register.mako',
-            dict(form=form, identity_url=identity_url,
+            dict(
+                form=form,
+                identity_url=identity_url,
                 identity_webfinger=identity_webfinger),
             request=request)
 
@@ -195,6 +198,7 @@ def logout(context, request):
 
 
 class RegistrationForm(wtforms.form.Form):
+    # XXX come on, man; make this thing lowercase yourself
     username = wtforms.fields.TextField(u'Username', [
         wtforms.validators.Regexp(r'^[_a-z0-9]{1,24}$',
             message=u'Your username must be 1–24 characters and contain only '
@@ -231,11 +235,14 @@ def register(context, request):
         helpers.flash('Your session expired.  Please try logging in again.')
         return HTTPSeeOther(location=request.route_url('account.login'))
 
-    identity_webfinger = request.session.get('pending_identity_webfinger', None)
     form = RegistrationForm(request.POST)
     if not form.validate():
-        return render_to_response(
-                'account/register.mako', {'form': form, 'identity_url': identity_url, 'identity_webfinger': identity_webfinger}, request=request)
+        return render_to_response('account/register.mako', {
+                'form': form,
+                'identity_url': identity_url,
+                'identity_webfinger': request.session.get('pending_identity_webfinger'),
+            },
+            request=request)
 
     # Create db records
     base_user = meta.Session.query(Role).filter_by(name=u'user').one()
