@@ -43,8 +43,6 @@ class FloofRequest(Request):
     @property
     def permission(self):
         # Not reified as this may be erroneously called before ContextFound
-        if not self.context:
-            return None
         return current_view_permission(self)
 
     @property
