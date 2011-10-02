@@ -23,7 +23,6 @@ def dashboard(context, request):
     renderer='admin/log.mako')
 def log_(context, request):
     records = model.session.query(model.Log) \
-        .options(subqueryload(model.Log.privileges)) \
         .offset(0) \
         .limit(50)
     return dict(

@@ -4,20 +4,26 @@ import os
 import subprocess
 
 from pyramid_beaker import session_factory_from_settings
+from pyramid.authorization import ACLAuthorizationPolicy
 from pyramid.config import Configurator
 from pyramid.decorator import reify
-from pyramid.events import BeforeRender, NewRequest, NewResponse
+from pyramid.events import BeforeRender, ContextFound, NewRequest, NewResponse
 from pyramid.request import Request
+from pyramid.security import has_permission
 from pyramid.settings import asbool
 from sqlalchemy import engine_from_config
 import webob.request
 from zope.sqlalchemy import ZopeTransactionExtension
 
-from floof.lib.auth import Authenticizer, FloofAuthnPolicy, FloofAuthzPolicy
+from floof.lib.auth import Authenticizer, FloofAuthnPolicy
+from floof.lib.auth import current_view_permission
+from floof.lib.stash import manage_stashes
+from floof.model import filestore
+from floof.resource import FloofRoot
+
 import floof.lib.debugging
 import floof.lib.helpers
 import floof.model
-from floof.model import filestore
 import floof.routing
 import floof.views
 
@@ -33,6 +39,13 @@ class FloofRequest(Request):
         auth = Authenticizer(self)
         self.session.changed()
         return auth
+
+    @property
+    def permission(self):
+        # Not reified as this may be erroneously called before ContextFound
+        if not self.context:
+            return None
+        return current_view_permission(self)
 
     @property
     def user(self):
@@ -138,6 +151,21 @@ def prevent_csrf(event):
         from pyramid.exceptions import Forbidden
         raise Forbidden('Possible cross-site request forgery detected.')
 
+def auto_privilege_escalation(event):
+    """Help the user upgrade their principals if possible and necessary."""
+
+    request = event.request
+
+    if request.permission is None:
+        # Resource is not protected by a permission
+        return
+
+    if has_permission(request.permission, request.context, request):
+        # Access will be granted; all is well
+        return
+
+    from floof.lib.auth import attempt_privilege_escalation
+    attempt_privilege_escalation(request.permission, request.context, request)
 
 
 def main(global_config, **settings):
@@ -179,15 +207,18 @@ def main(global_config, **settings):
 
     config = Configurator(
         settings=settings,
+        root_factory=FloofRoot,
         request_factory=FloofRequest,
         session_factory=FloofSessionFactory,
         authentication_policy=FloofAuthnPolicy(),
-        authorization_policy=FloofAuthzPolicy(),
+        authorization_policy=ACLAuthorizationPolicy(),
     )
 
     # Added manually because @subscriber only works with a
     # scan, and we don't want to scan ourselves
     config.add_subscriber(prevent_csrf, NewRequest)
+    config.add_subscriber(auto_privilege_escalation, ContextFound)
+    config.add_subscriber(manage_stashes, ContextFound)
     config.add_subscriber(start_template_timer, BeforeRender)
     config.add_subscriber(add_renderer_globals, BeforeRender)
     config.add_subscriber(flush_everything, NewResponse)

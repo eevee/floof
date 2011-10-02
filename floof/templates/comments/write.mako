@@ -31,7 +31,7 @@ ${comments_lib.single_comment(comment)}
 % endif
 
 
-% if request.user.can('comments.add'):
+% if h.has_permission('comments.add', request.context, request):
 <% hlevel = 'h2' if comment else 'h1' %>\
 <${hlevel}>
     ${lib.icon('balloon-white')}

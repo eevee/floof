@@ -61,7 +61,7 @@
             else:
                 rating_score = artwork.rating_score # XXX * config['rating_radius']
         %>\
-        % if request.user.can('art.rate'):
+        % if 1 or h.has_permission('art.rate', request.context, request):
             <script type="text/javascript">
             $("div.art-rater").rater({
                 rate_url: "${request.route_url('art.rate', artwork=artwork)}",
@@ -106,7 +106,7 @@
         ('tags.add', 'add_tags', add_tag_form), \
         ('tags.remove', 'remove_tags', remove_tag_form), \
     ]:
-    % if request.user.can(perm):
+    % if h.has_permission(perm, request.context, request):
     ${lib.secure_form(request.route_url('art.' + action, artwork=artwork))}
     <p>
         ${form.tags.label()}:
@@ -158,7 +158,7 @@
     </h1>
     ${comments_lib.comment_tree(comments)}
 
-    % if request.user.can('comments.add'):
+    % if h.has_permission('comments.add', request.context, request):
     <section>
         <h1>
             ${lib.icon('balloon-white')}

@@ -10,6 +10,41 @@ import pytz
 
 from floof import model
 
+from copy import deepcopy
+from datetime import datetime
+from webob.multidict import MultiDict
+from wtforms import fields, form, widgets
+from wtforms.widgets import HTMLString, html_params
+
+class FloofForm(form.Form):
+    """Extends form.Form by attaching a request attribute to itself on
+    instantiation and by automatically updating the supplied formdata with any
+    post parameters in request.stash"""
+
+    def __init__(self, request, formdata=None, obj=None, prefix='', **kwargs):
+        self.request = request
+
+        if request.stash:
+            if formdata is None:
+                formdata = MultiDict()
+            else:
+                formdata = deepcopy(formdata)
+            formdata.update(request.stash['post'])
+
+        super(FloofForm, self).__init__(formdata=formdata,
+                                        obj=obj,
+                                        prefix=prefix,
+                                        **kwargs)
+
+        # If we've updated formdata with stashed POST data, then we're probably
+        # either submitting the form after some delay or trying to display form
+        # errors.  In the latter case, we need to validate now to avoiding
+        # needing conditionally validate in a view, and in the former case
+        # validating now doesn't hurt.
+        if request.stash:
+            self.validate()
+
+
 class KeygenWidget(widgets.Input):
     def __call__(self, field, **kwargs):
         kwargs.setdefault('id', field.id)

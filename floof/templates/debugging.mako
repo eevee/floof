@@ -1,5 +1,6 @@
 <%namespace name="lib" file="/lib.mako" />
 <%! import os.path, pprint %>
+<%! from pyramid.security import effective_principals %>
 
 <ul id="x-debugging">
 <li>
@@ -46,7 +47,16 @@
         % endif
     </h6>
 
-    <pre class="x-debugging-panel">${pprint.pformat(request.session)}</pre>
+    <pre class="x-debugging-panel">
+Session:
+${pprint.pformat(request.session)}
+
+Auth:
+${pprint.pformat(request.auth)}
+
+Principals:
+${pprint.pformat(effective_principals(request))}
+    </pre>
 </li>
 <li>
     <h5>Time</h5>

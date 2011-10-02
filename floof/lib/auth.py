@@ -1,19 +1,39 @@
+from pyramid.interfaces import IAuthenticationPolicy
 from pyramid.security import ACLAllowed, ACLDenied
-from sqlalchemy.orm import joinedload
-from sqlalchemy.orm import joinedload_all
+from pyramid.security import Authenticated, Everyone
+from pyramid.security import effective_principals, has_permission
+from pyramid.security import has_permission
+from pyramid.security import principals_allowed_by_permission
+from sqlalchemy.orm import joinedload, joinedload_all
 from sqlalchemy.orm.exc import NoResultFound
+from zope.interface import implements
 
 from floof import model
 
 import calendar
 import OpenSSL.crypto as ssl
 import os.path
-import random
 
 from datetime import datetime, timedelta
 
 DEFAULT_CONFIDENCE_EXPIRY = 60 * 10  # seconds
-DEFAULT_CERT_CONFIDENCE_EXPIRY = 60 * 30  # seconds
+
+# TRUST_MAP: Rules for converting 'pseudo-principals' and other pre-requisites
+# into principals.  Pseudo-principals include:
+#   auth:*   , referring to the relative strength of the user's auth method
+#   trusted:*, referring to the currently valid authentication mechanisms
+#
+# (derived_principal, [prerequisite_principals, ...])
+TRUST_MAP = dict([
+    ('trusted_for:auth', [
+        ('role:user', 'auth:insecure', 'trusted:openid_recent'),
+        ('role:user', 'auth:insecure', 'trusted:cert'),
+        ('role:user', 'auth:secure', 'trusted:cert'),
+    ]),
+    ('trusted_for:admin', [
+        ('role:admin', 'auth:secure', 'trusted:cert'),
+    ]),
+])
 
 class FloofAuthnPolicy(object):
     """Authentication policy bolted atop a beaker session.
@@ -22,6 +42,7 @@ class FloofAuthnPolicy(object):
     The Pyramid auth interface is extremely clunky, and this class only exists
     so standard Pyramid authorization stuff still works.
     """
+    implements(IAuthenticationPolicy)
 
     def authenticated_userid(self, request):
         raise NotImplementedError()
@@ -30,27 +51,31 @@ class FloofAuthnPolicy(object):
         raise NotImplementedError()
 
     def effective_principals(self, request):
-        # XXX this basically spits on Pyramid's entire ACL thing
-        # XXX an ACL would be useful for multiple roles, where e.g. "user" has
-        # a bunch of permissions but "banned" removes them all
-        user = request.user
-        if user:
-            privs = set(priv.name for priv in user.role.privileges)
+        user = request.auth.user
+        principals = set([Everyone])
 
-            # TODO make these, like, pseudoroles, and replace them in code with
-            # actual privs
-            privs.add('__authenticated__')
-            # TODO the whole idea of 'levels' can kinda go away here I guess
-            if request.auth.trusted >= 1:
-                privs.add('trusted:recent')  # XXX make your mind up on syntax
-                # XXX additionally that's a bad name since 'cert' includes 'recent'
-            if request.auth.trusted >= 2:
-                privs.add('trusted:cert')
+        if not user:
+            return principals
 
-            return privs
+        principals.add(Authenticated)
+        principals.update(['user:' + str(user.id)])
+        principals.update('role:' + role.name for role in user.roles)
+        principals.update('trusted:' + flag for flag in request.auth.trust)
 
+        if user.cert_auth in ('required', 'sensitive_required'):
+            principals.add('auth:secure')
         else:
-            return []
+            principals.add('auth:insecure')
+
+        # Add derived principals
+        for derivative, prereqs_list in TRUST_MAP.iteritems():
+            for prereqs in prereqs_list:
+                f = lambda x: x in principals
+                if all(map(f, prereqs)):
+                    principals.add(derivative)
+                    break
+
+        return principals
 
     def remember(self, request, principal, **kw):
         # XXX: Fix one thing, embugger another, ugh
@@ -63,36 +88,6 @@ class FloofAuthnPolicy(object):
         request.auth.clear()
         request.session.save()
         return []
-
-class FloofAuthzPolicy(object):
-    """Authorization policy that uses simple permissions stored in the db."""
-
-    def permits(self, context, principals, permission):
-        # XXX should these return Allowed/Denied too?
-
-        # XXX this basically spits on Pyramid's whole ACL thing.
-        # XXX a later thought: the role_privileges table IS the ACL, and we're
-        # kind of short-circuiting it here
-        if permission not in principals:
-            return ACLDenied('<default deny>', principals, permission, principals, context)
-
-        # TODO this stuff should be in the db as properties of the Privilege.
-        # alternatively, scrap the db and keep this stuff in code, since having
-        # roles in the db should already be plenty flexible.
-        addl_permission = None
-        if permission.startswith('auth.'):
-            addl_permission = 'trusted:recent'
-        elif permission.startswith('admin.'):
-            addl_permission = 'trusted:cert'
-        # XXX what about sensitive_required, ugh
-
-        # XXX this is stupid.  move it to a decorator or something on the actual view code.
-        if 0 and addl_permission and addl_permission not in principals:
-            # XXX preserve the messages from the deocorators
-            # XXX also, fix the user-facing error pages in general good lord
-            return ACLDenied('<addl default deny>', principals, addl_permission, principals, context)
-
-        return ACLAllowed('<woohoo>', principals, permission, principals, context)
 
 
 class CertNotFoundError(Exception): pass
@@ -119,27 +114,21 @@ class Authenticizer(object):
                     self.state['openid_timestamp'])
 
         return ("<Authenticizer ( User: {0}, Cert: {1}, OpenID URL: {2}, "
-                "OpenID Age: {3}, Trust Lvl: {4} )>".format(
+                "OpenID Age: {3}, Trust Flags: {4} )>".format(
                     self.user.name if self.user else None,
                     self.state.get('cert_serial', None),
                     self.state.get('openid_url', None),
                     openid_age,
-                    self.trusted,
+                    repr(self.trust),
                     ))
 
     def __init__(self, request):
-        # The point of this whole method is really just to get a user id.
+        # This constructor determines the user ID and authentication status.
         # Note: everything within the state is meant to be consistent at all
         # times; i.e., there should never be a cert serial, openid, or user id
         # that don't all match.
 
         config = request.registry.settings
-        confidence_expiry_secs = int(config.get(
-            'auth_confidence_expiry_seconds',
-            DEFAULT_CONFIDENCE_EXPIRY))
-        cert_confidence_expiry_secs = int(config.get(
-            'cert_auth_confidence_expiry_seconds',
-            DEFAULT_CERT_CONFIDENCE_EXPIRY))
 
         self.state = request.session.setdefault('auth', {})
 
@@ -148,15 +137,16 @@ class Authenticizer(object):
             # Override user id manually
             self.clear()
             self.user = model.session.query(model.User) \
-                    .options(joinedload(model.User.role)) \
                     .get(request.environ['tests.user_id'])
-            self.trusted = 2  # maximum!
+            self.trust = request.environ.get(
+                'tests.auth_trust',
+                ['cert', 'openid', 'openid_recent'])  # maximum!
             request.session.changed()
             return
 
         # Check for client certificate serial; ATM, the cert serial is passed by
         # the frontend server in an HTTP header.
-        cert_serial = request.environ.get('tests.auth_cert_serial', None)
+        cert_serial = None
         if config.get('client_cert_auth', '').lower() == 'true':
             cert_serial = request.headers.get(
                     'X-Floof-SSL-Client-Serial', None) or cert_serial
@@ -173,10 +163,12 @@ class Authenticizer(object):
         #
         #   3. If they resolve a valid authentication, and this agrees with
         #      the prevailing self.user (or self.user is None), they must add
-        #      any related authentication information to self.state.
+        #      any related authentication information to self.state and append
+        #      appropriate flags to self.trust.
         #      If self.user is None, they must set it to the resolved user
 
         self.user = model.AnonymousUser()  # Make no assumptions
+        self.trust = []  # XXX Work out a better name
 
         try:
             self.check_certificate(cert_serial)
@@ -196,7 +188,7 @@ class Authenticizer(object):
                 level='error', icon='key--exclamation')
 
         try:
-            self.check_openid()
+            self.check_openid(config)
         except OpenIDNotFoundError:
             request.session.flash("I don't recognize your OpenID identity.",
                 level='error', icon='key--exclamation')
@@ -207,25 +199,7 @@ class Authenticizer(object):
             request.session.flash("Your OpenID conflicted with your certificate and has been cleared.",
                 level='error', icon='key--exclamation')
 
-        # Determine trust (authentication confidence) level.
-        # Guests are -1.
-        # A regular OpenID login is 0 (standard).
-        # If performed fairly recently, it's 1 (semi-trusted).
-        # Client certificates are 2 (trusted).
-        # XXX check for cert_auth and remove disabled mechanisms separately, with a warning to the user or something
-        self.trusted = -1
-        if not self.user:
-            pass
-        elif 'cert_serial' in self.state and self.user.cert_auth != u'disabled':
-            self.trusted = 2
-        elif 'openid_timestamp' in self.state and self.user.cert_auth != u'required':
-            age = datetime.now() - datetime.fromtimestamp(self.state['openid_timestamp'])
-            if age <= timedelta(seconds=confidence_expiry_secs) and self.user.cert_auth != u'sensitive_required':
-                self.trusted = 1
-            else:
-                self.trusted = 0
-
-        if self.trusted == -1:
+        if len(self.trust) == 0:
             # Either there's no user, or none of their current auths are valid.
             # Wipe the slate clean
             self.clear()
@@ -246,7 +220,7 @@ class Authenticizer(object):
         # TODO: Optimize eagerloading
         serial = serial.lower()
         q = model.session.query(model.Certificate) \
-            .options(joinedload_all('user.role')) \
+            .options(joinedload_all('user.roles')) \
             .filter_by(serial=serial)
 
         try:
@@ -266,11 +240,12 @@ class Authenticizer(object):
         # At this point, we're confident that the supplied cert is valid
 
         self.state['cert_serial'] = serial
+        self.trust.append('cert')
 
         if not self.user:
             self.user = cert.user
 
-    def check_openid(self):
+    def check_openid(self, config):
         """Check OpenID state and add authentication if valid, else clear."""
 
         url = self.state.pop('openid_url', None)
@@ -283,7 +258,7 @@ class Authenticizer(object):
 
         # TODO: Optimize eagerloading
         q = model.session.query(model.IdentityURL) \
-            .options(joinedload_all('user.role')) \
+            .options(joinedload_all('user.roles')) \
             .filter_by(url=url)
 
         try:
@@ -301,6 +276,16 @@ class Authenticizer(object):
 
         self.state['openid_url'] = url
         self.state['openid_timestamp'] = timestamp
+        self.trust.append('openid')
+
+        # Evaluate OpenID freshness
+        confidence_expiry_secs = int(config.get(
+            'auth_confidence_expiry_seconds',
+            DEFAULT_CONFIDENCE_EXPIRY))
+
+        age = datetime.now() - datetime.fromtimestamp(timestamp)
+        if age <= timedelta(seconds=confidence_expiry_secs):
+            self.trust.append('openid_recent')
 
         if not self.user:
             self.user = openid.user
@@ -332,7 +317,7 @@ class Authenticizer(object):
 
     @property
     def can_purge(self):
-        return self.user and 'openid_timestamp' in self.state
+        return 'openid' in self.trust
 
     @property
     def pending_user(self):
@@ -367,49 +352,170 @@ def get_ca(settings):
 
     return ca_cert, ca_key
 
-def stash_request(session, url, post_data=None):
-    """Stash the given url and, optionlly, post_data MultiDict, in the given
-    session.  Returns a key that may be used to retrieve the stash later.
+# The following functions mostly assist with Authentication Upgrade.
+# Authentication Upgrade refers to increasing the expected strength of a
+# users's authentication to the system, generally with the goal of gaining
+# additional principals and thus additional authorization.
+# It may occur through adding an authentication token (providiing a cert or
+# logging in with OpenID) by renewing an expireable token (e.g. renewing an
+# OpenID login) or by changing to an authentication method setting that is
+# considered more secure.
+# The key point is that the user may perform the upgrade autonomously -- no new
+# permissions need to be administratively granted.
 
-    The url must be unique among all stashes within a single session.  A new
-    stash request with a conflicting url will silently clobber the existing
-    stash with that url.
+def outstanding_principals(permission, context, request):
+    """Returns a list of principal sets, where the addition of any of the sets
+    would be sufficient to grant the current user the permission."""
+
+    # TODO be able to determine a context based on a route name
+
+    if has_permission(permission, context, request):
+        return []
+
+    principals = principals_allowed_by_permission(context, permission)
+    effective = set(effective_principals(request))
+    outstanding = []
+
+    for p in principals:
+        if p in TRUST_MAP:
+            for alternative_principals in TRUST_MAP[p]:
+                diff = set(alternative_principals) - effective
+                if len(diff) > 0 and 'auth:insecure' not in diff:
+                    outstanding.append(diff)
+        else:
+            outstanding.append(set([p]))
+
+    return outstanding
+
+def could_have_permission(permission, context, request):
+    """Returns True if the current user either holds the permission or could
+    hold it after authentication (i.e. pseudo-principal) upgrade."""
+
+    outstanding = outstanding_principals(permission, context, request)
+
+    if not outstanding:
+        return True
+
+    for altset in outstanding:
+        f = lambda x: not x.startswith('role:')
+        if all(map(f, altset)):
+            return True
+
+    return False
+
+def attempt_privilege_escalation(permission, context, request):
+    """Try to automatically guide the user through elevating their privileges.
+
+    If it is possible to automatically guide the user to gain the privileges
+    needed to gain the given permission in the given context, do so.  This may
+    entail setting a return key then redirecting.
 
     """
-    stashes = session.get('post_stashes', dict())
-    # Clean any old pending stashes against this url
-    duplicates = [k for k in stashes if stashes[k].get('url', None) == url]
-    for k in duplicates:
-        del stashes[k]
-    key = str(random.getrandbits(64))
-    stashes[key] = dict(url=url, post_data=post_data)
-    session['post_stashes'] = stashes
-    session.save()
-    return key
+    if not could_have_permission(permission, context, request):
+        return
 
-def stash_keys(session):
-    """Return all valid stash keys for the given session."""
-    return session.get('post_stashes', dict()).keys()
+    for option in outstanding_principals(permission, context, request):
+        if len(option) != 1:
+            continue
 
-def fetch_stash(session, key):
-    """Return the stash associated with the given key if it exists, else None."""
-    stashes = session.get('post_stashes', dict())
-    return stashes.get(key, None)
+        principal = option.pop()
 
-def fetch_stash_url(session, key):
-    """Return the return URL from the stash associated with the given key if
-    it exists, else None."""
-    stash = fetch_stash(session, key)
-    return stash.get('url', None) if stash else None
-
-def fetch_post(session, request):
-    """Return the POST data MultiDict from the stash associated with the given
-    key if it exists, else None."""
-    if request.method == 'GET' and 'return_key' in request.GET:
-        key = request.GET.get('return_key', None)
-        stash_item = fetch_stash(session, key)
-        if stash_item:
-            return stash_item.get('post_data', None)
+        if 'trusted:openid' in effective_principals(request):
+            msg = "You need to re-authenticate with your OpenID identity " \
+                  "to complete this action"
         else:
-            session.flash(u'Unrecognised return key.  Timeout?', level='warning')
-    return request.POST
+            msg = "You need to authenticate with an OpenID identity to " \
+                  "complete this action"
+
+        if principal in ('trusted:openid', 'trusted:openid_recent'):
+            # Can elevate by performing an OpenID authentication; so set a
+            # return_key and redirect to the login screen
+            from floof.lib.stash import stash_request
+            key = stash_request(request)
+            location = request.route_url('account.login',
+                                         _query=[('return_key', key)])
+            request.session.flash(msg, level='notice')
+            from pyramid.httpexceptions import HTTPSeeOther
+            raise HTTPSeeOther(location=location)
+
+def current_view_permission(request):
+    """Returns the permission on the current (non-error) view or None.
+
+    Only works with URL Dispatch at present.
+
+    """
+    # HACK: uses non-API classes
+    # And lo, epii reached forth into the bowels of Pyramid to retrieve that
+    # permission attached to the view reached by the current request, and there
+    # was much wailing and gnashing of teeth.
+    # XXX may not yet work with pages that replace context with a ORM object
+
+    from pyramid.config.views import MultiView
+    from pyramid.interfaces import IMultiView
+    from pyramid.interfaces import ISecuredView
+    from pyramid.interfaces import IView
+    from pyramid.interfaces import IViewClassifier
+    from zope.interface import providedBy
+
+    request_iface = request.request_iface
+    r_context = providedBy(request.context)
+
+    for view_type in (IView, ISecuredView, IMultiView):
+        view = request.registry.adapters.lookup(
+            (IViewClassifier, request_iface, r_context),
+            view_type)
+        if view is not None:
+            break
+
+    if isinstance(view, MultiView):
+        view = view.match(request.context, request)
+
+    if view is None or not hasattr(view, '__permission__'):
+        return None
+
+    return view.__permission__
+
+
+# The following are help messages for user-upgradable privileges
+# XXX this is ugly, ugh
+
+def help_auth_secure(request):
+    msg = "onfigure your certificate authentication option to either " \
+          "'Require using client certificates for login' or " \
+          "'Allow using client certificates for login; Required for Sensitive Operations'"
+    if len(request.user.certificates) > 0:
+        msg = "C" + msg
+    else:
+        msg = "First, generate and configure a client certificate, then c" + msg
+    return msg
+
+def help_trusted_cert(request):
+    if len(request.user.certificates) > 1:
+        msg = "Present one of your client certificates for authentication"
+    elif len(request.user.certificates) == 1:
+        msg = "Present your client certificate for authentication"
+    else:
+        msg = "Generate and configure a client certificate, then present it for authentication"
+
+#    if request.user.cert_auth == 'disabled':
+#        return "Configure your certificate authentication option to " \
+#               "something other than 'Disallow using client certificates " \
+#               "for login', then " + msg
+    return msg
+
+def help_trusted_openid(request):
+    if len(request.user.identity_urls) > 1:
+        return "Authenticate with one of your OpenIDs"
+    return "Authenticate with your OpenID"
+
+def help_trusted_openid_recent(request):
+    if 'trust:openid' in effective_principals(request):
+        return "Re-authenticate with your OpenID"
+    return trusted_openid(request)
+
+auth_actions = dict([
+    ('auth:secure', help_auth_secure),
+    ('trusted:cert', help_trusted_cert),
+    ('trusted:openid', help_trusted_openid),
+    ('trusted:openid_recent', help_trusted_openid_recent),
+])

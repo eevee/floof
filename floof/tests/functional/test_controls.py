@@ -257,15 +257,17 @@ class TestControls(FunctionalTests):
 
     def test_cert_auth_change(self):
         """Test changing the user certificate authentication option."""
+        environ = copy.deepcopy(self.default_environ)
+        environ['tests.auth_trust'] = ['cert']
         response = self.app.get(
                 self.url('controls.auth'),
                 extra_environ=self.default_environ,
                 )
         assert 'selected="selected" value="disabled"' in response, 'Could not find evidence of anticipated default value.'
+
         response = self.app.post(
                 self.url('controls.auth'),
                 params=[
-                    ('confirm', u'Confirm Authentication Method Change'),
                     ('cert_auth', u'required')
                     ],
                 extra_environ=self.default_environ,
@@ -274,37 +276,38 @@ class TestControls(FunctionalTests):
                 self.url('controls.auth'),
                 extra_environ=self.default_environ,
                 )
-        assert 'selected="selected" value="disabled"' in response, 'Allowed change to method requiring a certificate when user has no certificates.'
+        cert_auth = model.session.query(model.User).filter_by(id=self.user.id).one().cert_auth
+        assert cert_auth == u'disabled', 'Allowed change to method requiring a certificate when user has no certificates.'
+
+        environ['tests.auth_trust'] = ['openid', 'openid_recent']
         response = self.app.post(
                 self.url('controls.certs.generate_server', name=self.user.name),
                 params=[
                     ('days', 31),
                     ('generate_server', u'Generate On Server'),
                     ],
-                extra_environ=self.default_environ,
+                extra_environ=environ,
                 )
         response = self.app.post(
                 self.url('controls.auth'),
                 params=[
-                    ('confirm', u'Confirm Authentication Method Change'),
                     ('cert_auth', u'required')
                     ],
-                extra_environ=self.default_environ,
+                extra_environ=environ,
                 )
         response = self.app.get(
                 self.url('controls.auth'),
-                extra_environ=self.default_environ,
+                extra_environ=environ,
                 )
-        assert 'selected="selected" value="disabled"' in response, 'Allowed change to method requiring a certificate when user did not present one in request.'
+        cert_auth = model.session.query(model.User).filter_by(id=self.user.id).one().cert_auth
+        assert cert_auth == u'disabled', 'Allowed change to method requiring a certificate when user did not present one in request.'
         user = model.session.query(model.User).filter_by(id=self.user.id).one()
         assert len(user.valid_certificates) > 0, 'User does not appear to have any valid certificates, even though we just created one.'
-        serial = user.valid_certificates[0].serial
-        environ = copy.deepcopy(self.default_environ)
-        environ['tests.auth_cert_serial'] = serial
+
+        environ['tests.auth_trust'] = ['cert']
         response = self.app.post(
                 self.url('controls.auth'),
                 params=[
-                    ('confirm', u'Confirm Authentication Method Change'),
                     ('cert_auth', u'required')
                     ],
                 extra_environ=environ,
@@ -313,12 +316,11 @@ class TestControls(FunctionalTests):
                 self.url('controls.auth'),
                 extra_environ=environ,
                 )
-        assert 'selected="selected" value="required"' in response, 'The authentication method did not appear to update.'
+        cert_auth = model.session.query(model.User).filter_by(id=self.user.id).one().cert_auth
+        assert cert_auth == u'required', 'The authentication method did not appear to update.'
 
     def test_reauth(self):
         """Test re-authentication redirection sequence."""
-        environ = copy.deepcopy(self.default_environ)
-        environ['tests.auth_openid_time'] = 0.0  # Set it to the epoch; definitely invalid
         response = self.app.get(
                 self.url('controls.auth'),
                 extra_environ=self.default_environ,
@@ -327,6 +329,8 @@ class TestControls(FunctionalTests):
         assert 'selected="selected" value="disabled"' in response, 'Expected existing cert_auth value of "disabled" not found.'
 
         # Pretend to try to change our cert_auth options while our auth is too old
+        environ = copy.deepcopy(self.default_environ)
+        environ['tests.auth_trust'] = ['openid']
         response = self.app.post(
                 self.url('controls.auth'),
                 params=[('cert_auth', u'allowed')],
@@ -336,10 +340,10 @@ class TestControls(FunctionalTests):
         # We should be redirected to the login/re-auth page
         try:
             return_key = parse_qs(urlparse(response.headers['location'])[4])['return_key'][0]
-        except ValueError:
+        except KeyError:
             raise AssertionError('Return key not in login GET request.')
         response = self.app.get(response.headers['location'], extra_environ=environ)
-        assert 'you need to re-authenticate' in response, 'Did not appear to give a message about the need to re-authenticate.'
+        assert 'need to re-authenticate' in response, 'Did not appear to give a message about the need to re-authenticate.'
         assert 'name="openid_identifier"' in response, 'Did not appear to prompt for OpenID URL.'
         assert 'value="{0}"'.format(return_key) in response, 'Could not find the return key hidden input in the login page.'
 
@@ -378,7 +382,11 @@ class TestControls(FunctionalTests):
 
         # We should now be redirected to the Authentication Options page,
         # with the contents of our original POST set as the
-        # default/selected parameters.
+        # default/selected parameters (but the actual change should not yet
+        # have taken place).
+
+        # XXX prefer to avoid setting this explictly
+        environ['tests.auth_trust'].append('openid_recent')
         pu = urlparse(response.headers['location'])
         path, params = pu[2], pu[4]
         assert path == self.url('controls.auth'), 'Unexpected redirect path: {0}'.format(path)
@@ -390,3 +398,5 @@ class TestControls(FunctionalTests):
                 status=200,
                 )
         assert 'selected="selected" value="allowed"' in response, 'POST\'d choice prior to re-auth did not appear to persist.'
+        cert_auth = model.session.query(model.User).filter_by(id=self.user.id).one().cert_auth
+        assert cert_auth == u'disabled', 'Automatically submitted a form after an OpenID re-auth detour.'

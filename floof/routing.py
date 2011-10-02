@@ -301,6 +301,7 @@ def sqla_route_options(url_key, match_key, sqla_column):
 
     def factory(request):
         # This yields the "context", which should be the row object
+        # TODO this needs to be a member of the FloofRoot resource tree
         try:
             return model.session.query(sqla_column.parententity).filter(sqla_column == request.matchdict[match_key]).one()
         except NoResultFound:

@@ -74,10 +74,7 @@ class TestAccount(FunctionalTests):
             for test in runsheet[cert_auth]:
                 result, mechs = test
                 extra = dict()
-                if 'cert' in mechs:
-                    extra['tests.auth_cert_serial'] = serial
-                if 'openid' in mechs:
-                    extra['tests.auth_openid_uid'] = user.id
+                extra['tests.auth_trust'] = mechs
                 response = self.app.post(self.url('account.logout'))
                 response = self.app.get(self.url('root'), extra_environ=extra)
                 if 'Hello, <a href=' in response:

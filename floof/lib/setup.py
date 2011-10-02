@@ -20,38 +20,13 @@ def populate_db(metadata, session, is_test=False):
     # Create the tables if they don't already exist
     metadata.create_all(checkfirst=True)
 
-    # Add canonical privileges and roles
-    privileges = dict(
-        (name, model.Privilege(name=name, description=description))
-        for name, description in [
-            (u'admin.view',         u'Can view administrative tools/panel'),
-            (u'auth.certificates',  u'Can manage own client certificates'),
-            (u'auth.method',        u'Can manage own authentication method'),
-            (u'auth.openid',        u'Can manage own OpenID URLs'),
-            (u'art.upload',         u'Can upload art'),
-            (u'art.rate',           u'Can rate art'),
-            (u'comments.add',       u'Can post comments'),
-            (u'tags.add',           u'Can add tags with no restrictions'),
-            (u'tags.remove',        u'Can remove tags with no restrictions'),
-        ]
-    )
-
-    base_user = model.Role(
-        name=u'user',
-        description=u'Basic user',
-        privileges=[privileges[priv] for priv in [
-            u'auth.certificates', u'auth.method', u'auth.openid',
-            u'art.upload', u'art.rate', u'comments.add', u'tags.add',
-            u'tags.remove',
-        ]],
-    )
-    admin_user = model.Role(
-        name=u'admin',
-        description=u'Administrator',
-        privileges=privileges.values()
-    )
-
-    session.add_all([base_user, admin_user])
+    # Add canonical roles
+    roles = [
+        (u'admin', u'Administrator'),
+        (u'user', u'Basic user'),
+    ]
+    role_objs = [model.Role(name=n, description=d) for n, d in roles]
+    session.add_all(role_objs)
     session.flush()
 
 def generate_ca(conf):

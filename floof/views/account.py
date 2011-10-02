@@ -13,7 +13,7 @@ from webhelpers.util import update_params
 import wtforms.form, wtforms.fields, wtforms.validators
 
 from floof.forms import DisplayNameField, TimezoneField
-import floof.lib.auth
+from floof.lib.stash import fetch_stash, get_stash_keys, key_from_request
 from floof.lib.openid_ import OpenIDError, openid_begin, openid_end
 from floof.model import Resource, Discussion, UserProfileRevision, IdentityURL, User, Role
 from floof import model
@@ -39,7 +39,7 @@ def account_login(context, request):
     # crypto link if they already hit cancel and want to try again
     # XXX why do we need this?: form.openid_identifier.data = request.auth.openid_url
     # ^^^ that was to pre-fill the form in the (maybe) common case of re-auth
-    form.return_key.data = request.GET.get('return_key', None)
+    form.return_key.data = key_from_request(request)
     return {'form': form}
 
 
@@ -57,7 +57,7 @@ def login_begin(context, request):
     # Ensure the return key, if present and valid, will be passed
     # to openid_finish()
     return_url = request.route_url('account.login_finish')
-    if form.return_key.data in floof.lib.auth.stash_keys(request.session):
+    if form.return_key.data in get_stash_keys(request):
         return_url = update_params(return_url,
             return_key=form.return_key.data)
 
@@ -95,13 +95,9 @@ def login_finish(context, request):
     """Step two of logging in; the OpenID provider redirects back here."""
     return_url = request.route_url('account.login_finish')
 
-    return_key = request.GET.get('return_key', None)
-    if return_key is None:
-        pass
-    elif return_key in floof.lib.auth.stash_keys(request.session):
-        return_url = update_params(return_url, dict(return_key=return_key))
-    else:
-        log.warning("Unknown return_key value: {0!r}".format(return_key))
+    return_key = key_from_request(request)
+    if return_key is not None:
+        return_url = update_params(return_url, return_key=return_key)
 
     try:
         identity_url, identity_webfinger, auth_time, sreg_res = openid_end(
@@ -113,7 +109,7 @@ def login_finish(context, request):
 
         location = request.route_url('account.login')
         if return_key:
-            location = update_params(location, dict(return_key=return_key))
+            location = update_params(location, return_key=return_key)
 
         return HTTPSeeOther(location=location)
 
@@ -126,7 +122,7 @@ def login_finish(context, request):
         # Someone is either registering a new account, or adding a new OpenID
         # to an existing account
         request.session['pending_identity_url'] = identity_url
-        request.session.save()
+        request.session.changed()
 
         # Try to pull a name and email address out of the SReg response
         username = re.sub(u'[^_a-z0-9]', u'',
@@ -147,17 +143,17 @@ def login_finish(context, request):
     elif identity_owner == request.user:
         # Someone is just freshening up their cookie
         request.auth.login_openid(identity_owner, identity_url)
-        request.session.save()
+        request.session.changed()
         request.session.flash(u'Re-authentication successful', icon='user')
 
         if return_key:
-            # XXX implement meee
             # Fetch a stashed POST request
-            old_url = fetch_stash_url(session, return_key)
+            old_url = fetch_stash(request, return_key)['url']
             if old_url:
+                location = update_params(old_url, return_key=return_key)
                 log.debug('Following Return Key \'{0}\' to URL: {1}' \
-                        .format(return_key, old_url))
-                redirect('{0}?return_key={1}'.format(old_url, return_key))
+                    .format(return_key, location))
+                return HTTPSeeOther(location)
 
         return HTTPSeeOther(location=request.route_url('root'))
 

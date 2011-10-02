@@ -127,7 +127,6 @@ class User(TableBase):
     display_name = Column(Unicode(24), nullable=True)
     has_trivial_display_name = Column(Boolean, nullable=False, default=False)
     timezone = Column(Timezone, nullable=True)
-    role_id = Column(Integer, ForeignKey('roles.id'), nullable=False)
     cert_auth = Column(Enum(
         u'disabled',
         u'allowed',
@@ -140,27 +139,6 @@ class User(TableBase):
         if self.timezone is None:
             return dt
         return dt.astimezone(self.timezone)
-
-    def can(self, permission, log=False):
-        """Returns True iff this user has the named privilege."""
-        if not self.role:
-            return False
-
-        can = permission in [priv.name for priv in self.role.privileges]
-
-        if can and log:
-            if not hasattr(self, '_logged_privs'):
-                self._logged_privs = []
-            if priv not in self._logged_privs:
-                self._logged_privs.append(priv)
-
-        return can
-
-    @property
-    def logged_privs(self):
-        if hasattr(self, '_logged_privs'):
-            return self._logged_privs
-        return []
 
     @property
     def invalid_certificates(self):
@@ -336,16 +314,10 @@ class Role(TableBase):
     name = Column(Unicode(127), nullable=False)
     description = Column(Unicode, nullable=True)
 
-class Privilege(TableBase):
-    __tablename__ = 'privileges'
-    id = Column(Integer, primary_key=True, nullable=False)
-    name = Column(Unicode(127), nullable=False)
-    description = Column(Unicode, nullable=True)
-
-class RolePrivilege(TableBase):
-    __tablename__ = 'role_privileges'
+class UserRole(TableBase):
+    __tablename__ = 'user_roles'
+    user_id = Column(Integer, ForeignKey('users.id'), primary_key=True, nullable=False)
     role_id = Column(Integer, ForeignKey('roles.id'), primary_key=True, nullable=False)
-    priv_id = Column(Integer, ForeignKey('privileges.id'), primary_key=True, nullable=False)
 
 
 ### COMMENTS
@@ -607,6 +579,7 @@ class Log(TableBase):
     logger = Column(String, nullable=False)
     level = Column(Integer, nullable=False, index=True)
     user_id = Column(Integer, ForeignKey('users.id'))
+    privileges = Column(Unicode)
     url = Column(Unicode)
     ipaddr = Column(IPAddr)
     target_user_id = Column(Integer, ForeignKey('users.id'))
@@ -614,11 +587,6 @@ class Log(TableBase):
     reason = Column(Unicode)
 
     __mapper_args__ = {'order_by': timestamp.desc()}
-
-log_privileges = Table('log_privileges', TableBase.metadata,
-    Column('log_id', Integer, ForeignKey('logs.id'), primary_key=True, nullable=False),
-    Column('priv_id', Integer, ForeignKey('privileges.id'), primary_key=True, nullable=False),
-)
 
 
 ### RELATIONS
@@ -666,8 +634,7 @@ User.user_artwork = relation(UserArtwork, backref=backref('user', innerjoin=True
 User.ratings_given = relation(ArtworkRating, backref=backref('user', innerjoin=True))
 
 # Permissions
-User.role = relation(Role, innerjoin=True, backref='users')
-Role.privileges = relation(Privilege, secondary=RolePrivilege.__table__, lazy='joined')
+User.roles = relation(Role, UserRole.__table__, lazy='joined')
 
 # Comments
 Resource.discussion = relation(Discussion, uselist=False,
@@ -693,4 +660,3 @@ Log.user = relation(User, backref='logs',
 Log.target_user = relation(User,
         primaryjoin=User.id==Log.target_user_id,
         )
-Log.privileges = relation(Privilege, secondary=log_privileges)

@@ -7,8 +7,9 @@ import wtforms
 from wtforms.ext.sqlalchemy.fields import QuerySelectMultipleField
 
 from floof import model
-from floof.forms import MultiCheckboxField
+from floof.forms import FloofForm, MultiCheckboxField
 from floof.lib.openid_ import OpenIDError, openid_begin, openid_end
+from floof.lib.stash import stash_request
 
 log = logging.getLogger(__name__)
 
@@ -27,7 +28,7 @@ class RemoveOpenIDForm(wtforms.form.Form):
         if len(field.data) >= len(field._get_object_list()):
             raise wtforms.ValidationError('You must keep at least one OpenID identity URL.')
 
-class AuthenticationForm(wtforms.form.Form):
+class AuthenticationForm(FloofForm):
     cert_auth = wtforms.fields.SelectField(u'Certificate Certificates', choices=[
             (u'disabled', u'Disallow using client certificates for login (default)'),
             (u'allowed', u'Allow using client certificates for login'),
@@ -36,13 +37,14 @@ class AuthenticationForm(wtforms.form.Form):
             ])
 
     def validate_cert_auth(form, field):
+        request = form.request
         if field.data in ['required', 'sensitive_required']:
-            if not c.user.valid_certificates:
+            if not request.user.valid_certificates:
                 raise wtforms.ValidationError('You cannot make a selection '
                         'that requires an SSL certificate to log in or to '
                         'change this setting while you have no valid SSL '
                         'certificates registered against your account.')
-            if not 'cert' in c.auth.satisfied:
+            if not 'cert' in request.auth.trust:
                 raise wtforms.ValidationError('To prevent locking yourself '
                         'out, you cannot make a selection that requires an '
                         'SSL certificate to log in or to change this '
@@ -171,7 +173,7 @@ def openid_remove(context, request):
     request_method='GET',
     renderer='account/controls/authentication.mako')
 def authentication(context, request):
-    form = AuthenticationForm(None, request.user) # XXX fetch_post(session, request), c.user)
+    form = AuthenticationForm(request, obj=request.user)
     return dict(
         form=form,
     )
@@ -180,23 +182,14 @@ def authentication(context, request):
 @view_config(
     route_name='controls.auth',
     permission='auth.method',
-    request_method='POST',
-    renderer='account/controls/authentication.mako')
+    request_method='POST')
 def authentication_commit(context, request):
-    form = AuthenticationForm(request.POST, request.user) # XXX fetch_post(session, request), c.user)
-    if request.method == 'POST' and form.validate():
+    form = AuthenticationForm(request, request.POST, request.user)
+
+    if form.validate():
         form.populate_obj(request.user)
-        # If the new authentication requirements will knock the
-        # user out, give them an extra warning and then redirect
-        # them to the login screen.
-        # XXX do that, but within the page.  the confirm screen is gone!  and yeah force the logout.  and stuff.
-        if 0 and not c.auth.authenticate() and not c.confirm_form.confirm.data:
-            pass
-        else:
-            request.session.flash(u'Authentication options updated.', level=u'success')
-            if 0 and not c.auth.authenticate():
-                return HTTPSeeOther(request.route_url('account.login'))
-            return HTTPSeeOther(location=request.path_url)
-    return dict(
-        form=form,
-    )
+        request.session.flash(u'Authentication options updated.', level=u'success')
+        return HTTPSeeOther(location=request.path_url)
+
+    stash_request(request, _immediate=True)
+    return HTTPSeeOther(location=request.path_url)
