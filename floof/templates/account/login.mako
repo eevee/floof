@@ -6,31 +6,9 @@
 <section>
 <% auth = object() %>
 % if request.user:
-    <h1>Hey!  You're already logged in</h1>
+    <h1>You're already logged in, but...</h1>
     <p>We already know you as <code>${request.user.name}</code>.</p>
-    <p>If you'd like to link another OpenID to your account, feel free to enter it below.</p>
-    <p>Or, log in as yourself again to refresh your token and be more authorized, whatever that means.</p>
-% elif 0 and auth.pending_user:
-    <h1>Partially Authenticated: ${auth.pending_user.name}</h1>
-    % if 'cert' in auth.satisfied:
-        <p>You have successfully authenticated with an SSL client
-        certificate, which has identified you as
-        ${auth.pending_user.name}.  However, your account authentication
-        settings have disabled certificate login, so you'll need to log in
-        with your OpenID.</p>
-        <p>To stop authenticating via SSL certificate you must instruct
-        your web browser to stop sending the certificate.</p>
-    % else:
-        <p>You have successfully authenticated with OpenID, which has
-        identified you as ${auth.pending_user.name}.  However, your
-        account authentication settings require SSL client certificate
-        authentication to log in.</p>
-        ${lib.secure_form(request.route_url('account.logout'))}
-            <p>Click the following button to purge all satisfied
-            authentication mechanisms.</p>
-            <p><input type="submit" value="Purge Authentication"></p>
-        ${h.end_form()}
-    % endif
+    <p>If you'd like to link another identity to your account, feel free to enter it below.</p>
 % else:
     <h1>Log in or register</h1>
 % endif
@@ -74,8 +52,8 @@ ${h.end_form()}
     <h1>Wait, what?</h1>
 
     <ul class="standard-list">
-        <li>We don't ask you for a password.  Just tell us about an account you already have with another service, and we'll use that to confirm who you are.</li>
-        <li>For example, if you have a gmail account, enter <kbd><var>username</var>@gmail.com</kbd>.  Google will double-check that you want to log in, and that's it!</li>
+        <li>We don't ask you for a password.  Just tell us about an account (or "identity") you already have with another service, and we'll use that to confirm who you are.</li>
+        <li>For example, if you have a gmail account, enter <kbd><var>username</var>@gmail.com</kbd>.  Google will ask you to push a button to confirm, and that's it!</li>
         <li>It doesn't have to be an actual email address.  Steam works as <kbd><var>username</var>@steamcommunity.com</kbd>.</li>
         <li>Make sure you use an account that's reliable.  In the example above, if someone hacks your Google account, they can log in here, too.  And if Google goes down, you can't log in!</li>
         <li>We don't tell anyone what account you're using to log in; it's no different from giving us your email address.</li>

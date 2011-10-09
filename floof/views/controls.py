@@ -339,8 +339,8 @@ def openid_add_finish(context, request):
     openid = model.IdentityURL(url=identity_url)
     user.identity_urls.append(openid)
     request.session.flash(
-        u"Successfully added OpenID identifier: {0}".format(identity_url),
-        level=u'success')
+        u"Added a new identity: {0}".format(identity_url),
+        level=u'success', icon=u'user--plus')
     return HTTPSeeOther(location=request.route_url('controls.openid'))
 
 @view_config(

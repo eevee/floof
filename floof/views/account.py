@@ -7,6 +7,7 @@ from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.renderers import render_to_response
 from pyramid.response import Response
 from pyramid.view import view_config
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import NoResultFound
 from webhelpers.util import update_params
 import wtforms.form, wtforms.fields, wtforms.validators
@@ -113,53 +114,9 @@ def login_finish(context, request):
         .filter(User.identity_urls.any(url=identity_url)) \
         .limit(1).first()
 
-    if request.user:
-        # An existing user is logging in again!
-        # Three possibilities here.
-
-        if identity_owner == request.user:
-            # Someone is just freshening up their cookie
-            request.auth.login_openid(identity_owner)
-            request.session.save()
-            request.session.flash(u'Re-authentication successful', icon='user')
-
-            if return_key:
-                # XXX implement meee
-                # Fetch a stashed POST request
-                old_url = fetch_stash_url(session, return_key)
-                if old_url:
-                    log.debug('Following Return Key \'{0}\' to URL: {1}' \
-                            .format(return_key, old_url))
-                    redirect('{0}?return_key={1}'.format(old_url, return_key))
-
-            return HTTPSeeOther(location=request.route_url('root'))
-
-        elif identity_owner:
-            # Someone is trying to log in as someone else.
-            # XXX show a page with a button that will switch accounts...  unless you're using a cert...
-            raise NotImplementedError
-        else:
-            # Someone is /either/ registering or adding a new openid to their current account
-            # XXX show a page like the above, with the reg form plus a button to just add this openid to your account...  unless you're using a cert...
-            raise NotImplementedError
-
-    elif identity_owner:
-        # A non-user has logged in successfully.  Bravo!
-        log.debug("User {0!r} logged in via OpenID: {1!r}".format(identity_owner.name, identity_url))
-
-        # Log the successful authentication
-        # TODO try/except, catch all the things that can be thrown
-        auth_headers = security.remember(request, identity_owner)
-        request.session.flash(
-            u"Hello, {0}".format(identity_owner.display_name or identity_owner.name),
-            icon='user')
-        # XXX this should ALSO probably do the return_key redirect, good grief
-        return HTTPSeeOther(
-            location=request.route_url('root'),
-            headers=auth_headers)
-
-    else:
-        # A non-user has used a new OpenID; offer a registration form
+    if not identity_owner:
+        # Someone is either registering a new account, or adding a new OpenID
+        # to an existing account
         request.session['pending_identity_url'] = identity_url
         request.session.save()
 
@@ -178,6 +135,39 @@ def login_finish(context, request):
                 identity_url=identity_url,
                 identity_webfinger=identity_webfinger),
             request=request)
+
+    elif identity_owner == request.user:
+        # Someone is just freshening up their cookie
+        request.auth.login_openid(identity_owner)
+        request.session.save()
+        request.session.flash(u'Re-authentication successful', icon='user')
+
+        if return_key:
+            # XXX implement meee
+            # Fetch a stashed POST request
+            old_url = fetch_stash_url(session, return_key)
+            if old_url:
+                log.debug('Following Return Key \'{0}\' to URL: {1}' \
+                        .format(return_key, old_url))
+                redirect('{0}?return_key={1}'.format(old_url, return_key))
+
+        return HTTPSeeOther(location=request.route_url('root'))
+
+    else:
+        # An existing user has logged in successfully.  Bravo!
+        log.debug("User {0!r} logged in via OpenID: {1!r}".format(identity_owner.name, identity_url))
+
+        # Log the successful authentication
+        # TODO try/except, catch all the things that can be thrown
+        auth_headers = security.forget(request)
+        auth_headers += security.remember(request, identity_owner)
+        request.session.flash(
+            u"Welcome back, {0}!".format(identity_owner.display_name or identity_owner.name),
+            level=u'success', icon='user')
+        # XXX this should ALSO probably do the return_key redirect, good grief
+        return HTTPSeeOther(
+            location=request.route_url('root'),
+            headers=auth_headers)
 
 
 @view_config(
@@ -220,10 +210,6 @@ class RegistrationForm(wtforms.form.Form):
     route_name='account.register',
     request_method='POST')
 def register(context, request):
-    if request.user:
-        # What are you doing here if you're already logged in?
-        return HTTPSeeOther(location=request.route_url('root'))
-
     # Check identity URL
     identity_url = request.session.get('pending_identity_url')
     if not identity_url or \
@@ -260,15 +246,47 @@ def register(context, request):
     openid = IdentityURL(url=identity_url)
     user.identity_urls.append(openid)
 
+    meta.Session.flush()
+
     log.info('User #{0} registered: {1}'.format(user.id, user.name))
 
     # Log 'em in
     del request.session['pending_identity_url']
-    request.auth.login_openid(user)
-    request.session.save()
+    auth_headers = security.forget(request)
+    auth_headers += security.remember(request, user)
+    print auth_headers
 
     # And off we go
-    return HTTPSeeOther(location=request.route_url('root'))
+    return HTTPSeeOther(
+        location=request.route_url('root'),
+        headers=auth_headers)
+
+
+@view_config(
+    route_name='account.add_identity',
+    permission='__authenticated__',
+    request_method='POST')
+def add_identity(context, request):
+    identity_url = request.session.pop('pending_identity_url', None)
+    request.session.save()
+
+    if not identity_url:
+        # You shouldn't be here
+        return HTTPBadRequest()
+
+    meta.Session.add(IdentityURL(user=request.user, url=identity_url))
+
+    try:
+        meta.Session.flush()
+    except IntegrityError:
+        # Somehow you're trying to add an already-claimed URL.  This shouldn't
+        # happen either
+        return HTTPBadRequest()
+
+    request.session.flash(
+        u"Added a new identity: {0}".format(identity_url),
+        level=u'success', icon=u'user--plus')
+    return HTTPSeeOther(location=request.route_url('controls.openid'))
 
 
 class ProfileForm(wtforms.form.Form):

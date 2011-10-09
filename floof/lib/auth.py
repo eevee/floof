@@ -74,9 +74,12 @@ class FloofAuthnPolicy(object):
     def remember(self, request, principal, **kw):
         request.auth.login_openid(principal)
         request.session.save()
+        return []
 
     def forget(self, request):
         request.session.pop('auth', None)
+        request.session.save()
+        return []
 
 class FloofAuthzPolicy(object):
     """Authorization policy that uses simple permissions stored in the db."""

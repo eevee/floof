@@ -36,6 +36,7 @@ def configure_routing(config):
     r('account.login_begin', '/account/login_begin')
     r('account.login_finish', '/account/login_finish')
     r('account.register', '/account/register')
+    r('account.add_identity', '/account/add_identity')
     r('account.logout', '/account/logout')
 
     r('account.profile', '/account/profile')
