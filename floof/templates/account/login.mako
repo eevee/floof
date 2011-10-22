@@ -9,6 +9,7 @@
     <h1>You're already logged in, but...</h1>
     <p>We already know you as <code>${request.user.name}</code>.</p>
     <p>If you'd like to link another identity to your account, feel free to enter it below.</p>
+    <p>Or you can just log into a different account.</p>
 % else:
     <h1>Log in or register</h1>
 % endif
