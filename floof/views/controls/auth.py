@@ -2,6 +2,7 @@
 import logging
 
 from pyramid.httpexceptions import HTTPSeeOther
+from pyramid.security import effective_principals
 from pyramid.view import view_config
 import wtforms
 from wtforms.ext.sqlalchemy.fields import QuerySelectMultipleField
@@ -44,7 +45,7 @@ class AuthenticationForm(FloofForm):
                         'that requires an SSL certificate to log in or to '
                         'change this setting while you have no valid SSL '
                         'certificates registered against your account.')
-            if not 'cert' in request.auth.trust:
+            if not 'trusted:cert' in effective_principals(request):
                 raise wtforms.ValidationError('To prevent locking yourself '
                         'out, you cannot make a selection that requires an '
                         'SSL certificate to log in or to change this '
