@@ -12,7 +12,7 @@ from sqlalchemy.orm.exc import NoResultFound
 from webhelpers.util import update_params
 import wtforms.form, wtforms.fields, wtforms.validators
 
-from floof.forms import TimezoneField
+from floof.forms import DisplayNameField, TimezoneField
 import floof.lib.auth
 from floof.lib.openid_ import OpenIDError, openid_begin, openid_end
 from floof.model import Resource, Discussion, UserProfileRevision, IdentityURL, User, Role, meta
@@ -188,6 +188,9 @@ def logout(context, request):
 
 
 class RegistrationForm(wtforms.form.Form):
+    # XXX steal the validation and max len from =>
+    display_name = DisplayNameField(u'Display name')
+
     # XXX come on, man; make this thing lowercase yourself
     username = wtforms.fields.TextField(u'Username', [
         wtforms.validators.Regexp(r'^[_a-z0-9]{1,24}$',
@@ -195,7 +198,7 @@ class RegistrationForm(wtforms.form.Form):
             u'lowercase letters, numbers, and underscores.'
             ),
         ])
-    email = wtforms.fields.TextField(u'Email Address', [
+    email = wtforms.fields.TextField(u'Email address', [
             wtforms.validators.Optional(),
             wtforms.validators.Email(message=u'That does not appear to be an email address.'),
             ])
