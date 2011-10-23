@@ -74,9 +74,12 @@ class FloofAuthnPolicy(object):
     def remember(self, request, principal, **kw):
         request.auth.login_openid(principal)
         request.session.save()
+        return []
 
     def forget(self, request):
-        request.session.pop('auth', None)
+        request.auth.clear()
+        request.session.save()
+        return []
 
 class FloofAuthzPolicy(object):
     """Authorization policy that uses simple permissions stored in the db."""
@@ -144,7 +147,7 @@ class Authenticizer(object):
         # Test amenity
         if 'tests.user_id' in request.environ:
             # Override user id manually
-            self.state.clear()
+            self.clear()
             self.state['user_id'] = request.environ['tests.user_id']
             self.confidence = 2  # maximum!
             request.session.changed()
@@ -202,8 +205,7 @@ class Authenticizer(object):
         if self.trusted == -1:
             # Either there's no user, or none of their current auths are valid.
             # Wipe the slate clean
-            self.state.clear()
-            del self.user
+            self.clear()
 
         print self.state
         request.session.changed()
@@ -250,7 +252,7 @@ class Authenticizer(object):
 
         if cert.user_id != self.state.get('user_id', None):
             # This is, essentially, a new login.  Start the state clean
-            self.state.clear()
+            self.clear()
             self.state['user_id'] = cert.user_id
 
         self.state['cert_serial'] = serial
@@ -271,12 +273,16 @@ class Authenticizer(object):
             if 'cert_serial' in self.state:
                 raise CertAuthConflictError
 
-            self.state.clear()
-            del self.user
-
+            self.clear()
             self.state['user_id'] = user.id
 
         self.state['openid_timestamp'] = calendar.timegm(datetime.now().timetuple())
+
+    def clear(self):
+        """Log the user out completely."""
+        # TODO what shall this do with certificates
+        self.state.clear()
+        del self.user  # defeat reify
 
     @reify
     def user(self):

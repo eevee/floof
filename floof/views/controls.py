@@ -11,7 +11,7 @@ from pyramid.view import view_config
 import wtforms
 from wtforms.ext.sqlalchemy.fields import QuerySelectMultipleField
 
-from floof.forms import IDNAField, KeygenField, MultiCheckboxField, TimezoneField
+from floof.forms import DisplayNameField, IDNAField, KeygenField, MultiCheckboxField, TimezoneField
 from floof.lib.auth import get_ca, update_crl
 from floof.lib.openid_ import OpenIDError, openid_begin, openid_end
 import floof.model as model
@@ -29,39 +29,14 @@ def index(context, request):
 
 
 class UserInfoForm(wtforms.form.Form):
-    display_name = wtforms.fields.TextField(u'Display Name')
-    email = IDNAField(u'Email Address', [
+    display_name = DisplayNameField(u'Display name')
+    email = IDNAField(u'Email address', [
             wtforms.validators.Optional(),
             wtforms.validators.Email(message=u'That does not appear to be an email address.'),
             ])
     timezone = TimezoneField(u'Timezone')
     submit = wtforms.SubmitField(u'Update')
 
-    # n.b. model.User.display_name is a mapper, not a column, hence __table__
-    _display_name_maxlen = model.User.__table__.c.display_name.type.length
-
-    def validate_display_name(form, field):
-        field.data = field.data.strip()
-
-        if len(field.data) > form._display_name_maxlen:
-            raise wtforms.ValidationError(
-                '{0} characters maximum.'.format(form._display_name_maxlen))
-
-        for char in field.data:
-            # Allow printable ASCII
-            # XXX Is there a better way than checking ord(char)?
-            if 32 <= ord(char) <= 126:
-                continue
-
-            # Disallow combining characters regardless of category
-            if unicodedata.combining(char):
-                raise wtforms.ValidationError('No combining characters.')
-
-            # Allow anything non-ASCII categorized as a letter
-            if unicodedata.category(char).startswith('L'):
-                continue
-
-            raise wtforms.ValidationError(u'Invalid character: {0}'.format(char))
 
 def reduce_display_name(name):
     """Return a reduced version of a display name for comparison with a
@@ -247,7 +222,7 @@ class AddOpenIDForm(wtforms.form.Form):
 
 class RemoveOpenIDForm(wtforms.form.Form):
     #openids = MultiCheckboxField(u'', coerce=int)
-    openids = QuerySelectMultipleField(u'', get_label=lambda row: row.url)
+    openids = QuerySelectMultipleField(u'Remove OpenIDs', get_label=lambda row: row.url)
 
     def validate_openids(form, field):
         if not field.data:
@@ -339,8 +314,8 @@ def openid_add_finish(context, request):
     openid = model.IdentityURL(url=identity_url)
     user.identity_urls.append(openid)
     request.session.flash(
-        u"Successfully added OpenID identifier: {0}".format(identity_url),
-        level=u'success')
+        u"Added a new identity: {0}".format(identity_url),
+        level=u'success', icon=u'user--plus')
     return HTTPSeeOther(location=request.route_url('controls.openid'))
 
 @view_config(
@@ -406,7 +381,7 @@ class RevokeCertificateForm(wtforms.form.Form):
     cancel = wtforms.fields.SubmitField(u'Cancel')
 
 class AuthenticationForm(wtforms.form.Form):
-    cert_auth = wtforms.fields.SelectField(u'Certificate Authentication Control', choices=[
+    cert_auth = wtforms.fields.SelectField(u'Client Certificates', choices=[
             (u'disabled', u'Disallow using client certificates for login (default)'),
             (u'allowed', u'Allow using client certificates for login'),
             (u'sensitive_required', u'Allow using client certificates for login; Require for Sensitive Operations'),

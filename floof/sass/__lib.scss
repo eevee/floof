@@ -1,19 +1,28 @@
 ////////////////////////////////////////////////////////////////////////////////
 // CSS3 cross-browser macros
 
+// Is this standardized at all?  I don't know.  Three browsers do it
+// differently
+@mixin pixel-scaling() {
+    // this goes FIRST, because moz/webkit support it but also have more
+    // specific properties
+    image-rendering: optimizeSpeed;
+
+    -ms-interpolation-mode: nearest-neighbor;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: -webkit-optimize-contrast;
+}
+
 @mixin border-radius($def) {
     -moz-border-radius: $def;
     -webkit-border-radius: $def;
     border-radius: $def;
 }
 
-@mixin box-shadow($def) {
-    // If there are multiple shadows, the def needs quoting to avoid ambiguity
-    // with Sass commas.  This unquotes it
-    $raw-def: unquote($def);
-    -moz-box-shadow: $raw-def;
-    -webkit-box-shadow: $raw-def;
-    box-shadow: $raw-def;
+@mixin box-shadow($defs) {
+    -moz-box-shadow: $defs;
+    -webkit-box-shadow: $defs;
+    box-shadow: $defs;
 }
 
 @mixin outline-radius($def) {
@@ -26,10 +35,27 @@
 
 @mixin transform($def) {
     // Same deal here
-    $raw-def: unquote($def);
+    $raw-def: $def;
     -moz-transform: $raw-def;
     -webkit-transform: $raw-def;
     -o-transform: $raw-def;
     -ms-transform: $raw-def;  // yes!  it works in IE9!
     transform: $raw-def;
+}
+
+@mixin transition-property($def) {
+    $raw-def: $def;
+    -moz-transition-property: $raw-def;
+    -webkit-transition-property: $raw-def;
+    -o-transition-property: $raw-def;
+    -ms-transition-property: $raw-def;  // IE10, but still..!
+    transition-property: $raw-def;
+}
+@mixin transition-duration($def) {
+    $raw-def: $def;
+    -moz-transition-duration: $raw-def;
+    -webkit-transition-duration: $raw-def;
+    -o-transition-duration: $raw-def;
+    -ms-transition-duration: $raw-def;
+    transition-duration: $raw-def;
 }

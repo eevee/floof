@@ -12,11 +12,8 @@ fields = [
         ]
 %>
 
-<h2>User Info</h2>
 ${lib.secure_form(request.path_url)}
-
-<input type="submit" class="stylish-button" value="Update" />
-<dl>
+<dl class="standard-form">
     % for f in fields:
         <% field = form[f] %>\
         <% maxlen = getattr(form, '_{0}_maxlen'.format(f), None) %>\
@@ -26,6 +23,8 @@ ${lib.secure_form(request.path_url)}
             ${lib.field(field)}
         % endif
     % endfor
+    <dd class="standard-form-footer">
+        <button>Update</button>
+    </dd>
 </dl>
-<input type="submit" class="stylish-button" value="Update" />
 ${h.end_form()}

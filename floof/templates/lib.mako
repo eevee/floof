@@ -86,19 +86,20 @@ ${h.tags.form(*args, **kwargs)}
 ${h.tags.hidden('csrf_token', value=request.session.get_csrf_token(), id=None)}
 </%def>
 
-<%def name="field(form_field, **kwargs)">\
+<%def name="field(form_field, hint_text=None, **kwargs)">\
 % if isinstance(form_field.widget, wtforms.widgets.CheckboxInput):
 <dd>
     ${form_field(**kwargs) | n} ${form_field.label() | n}
-    ${field_errors(form_field)}
-</dd>
 % else:
 <dt>${form_field.label() | n}</dt>
 <dd>
     ${form_field(**kwargs) | n}
+% endif
+    % if hint_text:
+    <p class="standard-form-hint">${hint_text}</p>
+    % endif
     ${field_errors(form_field)}
 </dd>
-% endif
 </%def>
 
 <%def name="field_errors(form_field)">\
@@ -136,12 +137,28 @@ for char in serial[:10]:
 ## their maximum allowed limit will switch to temporal pagers.  Used for
 ## GallerySieve
 <ol class="pager">
+% if pager.current_page > 0:
+    <li class="pager-first">
+        <a href="${h.update_params(request.path_url, **pager.formdata_for(int(pager.current_page - 1) * pager.page_size))}">
+            ←
+        </a>
+    </li>
+    <li class="pager-first">
+        <a href="${h.update_params(request.path_url, **pager.formdata_for(0))}">
+            ⇤
+        </a>
+    </li>
+% else:
+    <li class="pager-first elided">←</li>
+    <li class="pager-first elided">⇤</li>
+% endif
 % for page in pager.pages():
     % if page is None:
     <li class="elided">…</li>
     % elif page == pager.current_page:
     <li class="current">
-        page ${int(page + 1)}${u'½' if page != int(page) else u''} <br>
+        ${int(page + 1)}${u'½' if page != int(page) else u''} <br>
+      <!--
       % if pager.item_count:
         % if pager.item_count > pager.skip + 1:
         #${pager.skip + 1}–${min(pager.skip + pager.page_size, pager.item_count)}
@@ -152,22 +169,13 @@ for char in serial[:10]:
       % else:
         #${pager.skip + 1}–${pager.skip + pager.visible_count}
       % endif
+      -->
     </li>
     % else:
     <li>
         <a href="${h.update_params(request.path_url, \
             **pager.formdata_for(page * pager.page_size))}">
-            % if page == 0:
-            ⇤
-            % elif 0 < pager.current_page - page <= 1:
-            ←
-            % endif
             ${page + 1}
-            % if pager.last_page and page == pager.last_page:
-            ⇥
-            % elif -1 <= pager.current_page - page < 0:
-            →
-            % endif
         </a>
     </li>
     % endif
@@ -177,6 +185,24 @@ for char in serial[:10]:
     <a href="${h.update_params(request.path_url, \
         **pager.formdata_for_temporal(temporal_column_name))}">More →</a>
 </li>
+% endif
+% if pager.next_item:
+    <li class="pager-last">
+        <a href="${h.update_params(request.path_url, **pager.formdata_for(int(pager.current_page + 1) * pager.page_size))}">
+            →
+        </a>
+    </li>
+% else:
+    <li class="pager-last elided">→</li>
+% endif
+% if pager.next_item and pager.item_count:
+    <li class="pager-last">
+        <a href="${h.update_params(request.path_url, **pager.formdata_for(pager.last_page * pager.page_size))}">
+            ⇥
+        </a>
+    </li>
+% else:
+    <li class="pager-last elided">⇥</li>
 % endif
 </ol>
 </%def>

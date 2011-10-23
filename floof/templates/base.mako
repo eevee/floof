@@ -15,45 +15,54 @@
     ${self.script_dependencies()}
 </head>
 <body>
-    <div id="header">
-        <div id="logo"><a href="${request.route_url('root')}">floof</a></div>
-        <div id="user">
-            % if request.user:
-            ${lib.secure_form(request.route_url('account.logout'), class_='compact')}
-            <p>Hello, ${lib.user_link(request.user)}!</p>
-                % if request.auth.can_purge:
-                <p><input type="submit" value="Log out" /></p>
-                % else:
-                <p>To log out, you'll need to instruct your browser to stop
-                sending your SSL certificate.</p>
-                % endif
-            ${h.end_form()}
-            % elif request.auth.pending_user:
-            <p><a href="${request.route_url('account.login')}">Complete log in for ${request.auth.pending_user.name}</a></p>
-            ${lib.secure_form(request.route_url('account.logout'), class_='compact')}
-                % if request.auth.can_purge:
-                <p><input type="submit" value="Purge Authentication" /></p>
-                % else:
-                <p>To log in as someone else, you'll need to instruct
-                your browser to stop sending your SSL certificate.</p>
-                % endif
-            ${h.end_form()}
-            % else:
-            <a href="${request.route_url('account.login')}">Log in or register</a>
-            % endif
+    <header>
+        <div id="banner">
+            <a id="site-title" href="${request.route_url('root')}">${request.registry.settings['site_title']}</a>
         </div>
-        <ul id="navigation">
-            <li><a href="${request.route_url('art.browse')}">Art</a></li>
-            <li><a href="${request.route_url('art.upload')}">Upload</a></li>
-            <li><a href="${request.route_url('tags.list')}">Tags</a></li>
+        <nav>
+        <!--
+            <div id="user">
+                ## XXX merge these
+                ## XXX add and style logout
+                ## XXX the column+section stuff is kinda grody
+                ## XXX thereis a bunch of -moz- crap all over
+                <span><a href="/users/eevee">eevee<img src="https://secure.gravatar.com/avatar/2c87a0857f4e3910154bc17a8f807b60"></a></span>
+                <span><a href="/account/login">log in / register</a></span>
+            </div>
+            -->
+            <menu id="user">
             % if request.user:
-                <li><a href="${request.route_url('controls.index')}">Controls</a></li>
+                <li>
+                    <a href="${request.route_url('users.view', user=request.user)}">
+                        ${request.user.name} ${lib.avatar(request.user)}
+                    </a>
+                    <menu>
+                        <li>
+                            ${lib.secure_form(request.route_url('account.logout'))}
+                                <div><button>Log out</button></div>
+                            ${h.end_form()}
+                        </li>
+                    </menu>
+                </li>
+            % else:
+                <li><a href="${request.route_url('account.login')}">Log in or register</a></li>
             % endif
-            % if request.user.can('admin.view'):
-                <li><a href="${request.route_url('admin.dashboard')}">Admin</a></li>
-            % endif
-        </ul>
-    </div>
+            </menu>
+            <menu>
+                <li id="mini-site-title"><a id="site-title" href="${request.route_url('root')}">${request.registry.settings['site_title']}</a></li>
+                <li><a href="${request.route_url('art.browse')}">Art</a></li>
+                <li><a href="${request.route_url('art.upload')}">Upload</a></li>
+                <li><a href="${request.route_url('tags.list')}">Tags</a></li>
+                ## XXX decorate these?
+                % if request.user:
+                    <li><a href="${request.route_url('controls.index')}">Controls</a></li>
+                % endif
+                % if request.user.can('admin.view'):
+                    <li><a href="${request.route_url('admin.dashboard')}">Admin</a></li>
+                % endif
+            </menu>
+        </nav>
+    </header>
 
     <% flash_queue = request.session.pop_flash() %>
     % if flash_queue:
@@ -66,12 +75,9 @@
     </ul>
     % endif
 
-    <div id="content">
-        ${next.body()}
-    </div>
+    ${next.body()}
 
-    <div id="footer-spacer"></div>
-    <div id="footer">
+    <footer>
         % if request.registry.settings.get('super_debug', False):
         <p id="footer-stats">
             built in ${lib.timedelta(request.timer.total_time)} <br>
@@ -81,7 +87,7 @@
         % endif
         <p>Icons from the <a href="http://p.yusukekamiyamane.com/">Fugue set</a></p>
         <p><a href="${request.route_url('log')}">Admin log</a></p>
-    </div>
+    </footer>
 
     % if request.registry.settings['super_debug']:
     <%include file="/debugging.mako" />

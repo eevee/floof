@@ -3,6 +3,7 @@
 
 <%def name="title()">Upload - Artwork</%def>
 
+<section>
 <h1>
     ${lib.icon('image--arrow')}
     Upload
@@ -32,6 +33,9 @@ ${lib.secure_form(request.path_url, multipart=True)}
     <dd>${lib.field_errors(form.relationship)}</dd>
     % endif
 
-    <dd><button type="submit">Upload!</button></dd>
+    <dd class="standard-form-footer">
+        <button>Upload!</button>
+    </dd>
 </dl>
 ${h.end_form()}
+</section>

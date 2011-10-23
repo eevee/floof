@@ -1,15 +1,22 @@
 // Theme colors
-$body-bg: hsl(210, 12.5%, 78.5%);
-$header-bg: hsl(208, 10%, 50%);
-$content-bg: hsl(0, 0, 93%);
-$header1-bg: darken($body-bg, 2%);
+$body-bg: white;
+$header-bg: hsl(210, 10%, 50%);
+$content-bg: hsl(210, 0, 93%);
+$header1-bg: hsl(210, 15%, 80%);
 // These are used for h2 as well as other semi-headers, e.g. for comments
-$header2-bg: saturate(lighten($header1-bg, 9%), 5.5%);
-$header2-border: darken($header2-bg, 11.5%);
+$header2-bg: hsl(210, 20%, 85%);
+$header2-border: hsl(210, 20%, 80%);
 
 $darker-text: hsl(210, 20%, 45%);  // used for labels, some borders
 
+// Interactive: forms and whatever
+$button-bg: hsl(210, 20%, 90%);
+$button-hover-bg: hsl(210, 20%, 93%);
+$selection: hsl(210, 20%, 60%);
+
 // Theme-agnostic colors
-$link-default: hsl(209, 45%, 50%);
+$link-default: hsl(210, 45%, 50%);
 $link-visited: hsl(254, 45%, 50%);
 $link-hover: hsl(0, 45%, 50%);
+
+$shadow: #ccc;

@@ -7,7 +7,6 @@
 
 ${lib.secure_form(request.path_url)}
 ${h.tags.hidden(name=u'target_user', value=target_user.name)}
-<h2>Watch...</h2>
 <ul>
     <li><label>
         ${watch_form.watch_upload()|n}

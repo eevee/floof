@@ -1,9 +1,13 @@
 from datetime import datetime
-from wtforms import fields, widgets
-from wtforms.widgets import HTMLString, html_params
-import pytz
 import random
 import re
+import unicodedata
+
+from wtforms import fields, widgets, ValidationError
+from wtforms.widgets import HTMLString, html_params
+import pytz
+
+from floof import model
 
 class KeygenWidget(widgets.Input):
     def __call__(self, field, **kwargs):
@@ -130,3 +134,30 @@ class TimezoneField(fields.SelectField):
                 break
         else:
             raise ValueError(self.gettext(u'Not a valid choice'))
+
+class DisplayNameField(fields.TextField):
+    # TODO should i be a validator...
+    _max_length = model.User.__table__.c.display_name.type.length
+
+    def pre_validate(self, form):
+        self.data = self.data.strip()
+
+        if len(self.data) > self._max_length:
+            raise ValidationError(
+                '{0} characters maximum.'.format(self._max_length))
+
+        for char in self.data:
+            # Allow printable ASCII
+            # XXX Is there a better way than checking ord(char)?
+            if 32 <= ord(char) <= 126:
+                continue
+
+            # Disallow combining characters regardless of category
+            if unicodedata.combining(char):
+                raise ValidationError('No combining characters.')
+
+            # Allow anything non-ASCII categorized as a letter
+            if unicodedata.category(char).startswith('L'):
+                continue
+
+            raise ValidationError(u'Invalid character: {0}'.format(char))

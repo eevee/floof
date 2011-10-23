@@ -2,6 +2,7 @@
 
 <%def name="title()">Tag "${tag.name}"</%def>
 
+<section>
 <h1>${title()}</h1>
 
 <p><a href="${request.route_url('tags.artwork', tag=tag)}">View art with this tag.</a></p>
@@ -30,3 +31,5 @@
 <h2>Usage over time.</h2>
 
 <p>???</p>
+
+</section>
