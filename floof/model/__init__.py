@@ -31,8 +31,17 @@ def init_model(engine):
     meta.Session.configure(bind=engine)
     meta.engine = engine
 
+def initialize(engine):
+    """Call me before using any of the tables or classes in the model"""
+    # XXX: Is init_model actually used by anything?  Could these be combined?
+    meta.Session.configure(bind=engine)
+    meta.engine = engine
+    meta.metadata.bind = engine
+    meta.metadata.create_all(engine)
+
 
 TableBase = declarative_base(metadata=meta.metadata)
+
 
 ### CORE
 

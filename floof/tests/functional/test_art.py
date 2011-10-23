@@ -1,39 +1,35 @@
-import os, os.path
+import os
 
 from floof import model
 from floof.model import meta
-from floof.tests import *
+from floof.tests import FunctionalTests
+
 import floof.tests.sim as sim
 
-class TestArtController(TestController):
+class TestArt(FunctionalTests):
     def file_contents(self, filename):
         """Returns a file stored in the test directory."""
         here, _ = os.path.split(__file__)
         path = os.path.join(here, filename)
         return open(path).read()
 
-
-    @classmethod
-    def setup_class(cls):
+    def setUp(self):
         """Creates a user to be used as a fake login."""
-        cls.user = sim.sim_user()
-        meta.Session.commit()
-
-        # Force a refresh of the user, to get id populated
-        # XXX surely there's a better way!
-        meta.Session.refresh(cls.user)
+        super(TestArt, self).setUp()
+        self.user = sim.sim_user()
+        meta.Session.flush()
 
 
     def test_gallery(self):
         """Test loading the main art page."""
-        response = self.app.get(url(controller='art', action='gallery'))
+        response = self.app.get(self.url('art.browse'))
         # Test response...
 
     def test_happyday_upload_png(self):
         """Test that uploading a PNG works correctly."""
         png = self.file_contents('pk.engiveer.png')
         response = self.app.post(
-            url(controller='art', action='upload'),
+            self.url('art.upload'),
             params=[
                 ('title', u"test title"),
                 ('relationship', u'by'),
@@ -75,12 +71,13 @@ class TestArtController(TestController):
         assert 'location' in response.headers
         location = response.headers['location']
         # And it should have the title in the URL
-        assert location.endswith(u';test-title')
+        # TODO: Check that the semicolon should indeed be HTML escaped
+        # (I dare say it shouldn't be)
+        assert location.endswith(u'%3Btest-title')
 
         # Test viewing the new artwork
-        response = self.app.get(url(controller='art', action='view', id=art.id))
-
+        response = self.app.get(self.url('art.view', artwork=art))
 
     def test_sadday_upload_junk(self):
         """Test that junk files are rejected."""
-
+        pass

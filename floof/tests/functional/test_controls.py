@@ -1,15 +1,16 @@
-from floof import model
-from floof.model import meta
-from floof.tests import *
-import floof.tests.openidspoofer as oidspoof
-import floof.tests.sim as sim
-
 import copy
 import hashlib
-from openid import oidutil
 import OpenSSL.crypto as ssl
 import time
+
+from openid import oidutil
 from urlparse import parse_qs, urlparse
+
+from floof import model
+from floof.model import meta
+from floof.tests import FunctionalTests
+import floof.tests.openidspoofer as oidspoof
+import floof.tests.sim as sim
 
 PORT = 19614
 DATA_PATH = '/tmp'
@@ -19,34 +20,33 @@ def null_log(message, level=0):
     pass
 oidutil.log = null_log
 
-class TestControlsController(TestController):
-    
-    @classmethod
-    def setup_class(cls):
+class TestControls(FunctionalTests):
+
+    def setUp(self):
         """Creates a user to be used as a fake login."""
-        cls.user = sim.sim_user()
-        meta.Session.commit()
+        super(TestControls, self).setUp()
 
-        # Force a refresh of the user, to get id populated
-        # XXX surely there's a better way!
-        meta.Session.refresh(cls.user)
+        self.user = sim.sim_user()
+        meta.Session.flush()
 
-        cls.default_environ = {
-                'tests.user_id': cls.user.id,
-                'tests.auth_openid_uid': cls.user.id,
+        self.default_environ = {
+                'tests.user_id': self.user.id,
+                'tests.auth_openid_uid': self.user.id,
                 'tests.auth_openid_time': time.time(),
                 }
 
+    @classmethod
+    def setUpClass(cls):
         cls.spoofer = oidspoof.OpenIDSpoofer('localhost', PORT, DATA_PATH)
 
     @classmethod
-    def teardown_class(cls):
+    def tearDownClass(cls):
         del cls.spoofer
 
     def test_index(self):
         """Test display of user controls index."""
         response = self.app.get(
-                url(controller='controls', action='index'),
+                self.url('controls.index'),
                 extra_environ={'tests.user_id': self.user.id},
                 )
         # Test response...
@@ -54,7 +54,7 @@ class TestControlsController(TestController):
     def test_user_info(self):
         """Test modification of basic user info options."""
         response = self.app.get(
-                url(controller='controls', action='user_info'),
+                self.url('controls.info'),
                 extra_environ={'tests.user_id': self.user.id},
                 )
         assert 'Display Name' in response, 'User Info control page does not appear to have loaded.'
@@ -62,7 +62,7 @@ class TestControlsController(TestController):
         # Test setting some new user details
         test_email = u'abc@example.org'
         response = self.app.post(
-                url(controller='controls', action='user_info'),
+                self.url('controls.info'),
                 params=[
                     ('display_name', u'Barack Obama'),
                     ('timezone', u'US/Eastern'),
@@ -70,8 +70,9 @@ class TestControlsController(TestController):
                 ],
                 extra_environ={'tests.user_id': self.user.id},
                 )
+        meta.Session.flush()
         response = self.app.get(
-                url(controller='controls', action='user_info'),
+                self.url('controls.info'),
                 extra_environ={'tests.user_id': self.user.id},
                 )
         assert 'Barack Obama' in response, 'Failed to set display name.'
@@ -81,15 +82,15 @@ class TestControlsController(TestController):
 
         # Test Gravatar
         response = self.app.get(
-                url(controller='users', action='view', name=self.user.name),
+                self.url('users.view', user=self.user),
                 extra_environ={'tests.user_id': self.user.id},
                 )
-        assert hashlib.md5(test_email.encode()) in response, 'Failed to generate appropriate Gravatar.'
+        assert hashlib.md5(test_email.encode()).hexdigest() in response, 'Failed to generate appropriate Gravatar.'
 
     def test_openids(self):
         """Test display of user OpenID controls page."""
         response = self.app.get(
-                url(controller='controls', action='openid'),
+                self.url('controls.openid'),
                 extra_environ=self.default_environ,
                 )
         assert 'Add a New OpenID Identity' in response, 'OpenID control page does not appear to have loaded.'
@@ -108,9 +109,8 @@ class TestControlsController(TestController):
         for user in test_openids:
             spoofer.update(user=user, accept=True)
             response_begin = self.app.post(
-                    url(controller='controls', action='openid'),
+                    self.url('controls.openid.add'),
                     params=[
-                        ('add_openid', u'Add OpenID'),
                         ('new_openid', spoofer.url),
                     ],
                     extra_environ=self.default_environ,
@@ -118,23 +118,28 @@ class TestControlsController(TestController):
             location = response_begin.headers['location']
             path, params = spoofer.spoof(location)
             assert path is not None
-            response_end = self.app.get(
+            response_finish = self.app.get(
                     path,
                     params=params,
                     extra_environ=self.default_environ,
+                    status=303,
                     )
-            assert response_end.status == '200 OK'
+            location = response_finish.headers['location']
+            response_end = self.app.get(
+                    location,
+                    extra_environ=self.default_environ,
+                    status=200,
+                    )
             responses.append(response_end)
-        assert 'http://localhost:{0}/id/flooftest1</label>'.format(PORT) in responses[0], 'Addition of OpenID identity URL failed.'
-        assert 'http://localhost:{0}/id/flooftest2</label>'.format(PORT) not in responses[0], 'App appears to have guessed our next OpenID URL....'
-        assert 'http://localhost:{0}/id/flooftest1</label>'.format(PORT) in responses[1], 'Addition of OpenID identity URL was not retained.'
-        assert 'http://localhost:{0}/id/flooftest2</label>'.format(PORT) in responses[1], 'Addition of second OpenID identity URL failed.'
+        assert ':{0}/id/flooftest1</option>'.format(PORT) in responses[0], 'Addition of OpenID identity URL failed.'
+        assert ':{0}/id/flooftest2</option>'.format(PORT) not in responses[0], 'App appears to have guessed our next OpenID URL....'
+        assert ':{0}/id/flooftest1</option>'.format(PORT) in responses[1], 'Addition of OpenID identity URL was not retained.'
+        assert ':{0}/id/flooftest2</option>'.format(PORT) in responses[1], 'Addition of second OpenID identity URL failed.'
 
         # Test denial of double-entries
         response_begin = self.app.post(
-                url(controller='controls', action='openid'),
+                self.url('controls.openid.add'),
                 params=[
-                    ('add_openid', u'Add OpenID'),
                     ('new_openid', spoofer.url),
                 ],
                 extra_environ=self.default_environ,
@@ -154,15 +159,21 @@ class TestControlsController(TestController):
                 .filter_by(url=spoofer.url) \
                 .one()
         response = self.app.post(
-                url(controller='controls', action='openid'),
+                self.url('controls.openid.remove'),
                 params=[
-                    ('del_openids', u'Delete Selected Identities'),
                     ('openids', oid.id),
                 ],
                 extra_environ=self.default_environ,
+                status=303,
                 )
-        assert 'http://localhost:{0}/id/flooftest1</label>'.format(PORT) in response, 'An OpenID identity URL that should have been found was not.'
-        assert 'http://localhost:{0}/id/flooftest2</label>'.format(PORT) not in response, 'Deletion of OpenID identity URL failed.'
+        location = response.headers['location']
+        response_end = self.app.get(
+                location,
+                extra_environ=self.default_environ,
+                status=200,
+                )
+        assert ':{0}/id/flooftest1</option>'.format(PORT) in response_end, 'An OpenID identity URL that should have been found was not.'
+        assert ':{0}/id/flooftest2</option>'.format(PORT) not in response_end, 'Deletion of OpenID identity URL failed.'
 
         # Test rejection of deletion of final OpenID URL
         q = meta.Session.query(model.IdentityURL).filter_by(user_id=self.user.id)
@@ -170,27 +181,27 @@ class TestControlsController(TestController):
         assert q.count() > 0, 'Test user no OpenID URLs, when they should have one.'
         oid = q.one()
         response = self.app.post(
-                url(controller='controls', action='openid'),
+                self.url('controls.openid.remove'),
                 params=[
-                    ('del_openids', u'Delete Selected Identities'),
                     ('openids', oid.id),
                 ],
                 extra_environ=self.default_environ,
+                status=200,
                 )
-        assert 'http://localhost:{0}/id/flooftest1</label>'.format(PORT) in response, 'Test user\'s final OpenID URL was deleted.  It should not have been.'
-        assert 'http://localhost:{0}/id/flooftest2</label>'.format(PORT) not in response, 'Found an OpenID identity URL that should not have been.'
+        assert ':{0}/id/flooftest1</option>'.format(PORT) in response, 'Test user\'s final OpenID URL was deleted.  It should not have been.'
+        assert ':{0}/id/flooftest2</option>'.format(PORT) not in response, 'Found an OpenID identity URL that should not have been.'
 
     def test_certificates(self):
         """Test generation, viewing, downloading and revocation of SSL certificates."""
         # Test generation
         response = self.app.get(
-                url(controller='controls', action='certificates'),
+                self.url('controls.certs'),
                 extra_environ=self.default_environ,
                 )
         assert 'Generate New Certificate' in response, 'Could not find the anticipated page title.'
         for days, time in [(31, '30 days, 23 hours'), (366, '365 days, 23 hours')]:
             response = self.app.post(
-                    url(controller='controls', action='certificates_server', name=self.user.name),
+                    self.url('controls.certs.generate_server', name=self.user.name),
                     params=[
                         ('days', days),
                         ('passphrase', u'1234'),
@@ -199,12 +210,12 @@ class TestControlsController(TestController):
                     extra_environ=self.default_environ,
                     )
             assert response.content_type == 'application/x-pkcs12', 'Anticipated a response MIME type of "application/x-pkcs12", got {0}'.format(response.content_type)
-            pkcs12 = ssl.load_pkcs12(response.response.content, u'1234')
+            pkcs12 = ssl.load_pkcs12(response.body, u'1234')
             # TODO: Test pkcs12 further... ?
 
         # Test viewing details
         response = self.app.get(
-                url(controller='controls', action='certificates_details', id=2),
+                self.url('controls.certs.details', id=2),
                 extra_environ=self.default_environ,
                 )
         assert 'Certificate ID 2' in response, 'Unable to find appropriate time to expiry for new certificate.'
@@ -221,32 +232,32 @@ class TestControlsController(TestController):
 
         # Test revocation
         response = self.app.get(
-                url(controller='controls', action='certificates_revoke', id=1),
+                self.url('controls.certs.revoke', id=1),
                 extra_environ=self.default_environ,
                 )
         assert 'Permanently Revoke Certificate ID 1' in response, 'Unable to find anticipated heading in page.'
         response = self.app.post(
-                url(controller='controls', action='certificates_revoke', user=self.user.name, id=1),
+                self.url('controls.certs.revoke', id=1),
                 params=[('ok', u'Revoke Certificate')],
                 extra_environ=self.default_environ,
                 )
         response = self.app.get(
-                url(controller='controls', action='certificates'),
+                self.url(controller='controls.certs'),
                 extra_environ=self.default_environ,
                 )
-        assert url(controller='controls', action='certificates_details', id=1) in response, 'Revoked cert not found on certificates pasge at all/'
-        assert url(controller='controls', action='certificates_revoke', id=1) not in response, 'Revocation link found for supposedly revoked certificate.'
+        assert self.url('controls.certs.details', id=1) in response, 'Revoked cert not found on certificates pasge at all/'
+        assert self.url('controls.certs.revoke', id=1) not in response, 'Revocation link found for supposedly revoked certificate.'
 
 
     def test_cert_auth_change(self):
         """Test changing the user certificate authentication option."""
         response = self.app.get(
-                url(controller='controls', action='authentication'),
+                self.url('controls.auth'),
                 extra_environ=self.default_environ,
                 )
         assert 'selected="selected" value="disabled"' in response, 'Could not find evidence of anticipated default value.'
         response = self.app.post(
-                url(controller='controls', action='authentication'),
+                self.url('controls.auth'),
                 params=[
                     ('confirm', u'Confirm Authentication Method Change'),
                     ('cert_auth', u'required')
@@ -254,12 +265,12 @@ class TestControlsController(TestController):
                 extra_environ=self.default_environ,
                 )
         response = self.app.get(
-                url(controller='controls', action='authentication'),
+                self.url('controls.auth'),
                 extra_environ=self.default_environ,
                 )
         assert 'selected="selected" value="disabled"' in response, 'Allowed change to method requiring a certificate when user has no certificates.'
         response = self.app.post(
-                url(controller='controls', action='certificates_server', name=self.user.name),
+                self.url('controls.certs.generate_server', name=self.user.name),
                 params=[
                     ('days', 31),
                     ('generate_server', u'Generate On Server'),
@@ -267,7 +278,7 @@ class TestControlsController(TestController):
                 extra_environ=self.default_environ,
                 )
         response = self.app.post(
-                url(controller='controls', action='authentication'),
+                self.url('controls.auth'),
                 params=[
                     ('confirm', u'Confirm Authentication Method Change'),
                     ('cert_auth', u'required')
@@ -275,7 +286,7 @@ class TestControlsController(TestController):
                 extra_environ=self.default_environ,
                 )
         response = self.app.get(
-                url(controller='controls', action='authentication'),
+                self.url('controls.auth'),
                 extra_environ=self.default_environ,
                 )
         assert 'selected="selected" value="disabled"' in response, 'Allowed change to method requiring a certificate when user did not present one in request.'
@@ -285,7 +296,7 @@ class TestControlsController(TestController):
         environ = copy.deepcopy(self.default_environ)
         environ['tests.auth_cert_serial'] = serial
         response = self.app.post(
-                url(controller='controls', action='authentication'),
+                self.url('controls.auth'),
                 params=[
                     ('confirm', u'Confirm Authentication Method Change'),
                     ('cert_auth', u'required')
@@ -293,7 +304,7 @@ class TestControlsController(TestController):
                 extra_environ=environ,
                 )
         response = self.app.get(
-                url(controller='controls', action='authentication'),
+                self.url('controls.auth'),
                 extra_environ=environ,
                 )
         assert 'selected="selected" value="required"' in response, 'The authentication method did not appear to update.'
@@ -303,7 +314,7 @@ class TestControlsController(TestController):
         environ = copy.deepcopy(self.default_environ)
         environ['tests.auth_openid_time'] = 0.0  # Set it to the epoch; definitely invalid
         response = self.app.get(
-                url(controller='controls', action='authentication'),
+                self.url('controls.auth'),
                 extra_environ=self.default_environ,
                 status=200,
                 )
@@ -311,7 +322,7 @@ class TestControlsController(TestController):
 
         # Pretend to try to change our cert_auth options while our auth is too old
         response = self.app.post(
-                url(controller='controls', action='authentication'),
+                self.url('controls.auth'),
                 params=[('cert_auth', u'allowed')],
                 extra_environ=environ,
                 status=303,
@@ -333,9 +344,9 @@ class TestControlsController(TestController):
         idurl = model.IdentityURL()
         idurl.url = spoofer.url
         user.identity_urls.append(idurl)
-        meta.Session.commit()
+        meta.Session.flush()
         response = self.app.post(
-                url(controller='account', action='login_begin'),
+                self.url('account.login_begin'),
                 params=[
                     ('return_key', return_key),
                     ('openid_identifier', idurl.url),
@@ -349,7 +360,7 @@ class TestControlsController(TestController):
         except ValueError:
             raise AssertionError('Return URL not in OpenID OP login request.')
         path, params = spoofer.spoof(location)
-        assert path == url(controller='account', action='login_finish'), 'Unexpected redirect path: {0}'.format(path)
+        assert path == self.url('account.login_finish'), 'Unexpected redirect path: {0}'.format(path)
         assert 'return_key={0}'.format(return_key) in params, 'Return key did not appear in the OpenID redirect URL.'
         del environ['tests.auth_openid_time']  # Allow c.auth.openid_time to be reset by the re-auth
         response = self.app.get(
@@ -364,7 +375,7 @@ class TestControlsController(TestController):
         # default/selected parameters.
         pu = urlparse(response.headers['location'])
         path, params = pu[2], pu[4]
-        assert path == url(controller='controls', action='authentication'), 'Unexpected redirect path: {0}'.format(path)
+        assert path == self.url('controls.auth'), 'Unexpected redirect path: {0}'.format(path)
         assert 'return_key={0}'.format(return_key) in params, 'Return key did not appear in the post-re-auth redirect URL.'
         response = self.app.get(
                 path,

@@ -1,32 +1,30 @@
-from floof import model
-from floof.model import meta
-from floof.tests import *
-import floof.tests.sim as sim
-
 import time
 
-class TestAccountController(TestController):
+from floof import model
+from floof.model import meta
+from floof.tests import FunctionalTests
+
+import floof.tests.sim as sim
+
+class TestAccount(FunctionalTests):
     
-    @classmethod
-    def setup_class(cls):
+    def setUp(self):
         """Creates a user to be used as a fake login."""
-        cls.user = sim.sim_user()
-        meta.Session.commit()
+        super(TestAccount, self).setUp()
 
-        # Force a refresh of the user, to get id populated
-        # XXX surely there's a better way!
-        meta.Session.refresh(cls.user)
+        self.user = sim.sim_user()
+        meta.Session.flush()
 
-        cls.default_environ = {
-                'tests.user_id': cls.user.id,
-                'tests.auth_openid_uid': cls.user.id,
+        self.default_environ = {
+                'tests.user_id': self.user.id,
+                'tests.auth_openid_uid': self.user.id,
                 'tests.auth_openid_time': time.time(),
                 }
 
     def test_login(self):
         """Test display of login page."""
         response = self.app.get(
-                url(controller='account', action='login'),
+                self.url('account.login'),
                 )
         assert 'Log in or register' in response, 'Anticipated heading not found in login page.'
 
@@ -58,10 +56,10 @@ class TestAccountController(TestController):
                     ('logged_in', ['cert', 'openid']),
                     ],
                )
-        response = self.app.get(url('/'))
+        response = self.app.get(self.url('root'))
         assert 'Log in or register' in response, 'Page does not appear logged out even when no auth data should be present.'
         response = self.app.post(
-                url(controller='controls', action='certificates_server', name=self.user.name),
+                self.url('controls.certs.generate_server', name=self.user.name),
                 params=[
                     ('days', 31),
                     ('generate_server', u'Generate On Server'),
@@ -73,7 +71,7 @@ class TestAccountController(TestController):
         serial = user.certificates[0].serial
         for cert_auth in runsheet:
             user.cert_auth = cert_auth
-            meta.Session.commit()
+            meta.Session.flush()
             for test in runsheet[cert_auth]:
                 result, mechs = test
                 extra = dict()
@@ -81,8 +79,8 @@ class TestAccountController(TestController):
                     extra['tests.auth_cert_serial'] = serial
                 if 'openid' in mechs:
                     extra['tests.auth_openid_uid'] = user.id
-                response = self.app.post(url(controller='account', action='logout'))
-                response = self.app.get(url('/'), extra_environ=extra)
+                response = self.app.post(self.url('account.logout'))
+                response = self.app.get(self.url('root'), extra_environ=extra)
                 if 'Hello, <a href=' in response:
                     assert result == 'logged_in', 'Wound up in state "logged_in", wanted "{0}", for cert_auth "{1}" with authed mechanisms: {2}'.format(result, cert_auth, mechs)
                 if 'Complete log in for {0}'.format(user.name) in response:
@@ -94,13 +92,13 @@ class TestAccountController(TestController):
         """Test automatic fallback to "allowed" if the user has no valid certs."""
         user = meta.Session.query(model.User).filter_by(id=self.user.id).one()
         user.cert_auth = u'required'
-        meta.Session.commit()
+        meta.Session.flush()
         response = self.app.post(
-                url(controller='account', action='logout'),
+                self.url('account.logout'),
                 expect_errors=True,
                 )
         response = self.app.get(
-                url('/'),
+                self.url('root'),
                 extra_environ={'tests.auth_openid_uid': self.user.id},
                 )
         assert 'Hello, <a href=' in response, 'Expected to be logged in, but do not appear to be.'

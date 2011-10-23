@@ -1,9 +1,47 @@
 try:
-    from setuptools import setup, find_packages
+    from setuptools import setup, find_packages, Command
 except ImportError:
     from ez_setup import use_setuptools
     use_setuptools()
     from setuptools import setup, find_packages
+
+def which(program):
+    """Emulates UNIX which, sort of.
+
+    Ripped straight from StackOverflow #377017
+
+    """
+    import os
+    def is_exe(fpath):
+        return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
+
+    fpath, fname = os.path.split(program)
+    if fpath:
+        if is_exe(program):
+            return program
+    else:
+        for path in os.environ["PATH"].split(os.pathsep):
+            exe_file = os.path.join(path, program)
+            if is_exe(exe_file):
+                return exe_file
+
+    return None
+
+class PyTest(Command):
+    user_options = []
+    def initialize_options(self):
+        pass
+    def finalize_options(self):
+        pass
+    def run(self):
+        import os.path, sys, subprocess
+        if which('py.test') is None:
+            raise EnvironmentError("Unable to find executable 'py.test'; have "
+                                   "you run python setup.py <develop|install> ?")
+        path = os.path.abspath(os.path.dirname(__file__))
+        errno = subprocess.call(['py.test', 'floof/tests'] + sys.argv[2:],
+                                cwd=path)
+        raise SystemExit(errno)
 
 setup(
     name='floof',
@@ -23,16 +61,17 @@ setup(
         'pytz',
         'iso8601',
         'pyOpenSSL>=0.11',
-        'pyramid>=1.1',
+        'pyramid>=1.2',
         'pyramid_beaker',
         'repoze.tm2>=1.0b1',  # default_commit_veto
         'WebError',
         'zope.sqlalchemy',
+        'pytest',
     ],
     setup_requires=["PasteScript>=1.6.3"],
     packages=find_packages(exclude=['ez_setup']),
     include_package_data=True,
-    test_suite='nose.collector',
+    cmdclass = {'test': PyTest},
     package_data={'floof': ['i18n/*/LC_MESSAGES/*.mo']},
     #message_extractors={'floof': [
     #        ('**.py', 'python', None),
