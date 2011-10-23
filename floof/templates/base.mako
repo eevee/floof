@@ -54,7 +54,7 @@
                 ## XXX it would be cool if these links could just introspect
                 ## the view, rather than duplicating the permission here
                 <li><a href="${request.route_url('art.browse')}">Art</a></li>
-                % if request.user.can('art.upload'):
+                % if h.could_have_permission('art.upload', request.context, request):
                 <li><a href="${request.route_url('art.upload')}">Upload</a></li>
                 % endif
                 <li><a href="${request.route_url('tags.list')}">Tags</a></li>
