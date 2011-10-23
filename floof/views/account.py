@@ -240,6 +240,16 @@ def register(context, request):
             },
             request=request)
 
+    # XXX waiting on auth_dev2 branch to merge to factor this out of controls
+    from floof.views.controls import reduce_display_name
+    if not form.display_name.data:
+        display_name = None
+        has_trivial_display_name = False
+    else:
+        display_name = form.display_name.data
+        has_trivial_display_name = (form.username.data ==
+            reduce_display_name(display_name))
+
     # Create db records
     base_user = meta.Session.query(Role).filter_by(name=u'user').one()
     resource = Resource(type=u'users')
@@ -250,6 +260,9 @@ def register(context, request):
         role=base_user,
         resource=resource,
         timezone=form.timezone.data,
+
+        display_name=display_name,
+        has_trivial_display_name=has_trivial_display_name,
     )
     meta.Session.add_all((user, resource, discussion))
 

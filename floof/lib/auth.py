@@ -282,7 +282,10 @@ class Authenticizer(object):
         """Log the user out completely."""
         # TODO what shall this do with certificates
         self.state.clear()
-        del self.user  # defeat reify
+        try:
+            del self.user  # defeat reify
+        except AttributeError:
+            pass
 
     @reify
     def user(self):
