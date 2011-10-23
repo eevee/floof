@@ -5,7 +5,6 @@ import hashlib
 import logging
 
 import magic
-from pyramid.exceptions import NotFound
 from pyramid.httpexceptions import HTTPBadRequest, HTTPSeeOther
 from pyramid.view import view_config
 import wtforms.form, wtforms.fields, wtforms.validators
@@ -263,7 +262,7 @@ def rate(artwork, request):
     radius = int(request.registry.settings['rating_radius'])
     try:
         rating = int(request.POST['rating']) / radius
-    except KeyError, ValueError:
+    except (KeyError, ValueError):
         return HTTPBadRequest()
 
     # Get the previous rating, if there was one

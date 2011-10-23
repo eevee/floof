@@ -16,7 +16,7 @@ def sim_user(role='user'):
     role_id = meta.Session.query(model.Role).filter_by(name=role).one().id
     user = model.User(
         name = 'sim_' + ''.join(random.choice(string.letters) for n in range(10)),
-        role_id = 1,
+        role_id = role_id,
         resource = model.Resource(type=u'users'),
     )
     meta.Session.add(user)

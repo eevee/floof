@@ -2,13 +2,10 @@
 import logging
 
 from pyramid.httpexceptions import HTTPBadRequest, HTTPSeeOther
-from pyramid.exceptions import NotFound
 from pyramid.view import view_config
 from sqlalchemy.sql import func
-from sqlalchemy.orm.exc import NoResultFound
 
 from floof import model
-from floof.lib.gallery import GallerySieve
 from floof.model import meta
 
 log = logging.getLogger(__name__)

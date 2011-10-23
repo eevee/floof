@@ -4,20 +4,20 @@ import os
 import subprocess
 
 from pyramid_beaker import session_factory_from_settings
-from pyramid import security
 from pyramid.config import Configurator
 from pyramid.decorator import reify
 from pyramid.events import BeforeRender, NewRequest, NewResponse
 from pyramid.request import Request
 from pyramid.settings import asbool
 from sqlalchemy import engine_from_config
+import webob.request
 from zope.sqlalchemy import ZopeTransactionExtension
 
 from floof.lib.auth import Authenticizer, FloofAuthnPolicy, FloofAuthzPolicy
 import floof.lib.debugging
 import floof.lib.helpers
 import floof.model
-from floof.model import User, filestore, meta
+from floof.model import filestore, meta
 import floof.routing
 import floof.views
 
@@ -72,7 +72,7 @@ class HTTPOnlyCookieMiddleware(object):
         self.app = app
 
     def __call__(self, environ, start_response):
-        req = webob.Request(environ)
+        req = webob.request.Request(environ)
         res = req.get_response(self.app)
 
         # There's also res.headers, but directly changing a value seems to be
@@ -194,7 +194,10 @@ def main(global_config, **settings):
 
     floof.routing.configure_routing(config)
     config.scan(floof.views)
-    return config.make_wsgi_app()
+
+    app = config.make_wsgi_app()
+    app = HTTPOnlyCookieMiddleware(app)
+    return app
 
 def compile_sass(root):
     """Compile raw Sass into regular ol' CSS.

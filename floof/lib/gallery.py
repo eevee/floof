@@ -5,13 +5,10 @@ of easy SQL wrappers.
 Intended to be used and usable from basically all over the place.  You probably
 want the `GallerySieve` class.
 """
-from collections import namedtuple
 from datetime import timedelta
 
-import pytz
-from sqlalchemy.orm import aliased
 from sqlalchemy.orm.exc import NoResultFound
-from sqlalchemy.sql import and_, case, or_
+from sqlalchemy.sql import case, or_
 import wtforms.form, wtforms.fields
 
 from floof.lib import pager

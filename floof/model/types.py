@@ -1,5 +1,4 @@
 import pytz
-import re
 from socket import AF_INET, AF_INET6, inet_ntop, inet_pton
 
 from sqlalchemy import types

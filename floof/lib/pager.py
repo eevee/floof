@@ -4,7 +4,6 @@ navigating between such.
 from __future__ import division
 
 from calendar import timegm
-from collections import namedtuple
 from datetime import datetime
 import math
 

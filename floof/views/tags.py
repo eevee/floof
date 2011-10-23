@@ -1,9 +1,7 @@
 # encoding: utf8
 import logging
 
-from pyramid.exceptions import NotFound
 from pyramid.view import view_config
-from sqlalchemy.orm.exc import NoResultFound
 
 from floof import model
 from floof.lib.gallery import GallerySieve
