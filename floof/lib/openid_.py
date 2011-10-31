@@ -20,13 +20,13 @@ class OpenIDError(RuntimeError):
 FAKE_WEBFINGER_DOMAINS = {
     #'gmail.com': 'https://www.google.com/accounts/o8/id',
     #'yahoo.com': 'http://me.yahoo.com/',
-    'aol.com': 'http://openid.aol.com/%s',
+    'aol.com': 'http://openid.aol.com/{0}',
     'steamcommunity.com': 'http://steamcommunity.com/openid/',
-    'livejournal.com': 'http://%s.livejournal.com',
-    'wordpress.com': 'http://%s.wordpress.com/',
-    'blogger.com': 'http://%s.blogger.com/',
-    'blogspot.com': 'http://%s.blogspot.com/',
-    'myspace.com': 'http://myspace.com/%s',
+    'livejournal.com': 'http://{0}.livejournal.com',
+    'wordpress.com': 'http://{0}.wordpress.com/',
+    'blogger.com': 'http://{0}.blogger.com/',
+    'blogspot.com': 'http://{0}.blogspot.com/',
+    'myspace.com': 'http://myspace.com/{0}',
 }
 
 def resolve_webfinger(address):
@@ -37,7 +37,7 @@ def resolve_webfinger(address):
     user, domain = address.rsplit(u'@', 1)
     if domain in FAKE_WEBFINGER_DOMAINS:
         # XXX possibly phishable or something since this goes into domain name
-        return FAKE_WEBFINGER_DOMAINS[domain] % (user,)
+        return FAKE_WEBFINGER_DOMAINS[domain].format(user)
 
     try:
         result = finger(address)
