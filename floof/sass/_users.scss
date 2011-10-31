@@ -1,0 +1,51 @@
+nav.user-nav {
+    height: 50px;
+    padding: 0.5em 1em;
+    -moz-box-sizing: border-box;
+
+    background: hsl(288, 30%, 90%);
+
+    > .-avatar {
+        float: left;
+        height: 50px;
+        width: 50px;
+        margin: -0.5em 1em -0.5em -1em;
+    }
+    > .-name {
+        font-size: 2em;
+    }
+}
+
+ul.user-activity {
+    > li {
+        margin: 0.5em 0;
+        padding: 0.5em 1em;
+        min-height: 50px;
+        line-height: 1.33;
+        background: #e8e8e8;
+
+        &:hover {
+            background: hsl(216, 30%, 90%);
+        }
+
+
+        > .user-activity-illus {
+            float: left;
+            height: 50px;
+            width: 50px;
+            margin-right: 1em;
+            line-height: 50px;
+            text-align: center;
+
+            img {
+                max-height: 50px;
+                max-width: 50px;
+                vertical-align: middle;
+                image-rendering: optimizeQuality;
+            }
+
+            &:hover img {
+            }
+        }
+    }
+}

@@ -102,6 +102,8 @@ class AnonymousUser(object):
     Tests as false and generally responds correctly to User methods.
     """
 
+    watches = ()
+
     def __nonzero__(self):
         return False
     def __bool__(self):

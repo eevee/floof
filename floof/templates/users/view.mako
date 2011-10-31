@@ -4,33 +4,39 @@
 
 <%def name="title()">${target_user.display_name}</%def>
 
-<h1>
-    ${lib.icon('user-nude')} ${lib.avatar(target_user, size=20)} <a href="${request.route_url('users.profile', user=target_user)}">${target_user.name}</a>
-    % if target_user.display_name is not None:
-    (${target_user.display_name})
+<nav class="user-nav">
+    <div class="-avatar">${lib.avatar(target_user, size=50)}</div>
+    <div class="-name">${target_user.name}</div>
+
+    ## this is kinda grody until there are enough bits to flesh it out
+    ## XXX check for perm here
+    % if request.user != target_user:
+    <div>
+        <a href="${h.update_params(request.route_url('controls.rels.watch'), target_user=target_user.name)}">
+            % if any(watch.other_user == target_user for watch in request.user.watches):
+            ${lib.icon(u'user--pencil')} Modify watch
+            % else:
+            ${lib.icon(u'user--plus')} Watch
+            % endif
+        </a>
+    </div>
     % endif
-</h1>
+</nav>
 
-## this is kinda grody until there are enough bits to flesh it out
-% if request.user != target_user:
-<div>
-    <a href="${h.update_params(request.route_url('controls.rels.watch'), target_user=target_user.name)}">
-        % if any(watch.other_user == target_user for watch in request.user.watches):
-        ${lib.icon(u'user--pencil')} Modify watch
-        % else:
-        ${lib.icon(u'user--plus')} Watch
-        % endif
-    </a>
-</div>
-<hr>
-% endif
-
-% for rel in user_artwork_types:
-<%
-    art_pager = related_art[rel].evaluate()
-    if not art_pager.items:
-        continue
-%>
-<h2>Art ${rel} ${target_user.display_name or target_user.name}</h2>
-${artlib.thumbnail_grid(art_pager)}
-% endfor
+<section>
+    <ul class="user-activity">
+        % for action in activity:
+        <li>
+            <% artwork = action.artwork %>
+            ##<a class="thumbnail" href="${request.route_url('art.view', artwork=artwork)}">
+            <div class="user-activity-illus">
+                <img src="${request.route_url('filestore', class_=u'thumbnail', key=artwork.hash)}" alt="">
+            </div>
+            ##</a>
+            ${lib.time(artwork.uploaded_time)}<br>
+            New art <strong>${action.relationship_type}</strong> ${target_user.display_name}:<br>
+            ${artwork.title}
+        </li>
+        % endfor
+    </ul>
+</section>

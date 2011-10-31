@@ -5,6 +5,7 @@ from pyramid.view import view_config
 
 from floof.lib.gallery import GallerySieve
 from floof import model
+from floof.model import meta
 
 log = logging.getLogger(__name__)
 
@@ -13,15 +14,12 @@ log = logging.getLogger(__name__)
     request_method='GET',
     renderer='users/view.mako')
 def view(target_user, request):
-    related_art = {}
-    for rel in model.user_artwork_types:
-        related_art[rel] = GallerySieve(user=request.user)
-        related_art[rel].filter_by_user(rel, target_user)
+    # TODO flesh this out into multiple types of actions
+    activity = meta.Session.query(model.UserArtwork).with_parent(target_user).join(model.UserArtwork.artwork).order_by(model.Artwork.uploaded_time.desc()).limit(20)
 
     return dict(
         target_user=target_user,
-        user_artwork_types=model.user_artwork_types,
-        related_art=related_art,
+        activity=activity,
     )
 
 
