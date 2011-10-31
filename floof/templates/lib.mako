@@ -5,7 +5,13 @@
 <%! from datetime import datetime %>
 
 <%def name="avatar(user, size=100)">\
-<% hash = hashlib.md5(user.email.lower()).hexdigest() %>\
+<%
+    if user.email:
+        hash = hashlib.md5(user.email.lower()).hexdigest()
+    else:
+        # TODO suck less?
+        hash = 'missing'
+%>\
 <img src="https://secure.gravatar.com/avatar/${hash}?r=r&s=${size}&d=mm" />\
 </%def>
 
