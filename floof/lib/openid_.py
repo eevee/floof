@@ -18,7 +18,10 @@ class OpenIDError(RuntimeError):
     pass
 
 FAKE_WEBFINGER_DOMAINS = {
-    #'gmail.com': 'https://www.google.com/accounts/o8/id',
+    # Google does support webfinger, but only if you have a vanity Google
+    # Profile URL, which doesn't seem to exist for Google+ users, and is
+    # totally different from the thing below anyway.  ???????
+    'gmail.com': 'https://www.google.com/accounts/o8/id',
     #'yahoo.com': 'http://me.yahoo.com/',
     'aol.com': 'http://openid.aol.com/{0}',
     'steamcommunity.com': 'http://steamcommunity.com/openid/',
