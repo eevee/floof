@@ -7,10 +7,10 @@
 <%def name="avatar(user, size=100)">\
 <%
     if user.email:
-        hash = hashlib.md5(user.email.lower()).hexdigest()
+        token = user.email.lower()
     else:
-        # TODO suck less?
-        hash = 'missing'
+        token = ''
+    hash = hashlib.md5(token).hexdigest()
 %>\
 <img src="https://secure.gravatar.com/avatar/${hash}?r=r&s=${size}&d=mm" />\
 </%def>
