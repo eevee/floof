@@ -2,25 +2,19 @@
     overflow: hidden;
     margin-top: 1em;
 
-    &:hover {
-        outline: 2px solid $header2-border;
-        @include outline-radius(8px 0 8px 8px);
-    }
-
     .avatar {
         float: left;
         height: 100px;
         width: 100px;
         padding: 6px;
-        background: $header2-bg;
-        @include border-radius(6px 0 6px 6px);
+        background: #eee;
     }
     .header {
         margin-left: 112px;
         padding: 0.25em;
         line-height: 1.5;
-        border-bottom: 1px solid $header2-border;
-        background: $header2-bg;
+        border-bottom: 1px solid #ccc;
+        background: #eee;
 
         ul.links {
             float: right;
@@ -33,13 +27,6 @@
                 a {
                     display: block;
                     padding: 0.25em 0.5em;
-                    background: $header2-border;
-                    font-weight: normal;
-                    color: black;
-
-                    &:hover {
-                        background: darken($header2-border, 10%);
-                    }
                 }
             }
         }
@@ -49,6 +36,17 @@
         padding: 0.5em;
         line-height: 1.5;
     }
+
+    &:hover {
+        .avatar,
+        .header {
+            background: hsl(216, 40%, 90%);
+        }
+        .header {
+            border-color: hsl(216, 40%, 80%);
+        }
+    }
+
 }
 
 .comment-child {
