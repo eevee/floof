@@ -81,8 +81,8 @@ def login_begin(context, request):
                 max_auth_age=max_auth_age,
                 sreg=sreg))
     except OpenIDError as exc:
-        print exc
-        form.openid_identifier.errors.append(exc.args[0])
+        request.session.flash(exc.message,
+            level='error', icon='key--exclamation')
         return render_to_response(
             'account/login.mako', {'form': form}, request=request)
 
