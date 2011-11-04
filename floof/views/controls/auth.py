@@ -19,15 +19,24 @@ log = logging.getLogger(__name__)
 class AddOpenIDForm(wtforms.form.Form):
     new_openid = wtforms.TextField(u'New OpenID', [wtforms.validators.Required()])
 
-class RemoveOpenIDForm(wtforms.form.Form):
+class RemoveOpenIDForm(FloofForm):
     #openids = MultiCheckboxField(u'', coerce=int)
     openids = QuerySelectMultipleField(u'Remove OpenIDs', get_label=lambda row: row.url)
 
     def validate_openids(form, field):
         if not field.data:
             raise wtforms.ValidationError('You must select at least one OpenID identity URL to delete.')
+
         if len(field.data) >= len(field._get_object_list()):
             raise wtforms.ValidationError('You must keep at least one OpenID identity URL.')
+
+        # XXX less hackish way to do this without adding an attr to
+        # Authenticizer for every freakin property of the session's auth?
+        curr_openid_url = form.request.auth.state.get('openid_url')
+        if curr_openid_url in [obj.url for key, obj in field._get_object_list()]:
+            raise wtforms.ValidationError(
+                    'You cannot remove the OpenID identity URL with which you '
+                    'are currently logged in.')
 
 class AuthenticationForm(FloofForm):
     cert_auth = wtforms.fields.SelectField(u'Certificate Certificates', choices=[
@@ -61,7 +70,7 @@ class AuthenticationForm(FloofForm):
 def openid(context, request):
     user = request.user
     add_openid_form = AddOpenIDForm()
-    remove_openid_form = RemoveOpenIDForm()
+    remove_openid_form = RemoveOpenIDForm(request)
     remove_openid_form.openids.query = model.session.query(model.IdentityURL).with_parent(user)
 
     return dict(
@@ -77,9 +86,12 @@ def openid(context, request):
 def openid_add(context, request):
     user = request.user
     form = AddOpenIDForm(request.POST) # XXX fetch_post(session, request))
+    remove_form = RemoveOpenIDForm(request)
+    remove_form.openids.query = meta.Session.query(model.IdentityURL).with_parent(user)
 
     ret = dict(
-        openid_form=form,
+        add_openid_form=form,
+        remove_openid_form=remove_form,
     )
 
     # Add an OpenID identity URL
@@ -107,7 +119,7 @@ def openid_add_finish(context, request):
     user = request.user
     # XXX we should put the attempted openid in here
     form = AddOpenIDForm() # XXX fetch_post(session, request))
-    remove_form = RemoveOpenIDForm()
+    remove_form = RemoveOpenIDForm(request)
     remove_form.openids.query = model.session.query(model.IdentityURL).with_parent(user)
 
     ret = dict(
@@ -149,7 +161,7 @@ def openid_add_finish(context, request):
     renderer='account/controls/openid.mako')
 def openid_remove(context, request):
     user = request.user
-    form = RemoveOpenIDForm(request.POST) # XXX fetch_post(session, request))
+    form = RemoveOpenIDForm(request, request.POST)
     form.openids.query = model.session.query(model.IdentityURL).with_parent(user)
 
     ret = dict(
