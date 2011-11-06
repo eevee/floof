@@ -47,5 +47,10 @@ ul.user-activity {
             &:hover img {
             }
         }
+        > .user-activity-date {
+            float: right;
+            font-size: 0.8em;
+            color: #666;
+        }
     }
 }

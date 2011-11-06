@@ -33,9 +33,9 @@
                 <img src="${request.route_url('filestore', class_=u'thumbnail', key=artwork.hash)}" alt="">
             </div>
             ##</a>
-            ${lib.time(artwork.uploaded_time)}<br>
-            New art <strong>${action.relationship_type}</strong> ${target_user.display_name}:<br>
-            ${artwork.title}
+            <div class="user-activity-date">${lib.time(artwork.uploaded_time)}</div>
+            <a href="${request.route_url('art.view', artwork=artwork)}">${artwork.title}</a><br>
+            new art <strong>${action.relationship_type}</strong> ${target_user.display_name}<br>
         </li>
         % endfor
     </ul>
