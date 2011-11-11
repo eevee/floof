@@ -102,23 +102,19 @@ class FloofAuthnPolicy(object):
 
         return principals
 
-    def remember(self, request, principal=None, user=None, openid_url=None,
-                 **kw):
+    def remember(self, request, user, openid_url=None, **kw):
         """Remembers a set of (stateful) credentials authenticating the `user`.
 
         Deviates from the Pyramid authentication policy model in that
-        `principal` is an optional, not mandatory, parameter that is in fact
-        not used.
+        `principal` is the user (as an SQLAlchemy model object) not a
+        principal.
 
         At present, only accepts calls that include both a `user` and an
         `openid_url` parameter.
 
         """
-        if not user:
-            raise ValueError("A valid user must be passed to this method.")
-
         if openid_url:
-            request.auth.login_openid(user, kw['openid_url'])
+            request.auth.login_openid(user, openid_url)
         else:
             raise ValueError("A credential, such as openid_url, must be "
                              "passed to this function.")
