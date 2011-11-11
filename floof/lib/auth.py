@@ -1,29 +1,29 @@
-from pyramid.interfaces import IAuthenticationPolicy
-from pyramid.security import ACLAllowed, ACLDenied
-from pyramid.security import Authenticated, Everyone
-from pyramid.security import effective_principals, has_permission
-from pyramid.security import has_permission
-from pyramid.security import principals_allowed_by_permission
-from sqlalchemy.orm import joinedload, joinedload_all
-from sqlalchemy.orm.exc import NoResultFound
-from zope.interface import implements
+# encoding: utf-8
+"""
+This module deals primarily with authentication, as well as providing some
+authorization helpers that inspect authentication state.
 
-from floof import model
-
+"""
 import calendar
 import OpenSSL.crypto as ssl
 import os.path
 
 from datetime import datetime, timedelta
 
+from pyramid.interfaces import IAuthenticationPolicy
+from pyramid.security import ACLAllowed, ACLDenied
+from pyramid.security import Authenticated, Everyone
+from pyramid.security import effective_principals, has_permission
+from pyramid.security import has_permission
+from pyramid.security import principals_allowed_by_permission
+from sqlalchemy.orm import joinedload_all
+from sqlalchemy.orm.exc import NoResultFound
+from zope.interface import implements
+
+from floof import model
+
 DEFAULT_CONFIDENCE_EXPIRY = 60 * 10  # seconds
 
-# TRUST_MAP: Rules for converting 'pseudo-principals' and other pre-requisites
-# into principals.  Pseudo-principals include:
-#   auth:*   , referring to the relative strength of the user's auth method
-#   trusted:*, referring to the currently valid authentication mechanisms
-#
-# (derived_principal, [prerequisite_principals, ...])
 TRUST_MAP = dict([
     ('trusted_for:auth', [
         ('role:user', 'auth:insecure', 'trusted:openid_recent'),
@@ -34,13 +34,34 @@ TRUST_MAP = dict([
         ('role:admin', 'auth:secure', 'trusted:cert'),
     ]),
 ])
+"""A dictionary mapping :term:`derived principal` identifiers to a list of
+n-tuples of pre-requisite :term:`principal` identifiers.  If
+:class:`FloofAuthnPolicy` is the authentication policy in effect, then each
+:term:`derived principal` is granted to any user that holds all of the
+pre-requisite :term:`principal` identifiers in any tuple within that derived
+principal's mapped list.
+
+The point is to allow for principals that arise from holding a combination of:
+
+- ``role:*`` principals, which are granted manually by administrators;
+
+- ``auth:*`` principals, which reflect to the relative strength of the user's
+  chosen auth method; and
+
+- ``trusted:*`` principals, which reflect the valid authentication mechanisms
+  in the context of the current request.
+
+"""
 
 class FloofAuthnPolicy(object):
-    """Authentication policy bolted atop a beaker session.
+    """Pyramid style authentication policy bolted atop a beaker session.
 
-    Most of the actual work here is done by the Authenticizer class below.
+    Most of the actual work here is done by :class:`Authenticizer`, an instance
+    of which should be attached to the `request` as ``request.auth``.
+
     The Pyramid auth interface is extremely clunky, and this class only exists
     so standard Pyramid authorization stuff still works.
+
     """
     implements(IAuthenticationPolicy)
 
@@ -51,6 +72,9 @@ class FloofAuthnPolicy(object):
         raise NotImplementedError()
 
     def effective_principals(self, request):
+        """Returns the list of 'effective' :term:`principal` identifiers for the
+        request."""
+
         user = request.auth.user
         principals = set([Everyone])
 
@@ -77,14 +101,34 @@ class FloofAuthnPolicy(object):
 
         return principals
 
-    def remember(self, request, principal, **kw):
-        # XXX: Fix one thing, embugger another, ugh
-        if 'openid_url' in kw:
-            request.auth.login_openid(principal, kw['openid_url'])
+    def remember(self, request, principal=None, user=None, openid_url=None,
+                 **kw):
+        """Remembers a set of (stateful) credentials authenticating the `user`.
+        
+        Deviates from the Pyramid authentication policy model in that
+        `principal` is an optional, not mandatory, parameter that is in fact
+        not used.
+
+        At present, only accepts calls that include both a `user` and an
+        `openid_url` parameter.
+        
+        """
+        if not user:
+            raise ValueError("A valid user must be passed to this method.")
+
+        if openid_url:
+            request.auth.login_openid(user, kw['openid_url'])
+        else:
+            raise ValueError("A credential, such as openid_url, must be "
+                             "passed to this function.")
+
         request.session.save()
         return []
 
     def forget(self, request):
+        """Purges all purgable authentication data from the
+        :class:`Authenticizer` at ``request.auth``."""
+
         request.auth.clear()
         request.session.save()
         return []
@@ -101,36 +145,54 @@ class AuthConflictError(Exception): pass
 class Authenticizer(object):
     """Manages the authentication and authorization state of the current user.
 
-    This class is intended to be instantiated from a Request object.  The authn
-    and authz policy classes above expect to find an instance of this class on
-    the request, and delegate Pyramid security functionality here.
+    This class is intended to be instantiated from a Request object.  The
+    :class:`FloofAuthnPolicy` class expects to find an instance of this class
+    on the request, and delegates Pyramid security functionality here.
 
-    State is contained within a dictionary, passed to the constructor.
+    To perform authentication and identity resolution, the constructor calls a
+    series of methods, one for each supported authentication mechanism.  These
+    methods are prefixed with ``check_`` and have the following obligations:
+
+    1. If they cannot resolve a valid authentication, they must clear any
+       authentication information related to the authentication mechanism that
+       they handle from :attr:`state`;
+
+    2. If they resolve a valid authentication, and this differs from the
+       prevailing value of :attr:`user`, they again must clear any
+       authentication information that they may have set (in a previous
+       request) from :attr:`state`;
+
+    3. If they resolve a valid authentication, and this agrees with the
+       prevailing value of :attr:`user` (or :attr:`user` is None), they must
+       add any related authentication information to :attr:`state` and append
+       appropriate flags to :attr:`trust`.  If :attr:`user` is None, they must
+       set it to the resolved user; and
+
+    4. If the authentication fails or is invalid or inconsistent, they should
+       raise a relevant error and be sure to catch it in the constructor.
+
+    Note: everything within :attr:`state` is meant to be consistent at all
+    times; i.e., there should never be a cert serial, openid, or user id
+    that don't all match.
+
     """
-    def __repr__(self):
-        openid_age = None
-        if 'openid_timestamp' in self.state:
-            openid_age = datetime.now() - datetime.fromtimestamp(
-                    self.state['openid_timestamp'])
-
-        return ("<Authenticizer ( User: {0}, Cert: {1}, OpenID URL: {2}, "
-                "OpenID Age: {3}, Trust Flags: {4} )>".format(
-                    self.user.name if self.user else None,
-                    self.state.get('cert_serial', None),
-                    self.state.get('openid_url', None),
-                    openid_age,
-                    repr(self.trust),
-                    ))
-
     def __init__(self, request):
-        # This constructor determines the user ID and authentication status.
-        # Note: everything within the state is meant to be consistent at all
-        # times; i.e., there should never be a cert serial, openid, or user id
-        # that don't all match.
-
         config = request.registry.settings
 
+        # Attributes
         self.state = request.session.setdefault('auth', {})
+        """A reference to `request.session['auth']`, a dictionary that contains
+        all of the state information needed by :class:`Authenticizer` between
+        requests."""
+
+        self.user = model.AnonymousUser()
+        """Either the user authenticated by the state of the various
+        authentication mechanisms of :class:`Authenticizer` (listed in
+        :attr:`trust`) or an instance of :class:`floof.model.AnonymousUser`."""
+
+        self.trust = []  # XXX Work out a better name
+        """A list of authentication mechanisms satisfied that the current
+        request authenticates :attr:`user`."""
 
         # Test amenity
         if 'tests.user_id' in request.environ:
@@ -140,7 +202,7 @@ class Authenticizer(object):
                     .get(request.environ['tests.user_id'])
             self.trust = request.environ.get(
                 'tests.auth_trust',
-                ['cert', 'openid', 'openid_recent'])  # maximum!
+                ['cert', 'openid', 'openid_recent'])  # maximum trust!
             request.session.changed()
             return
 
@@ -150,25 +212,6 @@ class Authenticizer(object):
         if config.get('client_cert_auth', '').lower() == 'true':
             cert_serial = request.headers.get(
                     'X-Floof-SSL-Client-Serial', None) or cert_serial
-
-        # Authentication and identity resolution.
-        # The login_* functions below have the following obligations:
-        #
-        #   1. If they cannot resolve a valid authentication, they must clear
-        #      any related authentication information from self.state
-        #
-        #   2. If they resolve a valid authentication, and this differs from
-        #      the prevailing self.user, they again must clear any related
-        #      authentication information from self.state
-        #
-        #   3. If they resolve a valid authentication, and this agrees with
-        #      the prevailing self.user (or self.user is None), they must add
-        #      any related authentication information to self.state and append
-        #      appropriate flags to self.trust.
-        #      If self.user is None, they must set it to the resolved user
-
-        self.user = model.AnonymousUser()  # Make no assumptions
-        self.trust = []  # XXX Work out a better name
 
         try:
             self.check_certificate(cert_serial)
@@ -204,7 +247,7 @@ class Authenticizer(object):
             # Wipe the slate clean
             self.clear()
 
-        print self
+        print self, request.url
         request.session.changed()
 
     def check_certificate(self, serial):
@@ -332,12 +375,30 @@ class Authenticizer(object):
         """
         return self.state.get('cert_serial', None)
 
+    def __repr__(self):
+        openid_age = None
+        if 'openid_timestamp' in self.state:
+            openid_age = datetime.now() - datetime.fromtimestamp(
+                    self.state['openid_timestamp'])
+
+        return ("<Authenticizer ( User: {0}, Cert: {1}, OpenID URL: {2}, "
+                "OpenID Age: {3}, Trust Flags: {4} )>".format(
+                    self.user.name if self.user else None,
+                    self.state.get('cert_serial', None),
+                    self.state.get('openid_url', None),
+                    openid_age,
+                    repr(self.trust),
+                    ))
+
 
 def get_ca(settings):
     """Fetches the Certifiacte Authority certificate and key.
 
     Returns a (ca_cert, ca_key) tuple, where ca_cert is a pyOpenSSL
     X509 object and ca_key is a pyOpenSSL PKey object.
+
+    `settings` is a Pyramid `deployment settings` object, typically
+    ``request.registry.settings``
 
     """
     cert_dir = settings['client_cert_dir']
@@ -356,7 +417,7 @@ def get_ca(settings):
 # Authentication Upgrade refers to increasing the expected strength of a
 # users's authentication to the system, generally with the goal of gaining
 # additional principals and thus additional authorization.
-# It may occur through adding an authentication token (providiing a cert or
+# It may occur through adding an authentication token (providing a cert or
 # logging in with OpenID) by renewing an expireable token (e.g. renewing an
 # OpenID login) or by changing to an authentication method setting that is
 # considered more secure.
@@ -364,8 +425,9 @@ def get_ca(settings):
 # permissions need to be administratively granted.
 
 def outstanding_principals(permission, context, request):
-    """Returns a list of principal sets, where the addition of any of the sets
-    would be sufficient to grant the current user the permission."""
+    """Returns a list of sets of principals, where the attainment of all of the
+    principals in any one of the sets would be sufficient to grant the current
+    user (``request.user``) the `permission` in the given `context`."""
 
     # TODO be able to determine a context based on a route name
 
@@ -388,14 +450,19 @@ def outstanding_principals(permission, context, request):
     return outstanding
 
 def could_have_permission(permission, context, request):
-    """Returns True if the current user either holds the permission or could
-    hold it after authentication (i.e. pseudo-principal) upgrade."""
+    """Returns True if the current user (``request.user``) either holds the
+    `permission` in the given `context` or could hold it after
+    :term:`authentication upgrade`."""
 
     outstanding = outstanding_principals(permission, context, request)
 
     if not outstanding:
         return True
 
+    # 'role:*' principals cannot be gained by autonomous user action, so the
+    # user could gain the permission only if there is an alternative set in
+    # their outstanding_principals list of sets containing only other principal
+    # types.
     for altset in outstanding:
         f = lambda x: not x.startswith('role:')
         if all(map(f, altset)):
@@ -408,17 +475,17 @@ def attempt_privilege_escalation(permission, context, request):
 
     If it is possible to automatically guide the user to gain the privileges
     needed to gain the given permission in the given context, do so.  This may
-    entail setting a return key then redirecting.
+    entail setting a stash for the current request then redirecting.
 
     """
     if not could_have_permission(permission, context, request):
         return
 
-    for option in outstanding_principals(permission, context, request):
-        if len(option) != 1:
+    for altset in outstanding_principals(permission, context, request):
+        if len(altset) != 1:
             continue
 
-        principal = option.pop()
+        principal = altset.pop()
 
         if 'trusted:openid' in effective_principals(request):
             msg = "You need to re-authenticate with your OpenID identity " \
@@ -445,7 +512,7 @@ def current_view_permission(request):
 
     """
     # HACK: uses non-API classes
-    # And lo, epii reached forth into the bowels of Pyramid to retrieve that
+    # And lo, epii reached forth unto the bowels of Pyramid to retrieve that
     # permission attached to the view reached by the current request, and there
     # was much wailing and gnashing of teeth.
     # XXX may not yet work with pages that replace context with a ORM object
