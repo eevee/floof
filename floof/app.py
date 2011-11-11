@@ -40,6 +40,11 @@ class FloofRequest(Request):
         self.session.changed()
         return auth
 
+    def get_context(self):
+        # floof assumes this property always exists, which it might not
+        return self.__dict__.get('context')
+    context = property(get_context)
+
     @property
     def permission(self):
         # Not reified as this may be erroneously called before ContextFound

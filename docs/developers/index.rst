@@ -7,4 +7,5 @@ Developer Documentation
    :maxdepth: 2
 
    authentication
+   authorization
    stashing
