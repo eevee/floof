@@ -53,6 +53,7 @@ The point is to allow for principals that arise from holding a combination of:
 
 """
 
+
 class FloofAuthnPolicy(object):
     """Pyramid style authentication policy bolted atop a beaker session.
 
@@ -72,8 +73,8 @@ class FloofAuthnPolicy(object):
         raise NotImplementedError()
 
     def effective_principals(self, request):
-        """Returns the list of 'effective' :term:`principal` identifiers for the
-        request."""
+        """Returns the list of 'effective' :term:`principal` identifiers for
+        the request."""
 
         user = request.auth.user
         principals = set([Everyone])
@@ -104,14 +105,14 @@ class FloofAuthnPolicy(object):
     def remember(self, request, principal=None, user=None, openid_url=None,
                  **kw):
         """Remembers a set of (stateful) credentials authenticating the `user`.
-        
+
         Deviates from the Pyramid authentication policy model in that
         `principal` is an optional, not mandatory, parameter that is in fact
         not used.
 
         At present, only accepts calls that include both a `user` and an
         `openid_url` parameter.
-        
+
         """
         if not user:
             raise ValueError("A valid user must be passed to this method.")
@@ -141,6 +142,7 @@ class CertRevokedError(Exception): pass
 class OpenIDAuthDisabledError(Exception): pass
 class OpenIDNotFoundError(Exception): pass
 class AuthConflictError(Exception): pass
+
 
 class Authenticizer(object):
     """Manages the authentication and authorization state of the current user.
@@ -206,8 +208,8 @@ class Authenticizer(object):
             request.session.changed()
             return
 
-        # Check for client certificate serial; ATM, the cert serial is passed by
-        # the frontend server in an HTTP header.
+        # Check for client certificate serial; ATM, the cert serial is passed
+        # by the frontend server in an HTTP header.
         cert_serial = None
         if config.get('client_cert_auth', '').lower() == 'true':
             cert_serial = request.headers.get(
@@ -546,34 +548,29 @@ def current_view_permission(request):
 # The following are help messages for user-upgradable privileges
 # XXX this is ugly, ugh
 
+MSG_PRESENT_CERT = 'Present your client certificate for authentication\n'
+MSG_GEN_CERT = 'Generate and configure a client certificate\n'
+MSG_AUTH_SEC = (
+        "Configure your certificate authentication option to either "
+        "'Require using client certificates for login' or 'Allow using "
+        "client certificates for login; Required for Sensitive Operations'\n")
+
 def help_auth_secure(request):
-    msg = "onfigure your certificate authentication option to either " \
-          "'Require using client certificates for login' or " \
-          "'Allow using client certificates for login; Required for Sensitive Operations'"
-    if len(request.user.certificates) > 0:
-        msg = "C" + msg
-    else:
-        msg = "First, generate and configure a client certificate, then c" + msg
+    msg = ''
+    if len(request.user.certificates) < 1:
+        msg += MSG_GEN_CERT
+    msg += MSG_AUTH_SEC
     return msg
 
 def help_trusted_cert(request):
-    if len(request.user.certificates) > 1:
-        msg = "Present one of your client certificates for authentication"
-    elif len(request.user.certificates) == 1:
-        msg = "Present your client certificate for authentication"
-    else:
-        msg = "Generate and configure a client certificate, then present it for authentication"
-
-#    if request.user.cert_auth == 'disabled':
-#        return "Configure your certificate authentication option to " \
-#               "something other than 'Disallow using client certificates " \
-#               "for login', then " + msg
+    msg = ''
+    if len(request.user.certificates) < 1:
+        msg += MSG_GEN_CERT
+    msg += MSG_PRESENT_CERT
     return msg
 
 def help_trusted_openid(request):
-    if len(request.user.identity_urls) > 1:
-        return "Authenticate with one of your OpenIDs"
-    return "Authenticate with your OpenID"
+    return "Authenticate with OpenID"
 
 def help_trusted_openid_recent(request):
     if 'trust:openid' in effective_principals(request):

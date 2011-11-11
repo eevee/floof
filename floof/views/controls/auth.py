@@ -87,7 +87,7 @@ def openid_add(context, request):
     user = request.user
     form = AddOpenIDForm(request.POST) # XXX fetch_post(session, request))
     remove_form = RemoveOpenIDForm(request)
-    remove_form.openids.query = meta.Session.query(model.IdentityURL).with_parent(user)
+    remove_form.openids.query = model.session.query(model.IdentityURL).with_parent(user)
 
     ret = dict(
         add_openid_form=form,
