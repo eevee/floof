@@ -119,8 +119,10 @@ performed an OpenID credential verification, their request will include both
 the ``trusted:openid_recent`` and ``trusted:openid`` principal identifiers.
 
 
-Deriving Derived Principal Identifiers
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. _authn-derived-principals:
+
+Derived Principal Identifiers
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 A :term:`derived principal` identifier is added to a request based on the
 presence of other, 'concrete' principal identifiers.  This provides a more
