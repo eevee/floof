@@ -40,6 +40,9 @@ ORM_ACLS = {
     Comment: lambda ormobj: (
         (Allow, 'user:{0}'.format(ormobj.author_user_id), (
             'comment.delete',
+        )),
+        (Allow, 'role:admin', (
+            'comment.delete',
             'comment.edit',
         )),
     ),
@@ -79,7 +82,9 @@ def contextualize(ormobj, name=None, root=None):
 
     `ormobj` is attached to the tree by adding appropriate attributes.  The
     tree is only guarnteed to contain those elements required to successfully
-    preform ACL authorization on the object.
+    preform ACL authorization on the object.  If `ormobj` already has an
+    ``__acl__`` or ``__parent__`` attribute, then it is returned immediately
+    and without modification.
 
     Currently all objects are shoved into a fresh two-member tree with the
     modifierd `ormobj` as the only leaf and an instance of :class:`FloofRoot`
@@ -109,6 +114,9 @@ def contextualize(ormobj, name=None, root=None):
           context tree into which `ormobj` will be placed.
 
     """
+    if hasattr(ormobj, '__acl__') or hasattr(ormobj, '__parent__'):
+        return ormobj
+
     if name is None:
         objid = getattr(ormobj, 'id', id(ormobj))
         name = ormobj.__class__.__name__ + ':' + str(objid)

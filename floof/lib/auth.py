@@ -9,6 +9,7 @@ import OpenSSL.crypto as ssl
 import os.path
 
 from datetime import datetime, timedelta
+from functools import partial
 
 from pyramid.interfaces import IAuthenticationPolicy
 from pyramid.security import ACLAllowed, ACLDenied
@@ -21,8 +22,11 @@ from sqlalchemy.orm.exc import NoResultFound
 from zope.interface import implements
 
 from floof import model
+from floof.resource import contextualize
 
 DEFAULT_CONFIDENCE_EXPIRY = 60 * 10  # seconds
+
+UPGRADABLE_PRINCIPALS = ('auth:', 'trusted:')
 
 TRUST_MAP = dict([
     ('trusted_for:auth', [
@@ -248,6 +252,9 @@ class Authenticizer(object):
         print self, request.url
         request.session.changed()
 
+        # for convenience
+        self.user.can = partial(could_have_permission, request=request)
+
     def check_certificate(self, serial):
         """Check a client certificate serial and add authentication if valid."""
 
@@ -433,6 +440,10 @@ def outstanding_principals(permission, context, request):
         return []
 
     principals = principals_allowed_by_permission(context, permission)
+    if not principals:
+        # the permission must not exist at all within this context
+        return ['__unattainable__']
+
     effective = set(effective_principals(request))
     outstanding = []
 
@@ -452,17 +463,20 @@ def could_have_permission(permission, context, request):
     `permission` in the given `context` or could hold it after
     :term:`authentication upgrade`."""
 
+    if not hasattr(context, '__acl__'):
+        # XXX is this bit of convenience appropriate?
+        context = contextualize(context)
+
     outstanding = outstanding_principals(permission, context, request)
 
     if not outstanding:
         return True
 
-    # 'role:*' principals cannot be gained by autonomous user action, so the
-    # user could gain the permission only if there is an alternative set in
-    # their outstanding_principals list of sets containing only other principal
-    # types.
+    # The user can gain the permission only if there is an alternative set in
+    # their outstanding_principals list of sets containing only upgradable
+    # principal types.
     for altset in outstanding:
-        f = lambda x: not x.startswith('role:')
+        f = lambda x: x.startswith(UPGRADABLE_PRINCIPALS)
         if all(map(f, altset)):
             return True
 

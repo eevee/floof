@@ -6,6 +6,9 @@
     <div class="avatar">${lib.avatar(comment.author)}</div>
     <div class="header">
         <ul class="links">
+            % if request.user.can('comment.edit', comment):
+                <li><a href="${request.route_url('comments.view', comment=comment, _anchor='comment')}">Edit (fake)</a></li>
+            % endif
             <li><a href="${request.route_url('comments.reply', comment=comment, _anchor='comment')}">Reply</a></li>
             <li><a href="${request.route_url('comments.view', comment=comment, _anchor='comment')}">Link</a></li>
         </ul>
