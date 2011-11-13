@@ -41,7 +41,7 @@ ORM_ACLS = {
         (Allow, 'user:{0}'.format(ormobj.author_user_id), (
             'comment.delete',
         )),
-        (Allow, 'role:admin', (
+        (Allow, 'trusted_for:admin', (
             'comment.delete',
             'comment.edit',
         )),

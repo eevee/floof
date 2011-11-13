@@ -62,7 +62,7 @@
                 % if request.user:
                     <li><a href="${request.route_url('controls.index')}">Controls</a></li>
                 % endif
-                % if h.could_have_permission('admin.view', request.context, request):
+                % if request.user.can('admin.view', request.context):
                     <li><a href="${request.route_url('admin.dashboard')}">Admin</a></li>
                 % endif
             </menu>

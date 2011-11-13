@@ -5,7 +5,6 @@ from pyramid import httpexceptions
 from pyramid.view import view_config
 
 from floof.lib.auth import auth_actions
-from floof.lib.auth import could_have_permission
 from floof.lib.auth import outstanding_principals
 
 log = logging.getLogger(__name__)
@@ -37,7 +36,7 @@ def error400(context, request):
     context=httpexceptions.HTTPForbidden,
     renderer='error.mako')
 def error403(context, request):
-    if could_have_permission(request.permission, request.context, request):
+    if request.user.can(request.permission, request.context):
         outstanding = outstanding_principals(request.permission,
                                              request.context,
                                              request)

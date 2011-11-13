@@ -15,7 +15,6 @@ from webhelpers.html.tags import form, end_form, hidden, submit, javascript_link
 from webhelpers.util import update_params
 
 from pyramid.security import has_permission
-from floof.lib.auth import could_have_permission
 
 
 def render_rich_text(raw_text, chrome=False):
