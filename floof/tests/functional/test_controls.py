@@ -31,8 +31,7 @@ class TestControls(FunctionalTests):
 
         self.default_environ = {
                 'tests.user_id': self.user.id,
-                'tests.auth_openid_uid': self.user.id,
-                'tests.auth_openid_time': time.time(),
+                'tests.auth_trust': ['openid', 'openid_recent'],
                 }
 
     @classmethod
@@ -372,7 +371,7 @@ class TestControls(FunctionalTests):
         path, params = spoofer.spoof(location)
         assert path == self.url('account.login_finish'), 'Unexpected redirect path: {0}'.format(path)
         assert 'return_key={0}'.format(return_key) in params, 'Return key did not appear in the OpenID redirect URL.'
-        del environ['tests.auth_openid_time']  # Allow c.auth.openid_time to be reset by the re-auth
+        #TODO actually make the re-auth influence the trust status
         response = self.app.get(
                 path,
                 params=params,
