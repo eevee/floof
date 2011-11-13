@@ -7,7 +7,7 @@
     <div class="header">
         <ul class="links">
             % if request.user.can('comment.edit', comment):
-                <li><a href="${request.route_url('comments.view', comment=comment, _anchor='comment')}">Edit (fake)</a></li>
+                <li><a href="${request.route_url('comments.edit', comment=comment, _anchor='comment')}">Edit</a></li>
             % endif
             <li><a href="${request.route_url('comments.reply', comment=comment, _anchor='comment')}">Reply</a></li>
             <li><a href="${request.route_url('comments.view', comment=comment, _anchor='comment')}">Link</a></li>
@@ -62,6 +62,15 @@ ${lib.secure_form(request.route_url('comments.reply' if parent_comment else 'com
 <p>${form.message(rows=25, cols=80)}</p>
 <p>
     <button type="submit">POST TO INTERNET</button>
+</p>
+${h.end_form()}
+</%def>
+
+<%def name="edit_form(form, resource, comment)">
+${lib.secure_form(request.route_url('comments.edit', resource=resource, comment=comment), method='POST')}
+<p>${form.message(rows=25, cols=80)}</p>
+<p>
+    <button type="submit">Save Changes</button>
 </p>
 ${h.end_form()}
 </%def>

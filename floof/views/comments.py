@@ -159,3 +159,36 @@ def reply_to_discussion_commit(discussion_or_comment, request):
     # Redirect to the new comment
     return HTTPSeeOther(
         location=request.route_url('comments.view', comment=new_comment, _anchor="comment-{0}".format(new_comment.id)))
+
+@view_config(
+    route_name='comments.edit',
+    permission='comment.edit',
+    request_method='GET',
+    renderer='comments/edit.mako')
+def edit_comment(comment, request):
+    return dict(
+        comment=comment,
+        discussion=comment.discussion,
+
+        comment_ancestors=comment.ancestors_query.all(),
+        comment_descendants=comment.descendants_query.all(),
+        comment_form=CommentForm(message=comment.content),
+    )
+
+@view_config(
+    route_name='comments.edit',
+    permission='comment.edit',
+    request_method='POST',
+    renderer='comments/edit.mako')
+def edit_comment_commit(comment, request):
+    comment_form = CommentForm(request.POST)
+
+    if not comment_form.validate():
+        # TODO
+        return HTTPBadRequest()
+
+    comment.content = comment_form.message.data
+
+    # Redirect to the comment in context
+    return HTTPSeeOther(
+        location=request.route_url('comments.view', comment=comment, _anchor="comment-{0}".format(comment.id)))

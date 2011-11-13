@@ -171,6 +171,7 @@ def configure_routing(config):
     r('comments.list', '/{type}/{identifier}/comments', factory=comments_factory)
     r('comments.write', '/{type}/{identifier}/comments/write', factory=comments_factory, pregenerator=comments_pregenerator)
     r('comments.view', '/{type}/{identifier}/comments/{comment_id}', factory=comments_factory, pregenerator=comments_pregenerator)
+    r('comments.edit', '/{type}/{identifier}/comments/{comment_id}/edit', factory=comments_factory, pregenerator=comments_pregenerator)
     r('comments.reply', '/{type}/{identifier}/comments/{comment_id}/write', factory=comments_factory, pregenerator=comments_pregenerator)
 
 class SugarRouter(object):

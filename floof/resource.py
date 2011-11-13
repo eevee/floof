@@ -40,6 +40,7 @@ ORM_ACLS = {
     Comment: lambda ormobj: (
         (Allow, 'user:{0}'.format(ormobj.author_user_id), (
             'comment.delete',
+            'comment.edit',
         )),
         (Allow, 'trusted_for:admin', (
             'comment.delete',

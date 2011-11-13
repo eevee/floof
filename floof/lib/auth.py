@@ -202,6 +202,7 @@ class Authenticizer(object):
             self.clear()
             self.user = model.session.query(model.User) \
                     .get(request.environ['tests.user_id'])
+            self.user.can = partial(could_have_permission, request=request)
             self.trust = request.environ.get(
                 'tests.auth_trust',
                 ['cert', 'openid', 'openid_recent'])  # maximum trust!
