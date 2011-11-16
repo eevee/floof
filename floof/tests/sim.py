@@ -19,6 +19,7 @@ def sim_user(role='user'):
     role = model.session.query(model.Role).filter_by(name=role).one()
     user.roles.append(role)
     model.session.add(user)
+    model.session.flush()
     return user
 
 def sim_artwork(user):

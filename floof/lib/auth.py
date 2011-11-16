@@ -17,6 +17,7 @@ from pyramid.security import Authenticated, Everyone
 from pyramid.security import effective_principals, has_permission
 from pyramid.security import has_permission
 from pyramid.security import principals_allowed_by_permission
+from pyramid.settings import asbool
 from sqlalchemy.orm import joinedload_all
 from sqlalchemy.orm.exc import NoResultFound
 from zope.interface import implements
@@ -202,19 +203,12 @@ class Authenticizer(object):
             self.clear()
             self.user = model.session.query(model.User) \
                     .get(request.environ['tests.user_id'])
-            self.user.can = partial(could_have_permission, request=request)
-            self.trust = request.environ.get(
-                'tests.auth_trust',
-                ['cert', 'openid', 'openid_recent'])  # maximum trust!
-            request.session.changed()
-            return
 
         # Check for client certificate serial; ATM, the cert serial is passed
         # by the frontend server in an HTTP header.
         cert_serial = None
-        if config.get('client_cert_auth', '').lower() == 'true':
-            cert_serial = request.headers.get(
-                    'X-Floof-SSL-Client-Serial', None) or cert_serial
+        if asbool(config.get('client_cert_auth')):
+            cert_serial = request.headers.get('X-Floof-SSL-Client-Serial')
 
         try:
             self.check_certificate(cert_serial)
@@ -244,6 +238,13 @@ class Authenticizer(object):
         except AuthConflictError:
             request.session.flash("Your OpenID conflicted with your certificate and has been cleared.",
                 level='error', icon='key--exclamation')
+
+        # Further test amenity
+        if ('tests.user_id' in request.environ or
+                'tests.auth_trust' in request.environ):
+            self.trust = request.environ.get(
+                'tests.auth_trust',
+                ['cert', 'openid', 'openid_recent'])  # maximum trust!
 
         if len(self.trust) == 0:
             # Either there's no user, or none of their current auths are valid.
@@ -363,6 +364,7 @@ class Authenticizer(object):
         # TODO what shall this do with certificates
         self.state.clear()
         self.user = model.AnonymousUser()
+        self.trust = []
 
     @property
     def can_purge(self):

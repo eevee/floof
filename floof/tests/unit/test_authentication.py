@@ -47,7 +47,7 @@ class TestFloofAuthnPolicy(UnitTests):
     def test_principals_role(self):
         env = {
                 'tests.user_id': self.user.id,
-                'tests.auth_trust': [],
+                'tests.auth_trust': ['cert'],
                 }
         request = create_authn_request(self.config, environ=env)
         principals = self.policy.effective_principals(request)
@@ -56,7 +56,7 @@ class TestFloofAuthnPolicy(UnitTests):
     def test_principals_secure(self):
         env = {
                 'tests.user_id': self.user.id,
-                'tests.auth_trust': [],
+                'tests.auth_trust': ['cert'],
                 }
         request = create_authn_request(self.config, environ=env)
 
