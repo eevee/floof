@@ -12,7 +12,7 @@
         ${lib.user_link(comment.author)}
         at ${lib.time(comment.posted_time)}
     </div>
-    <div class="content">${comment.content}</div>
+    <div class="content">${h.render_rich_text(comment.content)}</div>
 </div>
 </%def>
 

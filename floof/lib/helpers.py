@@ -3,8 +3,80 @@
 Consists of functions to typically be used within templates, but also
 available to Controllers. This module is available to templates as 'h'.
 """
+from __future__ import absolute_import
+import re
+
+import lxml.html
+import lxml.html.clean
+import markdown
 from webhelpers.html import escape, HTML, literal, tags, url_escape
 #from webhelpers.html.tags import *
 # XXX replace the below with tags.?
 from webhelpers.html.tags import form, end_form, hidden, submit, javascript_link
 from webhelpers.util import update_params
+
+
+def render_rich_text(raw_text, chrome=False):
+    """Takes a unicode string of Markdown source.  Returns literal'd HTML."""
+
+    # First translate the markdown
+    md = markdown.Markdown(
+        extensions=[],
+        output_format='html',
+    )
+
+    html = md.convert(raw_text)
+
+    # Then sanitize the HTML -- whitelisting only, thanks!
+    # Make this as conservative as possible to start.  Might loosen it up a bit
+    # later.
+    fragment = lxml.html.fragment_fromstring(html, create_parent='div')
+
+    if chrome:
+        # This is part of the site and is free to use whatever nonsense it wants
+        allow_tags = None
+    else:
+        # This is user content; beware!!
+        allow_tags = [
+            # Structure
+            'p', 'div', 'span', 'ul', 'ol', 'li',
+            # Tables
+            #'table', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td',
+            # Embedding
+            'a',
+            # Oldschool styling
+            'strong', 'b', 'em', 'i', 's', 'u',
+        ]
+
+    cleaner = lxml.html.clean.Cleaner(
+        scripts = True,
+        javascript = True,
+        comments = True,
+        style = True,
+        links = True,
+        meta = True,
+        page_structure = True,
+        #processing_instuctions = True,
+        embedded = True,
+        frames = True,
+        forms = True,
+        annoying_tags = True,
+        safe_attrs_only = True,
+
+        remove_unknown_tags = False,
+        allow_tags = allow_tags,
+    )
+    cleaner(fragment)
+
+    # Autolink URLs
+    lxml.html.clean.autolink(fragment)
+
+    # And, done.  Flatten the thing and return it
+    friendly_html = lxml.html.tostring(fragment)
+    # We, uh, need to remove the <div> wrapper that lxml imposes.
+    # I am so sorry.
+    match = re.match(r'\A<div>(.*)</div>\Z', friendly_html, flags=re.DOTALL)
+    if match:
+        friendly_html = match.group(1)
+
+    return literal(friendly_html)
