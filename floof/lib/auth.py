@@ -197,12 +197,16 @@ class Authenticizer(object):
         """A list of authentication mechanisms satisfied that the current
         request authenticates :attr:`user`."""
 
-        # Test amenity
+        # Test amenity: set user
         if 'tests.user_id' in request.environ:
             # Override user id manually
             self.clear()
             self.user = model.session.query(model.User) \
                     .get(request.environ['tests.user_id'])
+
+        # convenience/readability helper
+        error = partial(request.session.flash, level='error',
+                        icon='key--exclamation')
 
         # Check for client certificate serial; ATM, the cert serial is passed
         # by the frontend server in an HTTP header.
@@ -215,31 +219,24 @@ class Authenticizer(object):
         except CertNotFoundError:
             # This should NEVER happen in production (certs should last
             # forever)
-            request.session.flash("I don't recognize your client certificate.",
-                level='error', icon='key--exclamation')
+            error("I don't recognize your client certificate.")
         except CertAuthDisabledError:
-            request.session.flash("Client certificates are disabled for your account.",
-                level='error', icon='key--exclamation')
+            error("Client certificates are disabled for your account.")
         except CertExpiredError:
-            request.session.flash("That client certificate has expired.",
-                level='error', icon='key--exclamation')
+            error("That client certificate has expired.")
         except CertRevokedError:
-            request.session.flash("That client certificate has been revoked.",
-                level='error', icon='key--exclamation')
+            error("That client certificate has been revoked.")
 
         try:
             self.check_openid(config)
         except OpenIDNotFoundError:
-            request.session.flash("I don't recognize your OpenID identity.",
-                level='error', icon='key--exclamation')
+            error("I don't recognize your OpenID identity.")
         except OpenIDAuthDisabledError:
-            request.session.flash("Your OpenID is no longer accepted as your account has disabled OpenID authentication.",
-                level='error', icon='key--exclamation')
+            error("Your OpenID is no longer accepted as your account has disabled OpenID authentication.")
         except AuthConflictError:
-            request.session.flash("Your OpenID conflicted with your certificate and has been cleared.",
-                level='error', icon='key--exclamation')
+            error("Your OpenID conflicted with your certificate and has been cleared.")
 
-        # Further test amenity
+        # Further test amenity: set auth mechanisms
         if ('tests.user_id' in request.environ or
                 'tests.auth_trust' in request.environ):
             self.trust = request.environ.get(
