@@ -136,19 +136,21 @@
 
 
 <section>
-## Comments
-<% comments = artwork.discussion.comments %>\
-<h1>
-    ${lib.icon('balloons-white')}
-    ${len(comments)} comment${'' if len(comments) == 1 else 's'}
-</h1>
-${comments_lib.comment_tree(comments)}
+    ## Comments
+    <% comments = artwork.discussion.comments %>\
+    <h1>
+        ${lib.icon('balloons-white')}
+        ${len(comments)} comment${'' if len(comments) == 1 else 's'}
+    </h1>
+    ${comments_lib.comment_tree(comments)}
 
-% if request.user.can('comments.add'):
-<h2>
-    ${lib.icon('balloon-white')}
-    Write your own
-</h2>
-${comments_lib.write_form(comment_form, artwork.resource)}
-% endif
+    % if request.user.can('comments.add'):
+    <section>
+        <h1>
+            ${lib.icon('balloon-white')}
+            Write your own
+        </h1>
+        ${comments_lib.write_form(comment_form, artwork.resource)}
+    </section>
+    % endif
 </section>

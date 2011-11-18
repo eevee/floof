@@ -25,6 +25,12 @@
     box-shadow: $defs;
 }
 
+@mixin box-sizing($word) {
+    -moz-box-sizing: $word;
+    -webkit-box-sizing: $word;
+    box-sizing: $word;
+}
+
 @mixin outline-radius($def) {
     // This is actually not a thing outside of Gecko; it seems the intention is
     // for outlines to follow the border-radius.  Probably going to need to
