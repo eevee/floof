@@ -214,7 +214,7 @@ class Authenticizer(object):
         # Check for client certificate serial; ATM, the cert serial is passed
         # by the frontend server in an HTTP header.
         verified_serial = None
-        if asbool(config.get('client_cert_auth')):
+        if asbool(config.get('auth.certs.enabled')):
             # need to check verification status if we pass requests failing
             # cert auth back to floof (e.g. for user help display)
             # XXX the below 'verify' codes are nginx-isms
@@ -345,7 +345,7 @@ class Authenticizer(object):
 
         # Evaluate OpenID freshness
         confidence_expiry_secs = int(config.get(
-            'auth_confidence_expiry_seconds',
+            'auth.openid.expiry_seconds',
             DEFAULT_CONFIDENCE_EXPIRY))
 
         age = datetime.now() - datetime.fromtimestamp(timestamp)
@@ -424,7 +424,7 @@ def get_ca(settings):
     ``request.registry.settings``
 
     """
-    cert_dir = settings['client_cert_dir']
+    cert_dir = settings['auth.certs.directory']
     ca_cert_file = os.path.join(cert_dir, 'ca.pem')
     ca_key_file = os.path.join(cert_dir, 'ca.key')
 
@@ -576,12 +576,12 @@ def current_view_permission(request):
 # The following are help messages for user-upgradable privileges
 # XXX this is ugly, ugh
 
-MSG_PRESENT_CERT = 'Present your client certificate for authentication\n'
-MSG_GEN_CERT = 'Generate and configure a client certificate\n'
+MSG_PRESENT_CERT = 'Present your client certificate for authentication'
+MSG_GEN_CERT = 'Generate and configure a client certificate'
 MSG_AUTH_SEC = (
         "Configure your certificate authentication option to either "
         "'Require using client certificates for login' or 'Allow using "
-        "client certificates for login; Required for Sensitive Operations'\n")
+        "client certificates for login; Required for Sensitive Operations'")
 
 def help_auth_secure(request):
     msg = ''

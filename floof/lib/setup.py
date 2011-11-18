@@ -34,7 +34,7 @@ def generate_ca(conf):
     ### Client SSL/TLS certificate stuff
     # Generate the CA.  Attempt to load it from file first.
     generate_ca = True
-    cert_dir = conf.local_conf['client_cert_dir']
+    cert_dir = conf.local_conf['auth.certs.directory']
     for filename in ['ca.pem', 'ca.key']:
         filepath = os.path.join(cert_dir, filename)
         if os.path.isfile(filepath):
