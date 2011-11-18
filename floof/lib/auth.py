@@ -5,6 +5,7 @@ authorization helpers that inspect authentication state.
 
 """
 import calendar
+import logging
 import OpenSSL.crypto as ssl
 import os.path
 
@@ -24,6 +25,8 @@ from zope.interface import implements
 
 from floof import model
 from floof.resource import contextualize
+
+log = logging.getLogger(__name__)
 
 DEFAULT_CONFIDENCE_EXPIRY = 60 * 10  # seconds
 
@@ -210,12 +213,27 @@ class Authenticizer(object):
 
         # Check for client certificate serial; ATM, the cert serial is passed
         # by the frontend server in an HTTP header.
-        cert_serial = None
+        verified_serial = None
         if asbool(config.get('client_cert_auth')):
-            cert_serial = request.headers.get('X-Floof-SSL-Client-Serial')
+            # need to check verification status if we pass requests failing
+            # cert auth back to floof (e.g. for user help display)
+            # XXX the below 'verify' codes are nginx-isms
+            verify = request.headers.get('X-Floof-SSL-Client-Verify')
+            serial = request.headers.get('X-Floof-SSL-Client-Serial', '')
+            serial = serial.lower()
+
+            if verify == 'SUCCESS':
+                verified_serial = serial
+                log.debug("Successful verification of cert with claimed "
+                          "serial '{0}'".format(serial))
+
+            elif verify == 'FAILED':
+                error("You are presenting an invalid certificate.")
+                log.warning("Unsuccessful verification of cert with claimed "
+                            "serial '{0}'".format(serial))
 
         try:
-            self.check_certificate(cert_serial)
+            self.check_certificate(verified_serial)
         except CertNotFoundError:
             # This should NEVER happen in production (certs should last
             # forever)
