@@ -18,8 +18,8 @@ ${lib.secure_form(request.route_url('account.login_begin'))}
     <div id="big-ol-openid-box">
         ${form.return_key() | n}
         <span class="text-plus-button">
-            ${form.openid_identifier(id="big-ol-openid-box--field", placeholder='you@gmail.com')}
-            <button>Log in</button>
+            ${form.openid_identifier(id="big-ol-openid-box--field", placeholder='you@gmail.com')}<!--
+            --><button>Log in</button>
         </span>
     </div>
 ${h.end_form()}

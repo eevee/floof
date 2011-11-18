@@ -9,16 +9,14 @@
 
 
 .text-plus-button {
-    word-spacing: -1em;
-
-    * {
-        word-spacing: normal;
-    }
-
     input[type="text"],
     input[type="search"] {
         border-right: none !important;
         border-radius: 2px 0 0 2px !important;
+    }
+    input, button {
+        // webkit gives these a 2px margin for some reason
+        margin: 0;
     }
 }
 
