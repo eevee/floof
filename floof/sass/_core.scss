@@ -39,13 +39,13 @@ body > header {
             position: absolute;
             font-size: 5em;
             left: 0.5em;
-            bottom: -0.14em;  // try to get the baseline to sit on the navbar
+            bottom: 0.25em;
 
             font-family: "Trebuchet MS", Helvetica, Arial, sans-serif;
             font-weight: bold;
             letter-spacing: 0.08em;
             color: black;
-            text-shadow: 0 0 2px rgba(0, 0, 0, 0.33);
+            text-shadow: 0 0 2px hsla(0, 0%, 100%, 0.8);
         }
     }
 
@@ -80,17 +80,16 @@ body > header {
             float: right;
 
             img {
-                display: block;
-                float: right;  // say whaaaat; this makes it ignore the padding
                 height: 2em;
                 max-width: 2em;
-                margin-left: 1em;
-                margin-right: -1em;
+                margin: 0 -1em 0 1em;
+                vertical-align: top;
             }
         }
 
         > menu {
             > li {
+                position: relative;
                 display: inline-block;
                 vertical-align: bottom;
 
@@ -109,8 +108,9 @@ body > header {
                     position: absolute;
                     width: 10em;
                     padding: 0.5em;
-                    margin-top: 1px;
                     right: 0;
+                    top: 2em;
+                    margin-top: 1px;
 
                     background: #d0d0d0;
                     border: 1px solid #606060;
