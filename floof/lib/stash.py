@@ -90,10 +90,10 @@ def key_from_request(request):
     Additionally, if the parameter exists but is invalid, a warning is logged.
 
     """
-    key = request.params.get('return_key', None)
+    key = request.params.get('return_key')
     stashes = request.session.get('request_stashes', dict())
 
-    if key is None:
+    if key in (None, ''):
         return None
 
     if key in stashes:
