@@ -33,7 +33,7 @@ class RemoveOpenIDForm(FloofForm):
         # XXX less hackish way to do this without adding an attr to
         # Authenticizer for every freakin property of the session's auth?
         curr_openid_url = form.request.auth.state.get('openid_url')
-        if curr_openid_url in [obj.url for key, obj in field._get_object_list()]:
+        if curr_openid_url in [obj.url for obj in field.data]:
             raise wtforms.ValidationError(
                     'You cannot remove the OpenID identity URL with which you '
                     'are currently logged in.')
@@ -153,6 +153,7 @@ def openid_add_finish(context, request):
         level=u'success', icon=u'user--plus')
 
     return HTTPSeeOther(location=request.route_url('controls.openid'))
+
 
 @view_config(
     route_name='controls.openid.remove',
