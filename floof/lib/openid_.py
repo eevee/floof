@@ -95,8 +95,7 @@ def openid_begin(identifier, return_url, request, max_auth_age=False, sreg=False
     print 2
 
     if sreg:
-        sreg_req = SRegRequest(optional=['nickname', 'email', 'dob', 'gender',
-                                         'country', 'language', 'timezone'])
+        sreg_req = SRegRequest(optional=['nickname', 'email', 'timezone'])
         auth_request.addExtension(sreg_req)
 
     if max_auth_age is not False and max_auth_age >= 0:
