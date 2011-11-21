@@ -3,20 +3,20 @@ import logging
 import re
 
 from pyramid import security
-from pyramid.httpexceptions import HTTPSeeOther
+from pyramid.httpexceptions import HTTPBadRequest, HTTPSeeOther
 from pyramid.renderers import render_to_response
-from pyramid.response import Response
 from pyramid.view import view_config
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm.exc import NoResultFound
 from webhelpers.util import update_params
 import wtforms.form, wtforms.fields, wtforms.validators
 
 from floof.forms import DisplayNameField, TimezoneField
+from floof.lib.auth import DEFAULT_CONFIDENCE_EXPIRY
 from floof.lib.auth import OpenIDAuthDisabledError, OpenIDNotFoundError
 from floof.lib.stash import fetch_stash, get_stash_keys, key_from_request
 from floof.lib.openid_ import OpenIDError, openid_begin, openid_end
-from floof.model import Resource, Discussion, UserProfileRevision, IdentityURL, User, Role
+from floof.model import Discussion, IdentityURL, Resource
+from floof.model import Role, User, UserProfileRevision
 from floof import model
 
 log = logging.getLogger(__name__)
@@ -29,6 +29,7 @@ class LoginForm(wtforms.form.Form):
         u'OpenID URL or Webfinger-enabled email address',
         validators=[wtforms.validators.Required(u'Gotta enter an OpenID to log in.')])
     return_key = wtforms.fields.HiddenField(u'Return Stash Key')
+
 
 @view_config(
     route_name='account.login',
@@ -66,15 +67,14 @@ def login_begin(context, request):
         # the user is registering, but we don't know whether the user is
         # registering or just logging in until we resolve their identity URL...
         # which we do in openid_begin.
-        if 'cert' in c.auth.satisfied:
-            max_auth_age = CERT_CONFIDENCE_EXPIRY_SECONDS
-        else:
-            max_auth_age = CONFIDENCE_EXPIRY_SECONDS
         sreg = False
+        settings = request.registry.settings
+        max_auth_age = settings.get('auth.openid.expiry_seconds',
+                                    DEFAULT_CONFIDENCE_EXPIRY)
     else:
         # Someone either logging in or registering
-        max_auth_age = False
         sreg = True
+        max_auth_age = False
 
     try:
         return HTTPSeeOther(location=openid_begin(
@@ -94,7 +94,8 @@ def safe_openid_login(request, identity_owner, identity_url):
         auth_headers = security.remember(
             request, identity_owner, openid_url=identity_url)
     except OpenIDAuthDisabledError:
-        request.session.flash("Your OpenID is no longer accepted as your account has disabled OpenID authentication.",
+        request.session.flash("Your OpenID is no longer accepted as your "
+            "account has disabled OpenID authentication.",
             level='error', icon='key--exclamation')
     except OpenIDNotFoundError:
         request.session.flash("I don't recognize your OpenID identity.",
@@ -195,7 +196,8 @@ def login_finish(context, request):
         auth_headers += headers
 
         # An existing user has logged in successfully.  Bravo!
-        log.debug("User {0!r} logged in via OpenID: {1!r}".format(identity_owner.name, identity_url))
+        log.debug("User {0!r} logged in via OpenID: {1!r}"
+                  .format(identity_owner.name, identity_url))
 
         request.session.flash(
             u"Welcome back, {0}!"
@@ -238,7 +240,8 @@ class RegistrationForm(wtforms.form.Form):
         ])
     email = wtforms.fields.TextField(u'Email address', [
             wtforms.validators.Optional(),
-            wtforms.validators.Email(message=u'That does not appear to be an email address.'),
+            wtforms.validators.Email(
+                message=u'That does not appear to be an email address.'),
             ])
     timezone = TimezoneField(u'Timezone')
 
@@ -246,6 +249,7 @@ class RegistrationForm(wtforms.form.Form):
         if model.session.query(User).filter_by(name=field.data).count():
             raise wtforms.validators.ValidationError(
                 'Your username is already taken. Please try again.')
+
 
 @view_config(
     route_name='account.register',
@@ -259,7 +263,7 @@ def register(context, request):
 
         # Not in the session or is already registered.  Neither makes
         # sense.  Bail.
-        helpers.flash('Your session expired.  Please try logging in again.')
+        request.session.flash('Your session expired.  Please try logging in again.')
         return HTTPSeeOther(location=request.route_url('account.login'))
 
     form = RegistrationForm(request.POST)
@@ -350,6 +354,7 @@ def add_identity(context, request):
 class ProfileForm(wtforms.form.Form):
     profile = wtforms.fields.TextField(u'Profile')
 
+
 @view_config(
     route_name='account.profile',
     permission='__authenticated__',
@@ -359,7 +364,8 @@ def profile(context, request):
 
     if request.method == 'POST' and form.validate():
         profile = request.user.profile = form.profile.data
-        rev = UserProfileRevision(user=request.user, updated_by=request.user, content=profile)
+        rev = UserProfileRevision(user=request.user, updated_by=request.user,
+                                  content=profile)
         model.session.add(rev)
 
     return {}
