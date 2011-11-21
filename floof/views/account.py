@@ -60,19 +60,19 @@ def login_begin(context, request):
         return_url = update_params(return_url,
             return_key=form.return_key.data)
 
-    if 0 and request.user:
+    if request.user:
         # Logged-in user trying to update their OpenID expiry time
-        # XXX need to do this, possibly use checkid_immediate instead
-        # problem is that we don't want sreg (as part of opeinid_begin) unless
-        # the user is registering, but we don't know whether the user is
-        # registering or just logging in until we resolve their identity URL...
-        # which we do in openid_begin.
         sreg = False
         settings = request.registry.settings
         max_auth_age = settings.get('auth.openid.expiry_seconds',
                                     DEFAULT_CONFIDENCE_EXPIRY)
     else:
         # Someone either logging in or registering
+        # Problem is that we don't want sreg (as part of opeinid_begin) unless
+        # the user is registering, but we don't know whether the user is
+        # registering or just logging in until we resolve their identity URL...
+        # which we do in openid_begin.
+        # Possibly use checkid_immediate instead
         sreg = True
         max_auth_age = False
 
@@ -83,6 +83,7 @@ def login_begin(context, request):
                 request=request,
                 max_auth_age=max_auth_age,
                 sreg=sreg))
+
     except OpenIDError as exc:
         request.session.flash(exc.message,
             level='error', icon='key--exclamation')
