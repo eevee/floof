@@ -50,8 +50,12 @@
             </menu>
             <menu>
                 <li id="mini-site-title"><a id="site-title" href="${request.route_url('root')}">${request.registry.settings['site_title']}</a></li>
+                ## XXX it would be cool if these links could just introspect
+                ## the view, rather than duplicating the permission here
                 <li><a href="${request.route_url('art.browse')}">Art</a></li>
+                % if request.user.can('art.upload'):
                 <li><a href="${request.route_url('art.upload')}">Upload</a></li>
+                % endif
                 <li><a href="${request.route_url('tags.list')}">Tags</a></li>
                 ## XXX decorate these?
                 % if request.user:

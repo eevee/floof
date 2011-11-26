@@ -74,6 +74,7 @@ class UploadArtworkForm(wtforms.form.Form):
 
 @view_config(
     route_name='art.upload',
+    permission='art.upload',
     # XXX request_method='GET',
     renderer='art/upload.mako')
 def upload(context, request):
