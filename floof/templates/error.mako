@@ -2,6 +2,8 @@
 
 <%def name="title()">${http_status}</%def>
 
-<h1>${http_status}</h1>
+<section>
+    <h1>${http_status}</h1>
 
-<p>${message}</p>
+    <p>${message}</p>
+</section>
