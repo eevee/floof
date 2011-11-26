@@ -71,7 +71,7 @@ def configure_routing(config):
     kw['pregenerator'] = artwork_pregenerator
     r('art.browse', '/art')
     r('art.upload', '/art/upload')
-    r('art.view', r'/art/{id:\d+}{title:(;.+)?}', **kw)
+    r('art.view', r'/art/{id:\d+}{title:(!.+)?}', **kw)
     r('art.add_tags', r'/art/{id:\d+}/add_tags', **kw)
     r('art.remove_tags', r'/art/{id:\d+}/remove_tags', **kw)
     r('art.rate', r'/art/{id:\d+}/rate', **kw)
@@ -194,7 +194,7 @@ def artwork_pregenerator(request, elements, kw):
     # n.b.: this won't hurt anything if the route doesn't have {title}, so it's
     # calculated and thrown away.  bad?
     if artwork.title:
-        kw['title'] = ';' + _make_url_friendly(artwork.title)
+        kw['title'] = '!' + _make_url_friendly(artwork.title)
     else:
         kw['title'] = ''
 
