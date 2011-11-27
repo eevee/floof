@@ -257,7 +257,7 @@ class GallerySieve(object):
             try:
                 if u':' in tag:
                     rel, _, username = tag.partition(':')
-                    user = self.session.query(model.User).filter_by(username=username).one()
+                    user = self.session.query(model.User).filter_by(name=username).one()
                     self.filter_by_user(rel, user)
                 else:
                     self.filter_by_tag(tag)
