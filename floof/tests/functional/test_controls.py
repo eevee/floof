@@ -56,7 +56,7 @@ class TestControls(FunctionalTests):
                 self.url('controls.info'),
                 extra_environ={'tests.user_id': self.user.id},
                 )
-        assert 'Display Name' in response, 'User Info control page does not appear to have loaded.'
+        assert 'Display name' in response, 'User Info control page does not appear to have loaded.'
 
         # Test setting some new user details
         test_email = u'abc@example.org'
@@ -92,7 +92,7 @@ class TestControls(FunctionalTests):
                 self.url('controls.openid'),
                 extra_environ=self.default_environ,
                 )
-        assert 'Add a New OpenID Identity' in response, 'OpenID control page does not appear to have loaded.'
+        assert 'OpenID Identity Settings' in response, 'OpenID control page does not appear to have loaded.'
 
     def test_openids_add_del(self):
         """Test addition and deletion of OpenID URLs."""

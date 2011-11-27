@@ -100,4 +100,4 @@ class TestAccount(FunctionalTests):
                 self.url('root'),
                 extra_environ={'tests.auth_openid_uid': self.user.id},
                 )
-        assert 'Hello, <a href=' in response, 'Expected to be logged in, but do not appear to be.'
+        assert 'Hello, ' in response, 'Expected to be logged in, but do not appear to be.'

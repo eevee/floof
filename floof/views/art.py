@@ -207,6 +207,7 @@ def upload(context, request):
         artwork.tags.append(tag)
 
     model.session.add_all([artwork, discussion, resource])
+    model.session.flush()  # for primary keys
 
     request.session.flash(u'Uploaded!', level=u'success', icon=u'image--plus')
     return HTTPSeeOther(location=request.route_url('art.view', artwork=artwork))

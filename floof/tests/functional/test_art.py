@@ -69,10 +69,9 @@ class TestArt(FunctionalTests):
         # Response oughta have a redirect
         assert 'location' in response.headers
         location = response.headers['location']
-        # And it should have the title in the URL
-        # TODO: Check that the semicolon should indeed be HTML escaped
-        # (I dare say it shouldn't be)
-        assert location.endswith(u'%3Btest-title')
+        # And it should have the title in the URL; note that the ! is
+        # URL-escaped as %21 in the response header
+        assert location.endswith(u'%21test-title')
 
         # Test viewing the new artwork
         response = self.app.get(self.url('art.view', artwork=art))
