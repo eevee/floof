@@ -11,14 +11,14 @@ from floof import model
 
 log = logging.getLogger(__name__)
 
-def populate_db(meta, is_test=False):
+def populate_db(metadata, session, is_test=False):
     """Place any commands to setup floof here"""
     if is_test:
         # Drop all existing tables during a test
-        meta.metadata.drop_all(checkfirst=True)
+        metadata.drop_all(checkfirst=True)
 
     # Create the tables if they don't already exist
-    meta.metadata.create_all(checkfirst=True)
+    metadata.create_all(checkfirst=True)
 
     # Add canonical privileges and roles
     privileges = dict(
@@ -51,10 +51,10 @@ def populate_db(meta, is_test=False):
         privileges=privileges.values()
     )
 
-    meta.Session.add_all([base_user, admin_user])
-    meta.Session.flush()
+    session.add_all([base_user, admin_user])
+    session.flush()
 
-def generate_ca(conf, meta):
+def generate_ca(conf):
 
     ### Client SSL/TLS certificate stuff
     # Generate the CA.  Attempt to load it from file first.

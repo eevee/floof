@@ -1,7 +1,6 @@
 import os
 
 from floof import model
-from floof.model import meta
 from floof.tests import FunctionalTests
 
 import floof.tests.sim as sim
@@ -17,7 +16,7 @@ class TestArt(FunctionalTests):
         """Creates a user to be used as a fake login."""
         super(TestArt, self).setUp()
         self.user = sim.sim_user()
-        meta.Session.flush()
+        model.session.flush()
 
 
     def test_gallery(self):
@@ -42,7 +41,7 @@ class TestArt(FunctionalTests):
         )
 
         # Find the new image
-        art = meta.Session.query(model.Artwork) \
+        art = model.session.query(model.Artwork) \
             .order_by(model.Artwork.id.desc()) \
             .limit(1) \
             .first()

@@ -118,7 +118,7 @@ def configure_routing(config):
 
         try:
             sqla_column = commentables[type]
-            entity = floof.model.meta.Session.query(sqla_column.parententity).filter(sqla_column == identifier).one()
+            entity = floof.model.session.query(sqla_column.parententity).filter(sqla_column == identifier).one()
         except (NoResultFound, KeyError):
             # 404!
             raise NotFound()
@@ -128,7 +128,7 @@ def configure_routing(config):
 
         # URLs to specific comments should have those comments as the context
         try:
-            return floof.model.meta.Session.query(floof.model.Comment).with_parent(entity.discussion).filter(floof.model.Comment.id == request.matchdict['comment_id']).one()
+            return floof.model.session.query(floof.model.Comment).with_parent(entity.discussion).filter(floof.model.Comment.id == request.matchdict['comment_id']).one()
         except NoResultFound:
             raise NotFound()
 
@@ -178,7 +178,7 @@ def sqla_route_options(url_key, match_key, sqla_column):
     def factory(request):
         # This yields the "context", which should be the row object
         try:
-            return floof.model.meta.Session.query(sqla_column.parententity).filter(sqla_column == request.matchdict[match_key]).one()
+            return floof.model.session.query(sqla_column.parententity).filter(sqla_column == request.matchdict[match_key]).one()
         except NoResultFound:
             # 404!
             raise NotFound()

@@ -14,8 +14,7 @@ from wtforms.ext.sqlalchemy.fields import QuerySelectMultipleField
 from floof.forms import DisplayNameField, IDNAField, KeygenField, MultiCheckboxField, TimezoneField
 from floof.lib.auth import get_ca, update_crl
 from floof.lib.openid_ import OpenIDError, openid_begin, openid_end
-import floof.model as model
-from floof.model import meta
+from floof import model
 
 log = logging.getLogger(__name__)
 
@@ -103,7 +102,7 @@ def relationships(context, request):
     # exists
     # XXX: show timestamps
 
-    q = meta.Session.query(model.UserWatch) \
+    q = model.session.query(model.UserWatch) \
         .with_parent(request.user) \
         .order_by(model.UserWatch.created_time.desc())
     watches = q.all()
@@ -126,12 +125,12 @@ class WatchForm(wtforms.form.Form):
     renderer='account/controls/relationships_watch.mako')
 def relationships_watch(context, request):
     target_username = request.params.get('target_user', None)
-    target_user = meta.Session.query(model.User) \
+    target_user = model.session.query(model.User) \
         .filter_by(name=target_username).one()
     if not target_user:
         raise NotFound()
 
-    watch = meta.Session.query(model.UserWatch) \
+    watch = model.session.query(model.UserWatch) \
         .filter_by(user=request.user, other_user=target_user) \
         .first()
     watch_form = WatchForm(obj=watch)
@@ -151,7 +150,7 @@ def relationships_watch(context, request):
 def relationships_watch_commit(context, request):
     # XXX clean this crap up
     target_username = request.params.get('target_user', None)
-    target_user = meta.Session.query(model.User) \
+    target_user = model.session.query(model.User) \
         .filter_by(name=target_username).one()
     if not target_user:
         raise NotFound()
@@ -162,7 +161,7 @@ def relationships_watch_commit(context, request):
         request.session.flash(u"Yo form is jacked", level=u'error')
         return HTTPBadRequest()
 
-    watch = meta.Session.query(model.UserWatch) \
+    watch = model.session.query(model.UserWatch) \
         .filter_by(user=request.user, other_user=target_user) \
         .first()
     if not watch:
@@ -176,7 +175,7 @@ def relationships_watch_commit(context, request):
     watch.watch_for = watch_form.watch_for.data
     watch.watch_of = watch_form.watch_of.data
 
-    meta.Session.add(watch)
+    model.session.add(watch)
 
     # XXX where should this redirect?
     request.session.flash(
@@ -192,7 +191,7 @@ def relationships_watch_commit(context, request):
 def relationships_unwatch_commit(context, request):
     # XXX clean this crap up
     target_username = request.params.get('target_user', None)
-    target_user = meta.Session.query(model.User) \
+    target_user = model.session.query(model.User) \
         .filter_by(name=target_username).one()
     if not target_user:
         abort(404)
@@ -204,7 +203,7 @@ def relationships_unwatch_commit(context, request):
             level=u'error')
         return HTTPBadRequest()
 
-    meta.Session.query(model.UserWatch) \
+    model.session.query(model.UserWatch) \
         .filter_by(user=request.user, other_user=target_user) \
         .delete()
 
@@ -239,7 +238,7 @@ def openid(context, request):
     user = request.user
     add_openid_form = AddOpenIDForm()
     remove_openid_form = RemoveOpenIDForm()
-    remove_openid_form.openids.query = meta.Session.query(model.IdentityURL).with_parent(user)
+    remove_openid_form.openids.query = model.session.query(model.IdentityURL).with_parent(user)
 
     return dict(
         add_openid_form=add_openid_form,
@@ -285,7 +284,7 @@ def openid_add_finish(context, request):
     # XXX we should put the attempted openid in here
     form = AddOpenIDForm() # XXX fetch_post(session, request))
     remove_form = RemoveOpenIDForm()
-    remove_form.openids.query = meta.Session.query(model.IdentityURL).with_parent(user)
+    remove_form.openids.query = model.session.query(model.IdentityURL).with_parent(user)
 
     ret = dict(
         add_openid_form=form,
@@ -301,7 +300,7 @@ def openid_add_finish(context, request):
         return ret
 
     # Allow an OpenID identity to be registered to only one user.
-    existing_url = meta.Session.query(model.IdentityURL) \
+    existing_url = model.session.query(model.IdentityURL) \
         .filter_by(url=identity_url) \
         .first()
     if existing_url:
@@ -326,7 +325,7 @@ def openid_add_finish(context, request):
 def openid_remove(context, request):
     user = request.user
     form = RemoveOpenIDForm(request.POST) # XXX fetch_post(session, request))
-    form.openids.query = meta.Session.query(model.IdentityURL).with_parent(user)
+    form.openids.query = model.session.query(model.IdentityURL).with_parent(user)
 
     ret = dict(
         remove_openid_form=form,
@@ -341,7 +340,7 @@ def openid_remove(context, request):
         request.session.flash(
             u"Removed OpenID identifier: {0}".format(target.url),
             level=u'success')
-        meta.Session.delete(target)
+        model.session.delete(target)
     return HTTPSeeOther(location=request.route_url('controls.openid'))
 
 
@@ -422,7 +421,7 @@ def certificates(context, request, err=None):
                 days=form.days.data
                 )
         request.user.certificates.append(cert)
-        meta.Session.commit()
+        model.session.commit()
         helpers.flash(
             u'New certificate generated.  You may need to restart '
             'your browser to begin authenticating with it.',
@@ -493,7 +492,7 @@ def certificates_generate_server(context, request):
     request_method='GET',
     renderer='account/controls/certificates_details.mako')
 def certificates_details(context, request):
-    cert = meta.Session.query(model.Certificate).get(request.matchdict['id'])
+    cert = model.session.query(model.Certificate).get(request.matchdict['id'])
     # XXX check_cert(c.cert, c.user)
     return dict(cert=cert)
 
@@ -502,7 +501,7 @@ def certificates_details(context, request):
     permission='auth.certificates',
     request_method='GET')
 def certificates_download(context, request):
-    cert = meta.Session.query(model.Certificate).get(request.matchdict['id'])
+    cert = model.session.query(model.Certificate).get(request.matchdict['id'])
     # XXX check_cert(cert, c.user)
     # TODO: Redirect to the cert overview page.  Somehow.
     return Response(
@@ -517,7 +516,7 @@ def certificates_download(context, request):
     renderer='account/controls/certificates_revoke.mako')
 def certificates_revoke(context, request, id=None):
     form = RevokeCertificateForm()
-    cert = meta.Session.query(model.Certificate).get(request.matchdict['id'])
+    cert = model.session.query(model.Certificate).get(request.matchdict['id'])
     # XXX check_cert(cert, user, check_validity=True)
     will_override_auth = len(request.user.valid_certificates) == 1 and \
             user.cert_auth in ['required', 'sensitive_required']
@@ -532,7 +531,7 @@ def certificates_revoke(context, request, id=None):
     permission='auth.certificates',
     request_method='POST')
 def certificates_revoke_commit(context, request):
-    cert = meta.Session.query(model.Certificate).get(request.matchdict['id'])
+    cert = model.session.query(model.Certificate).get(request.matchdict['id'])
     # XXX check_cert(cert, user, check_validity=True)
     cert.revoke()
     update_crl(request.registry.settings)

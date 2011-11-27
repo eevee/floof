@@ -1,6 +1,6 @@
 from pyramid import testing
 
-from floof.model import meta
+from floof import model
 from floof.tests import FunctionalTests
 import floof.tests.sim as sim
 
@@ -18,7 +18,7 @@ class TestTags(FunctionalTests):
         artwork = sim.sim_artwork(user=user)
         tag = sim.sim_tag()
         artwork.tag_objs.append(tag)
-        meta.Session.flush()
+        model.session.flush()
 
         # Ensure it shows in the tag's gallery
         res = self.app.get(self.url('tags.artwork', tag=tag))

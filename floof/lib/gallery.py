@@ -136,7 +136,7 @@ class GallerySieve(object):
             artwork a single user owns.
         """
         if not session:
-            session = model.meta.Session
+            session = model.session
 
         self.session = session
         self.user = user

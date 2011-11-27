@@ -3,8 +3,7 @@ from __future__ import unicode_literals
 import random
 import string
 
-import floof.model as model
-from floof.model import meta
+from floof import model
 
 # XXX The idea here is that we generate random junk data to use (and print the
 # seed at the start of a test run), ensuring over time that the actual format
@@ -13,13 +12,13 @@ from floof.model import meta
 # random.
 
 def sim_user(role='user'):
-    role_id = meta.Session.query(model.Role).filter_by(name=role).one().id
+    role_id = model.session.query(model.Role).filter_by(name=role).one().id
     user = model.User(
         name = 'sim_' + ''.join(random.choice(string.letters) for n in range(10)),
         role_id = role_id,
         resource = model.Resource(type=u'users'),
     )
-    meta.Session.add(user)
+    model.session.add(user)
     return user
 
 def sim_artwork(user):
@@ -36,10 +35,10 @@ def sim_artwork(user):
         width = 100,
         number_of_colors = 256,
     )
-    meta.Session.add(artwork)
+    model.session.add(artwork)
     return artwork
 
 def sim_tag():
     tag = model.Tag(name=u'foo')
-    meta.Session.add(tag)
+    model.session.add(tag)
     return tag

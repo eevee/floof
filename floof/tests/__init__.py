@@ -19,21 +19,21 @@ from sqlalchemy import create_engine
 from zope.sqlalchemy import ZopeTransactionExtension
 
 from floof.lib.setup import populate_db
-from floof.model import initialize
-from floof.model import meta
+import floof.model
 from floof.routing import configure_routing
 
 __all__ = ['FunctionalTests', 'UnitTests']
 
 def _prepare_env():
     """Configure the floof model and set up a database the default entries."""
-    meta.Session.remove()
-    engine = create_engine('sqlite://')
-    initialize(engine)
-    meta.Session.configure(bind=meta.engine, extension=ZopeTransactionExtension())
+    floof.model.session.remove()
+    floof.model.initialize(
+        create_engine('sqlite://'),
+        extension=ZopeTransactionExtension())
 
     transaction.begin()
-    populate_db(meta, is_test=True)
+    populate_db(floof.model.TableBase.metadata, floof.model.session,
+        is_test=True)
     transaction.commit()
 
 # XXX: major import side-effects ahoy!
@@ -45,7 +45,7 @@ class UnitTests(unittest.TestCase):
     def setUp(self):
         # Initialize a db session and a threadlocal environment
         transaction.begin()
-        self.session = meta.Session()
+        self.session = floof.model.session()
         # The config will be picked up automatically by Pyramid as a thread
         # local
         self.config = testing.setUp()

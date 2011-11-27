@@ -8,7 +8,6 @@ import random
 
 from pyramid import testing
 
-from floof.model import meta
 from floof.model import Tag
 from floof.tests import UnitTests
 

@@ -6,7 +6,6 @@ from pyramid.view import view_config
 from sqlalchemy.sql import func
 
 from floof import model
-from floof.model import meta
 
 log = logging.getLogger(__name__)
 
@@ -111,13 +110,13 @@ def reply_to_discussion_commit(discussion_or_comment, request):
 
     # Re-get the discussion with a separate query for locking purposes
     # XXX necessary?
-    discussion = meta.Session.query(model.Discussion) \
+    discussion = model.session.query(model.Discussion) \
         .with_lockmode('update') \
         .get(discussion.id)
 
     # XXX put this all in the Comment constructor?
     if comment:
-        righter_comments = meta.Session.query(model.Comment) \
+        righter_comments = model.session.query(model.Comment) \
             .with_parent(discussion)
         righter_comments \
             .filter(model.Comment.left > comment.right) \
@@ -130,10 +129,10 @@ def reply_to_discussion_commit(discussion_or_comment, request):
         new_comment_right = comment.right + 1
 
         comment.right += 2
-        meta.Session.add(comment)
+        model.session.add(comment)
 
     else:
-        max_right, = meta.Session.query(func.max(model.Comment.right)) \
+        max_right, = model.session.query(func.max(model.Comment.right)) \
             .with_parent(discussion) \
             .one()
 
@@ -153,9 +152,9 @@ def reply_to_discussion_commit(discussion_or_comment, request):
     )
 
     discussion.comment_count += 1
-    meta.Session.add(new_comment)
-    meta.Session.add(discussion)
-    meta.Session.flush()  # Need to get the new comment's id
+    model.session.add(new_comment)
+    model.session.add(discussion)
+    model.session.flush()  # Need to get the new comment's id
 
     # Redirect to the new comment
     return HTTPSeeOther(

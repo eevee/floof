@@ -17,7 +17,7 @@ from floof.lib.auth import Authenticizer, FloofAuthnPolicy, FloofAuthzPolicy
 import floof.lib.debugging
 import floof.lib.helpers
 import floof.model
-from floof.model import filestore, meta
+from floof.model import filestore
 import floof.routing
 import floof.views
 
@@ -96,7 +96,7 @@ def flush_everything(event):
     # XXX this is a hack to make the timer stuff not explode.  repoze.tm
     # commits after the request has already gone away, which breaks it.  try
     # flushing first so the commit doesn't trigger the sqla listeners.  :/
-    meta.Session.flush()
+    floof.model.session.flush()
 
 def log_timers(event):
     """Log the state of the timers; for production when super_debug is off.
@@ -154,8 +154,8 @@ def main(global_config, **settings):
     ### Settings
     # Set up SQLAlchemy stuff
     engine = engine_from_config(settings, 'sqlalchemy.')
-    floof.model.meta.Session.configure(bind=engine, extension=ZopeTransactionExtension())
-    floof.model.TableBase.metadata.bind = engine                             
+    floof.model.initialize(
+        engine, extension=ZopeTransactionExtension())
 
     # floof debug panel
     settings['super_debug'] = asbool(settings.get('super_debug', False))

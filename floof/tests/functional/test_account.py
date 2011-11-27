@@ -1,7 +1,6 @@
 import time
 
 from floof import model
-from floof.model import meta
 from floof.tests import FunctionalTests
 
 import floof.tests.sim as sim
@@ -13,7 +12,7 @@ class TestAccount(FunctionalTests):
         super(TestAccount, self).setUp()
 
         self.user = sim.sim_user()
-        meta.Session.flush()
+        model.session.flush()
 
         self.default_environ = {
                 'tests.user_id': self.user.id,
@@ -66,12 +65,12 @@ class TestAccount(FunctionalTests):
                     ],
                 extra_environ=self.default_environ,
                 )
-        user = meta.Session.query(model.User).filter_by(id=self.user.id).one()
+        user = model.session.query(model.User).filter_by(id=self.user.id).one()
         assert len(user.certificates) == 1, 'Expected user to have exactly one certificate, found {0}'.format(len(user.certificates))
         serial = user.certificates[0].serial
         for cert_auth in runsheet:
             user.cert_auth = cert_auth
-            meta.Session.flush()
+            model.session.flush()
             for test in runsheet[cert_auth]:
                 result, mechs = test
                 extra = dict()
@@ -90,9 +89,9 @@ class TestAccount(FunctionalTests):
 
     def test_login_cert_invalid(self):
         """Test automatic fallback to "allowed" if the user has no valid certs."""
-        user = meta.Session.query(model.User).filter_by(id=self.user.id).one()
+        user = model.session.query(model.User).filter_by(id=self.user.id).one()
         user.cert_auth = u'required'
-        meta.Session.flush()
+        model.session.flush()
         response = self.app.post(
                 self.url('account.logout'),
                 expect_errors=True,

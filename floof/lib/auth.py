@@ -5,7 +5,7 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import NoResultFound
 
 from floof import model
-from floof.model import meta, Certificate
+from floof.model import Certificate
 
 import calendar
 from datetime import datetime, timedelta
@@ -236,7 +236,7 @@ class Authenticizer(object):
             return
 
         # OK, figure out what certificate and user this serial belongs to
-        cert_q = meta.Session.query(model.Certificate) \
+        cert_q = model.session.query(model.Certificate) \
             .options(joinedload(model.Certificate.user)) \
             .filter_by(serial=serial)
 
@@ -293,7 +293,7 @@ class Authenticizer(object):
         there is none.
         """
         if 'user_id' in self.state and self.state['user_id']:
-            user = meta.Session.query(model.User) \
+            user = model.session.query(model.User) \
                 .options(joinedload(model.User.role)) \
                 .get(self.state['user_id'])
         else:
@@ -467,7 +467,7 @@ def get_ca(settings):
 def update_crl(settings):
     """Generates a new Certificate Revocation List and writes it to file."""
     crl = ssl.CRL()
-    for cert in meta.Session.query(Certificate).filter_by(revoked=True).all():
+    for cert in model.session.query(Certificate).filter_by(revoked=True).all():
         r = ssl.Revoked()
         r.set_serial(cert.serial)
         r.set_rev_date(cert.revoked_time.strftime('%Y%m%d%H%M%SZ'))

@@ -12,6 +12,7 @@ from sqlalchemy import Column, ForeignKey, MetaData, Table, and_
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import backref, class_mapper, relation, subqueryload, validates
+from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.properties import ColumnProperty
 from sqlalchemy.orm.session import object_session
@@ -21,26 +22,21 @@ from floof.model.extensions import *
 from floof.model.types import *
 from paste.deploy.converters import asint
 
-from floof.model import meta
+# Thread-scoped session manager and table base class (which contains the
+# metadata).  These are updated by initialize() below
+session = scoped_session(sessionmaker())
+TableBase = declarative_base()
+
+def initialize(engine, extension=None):
+    """Call me before using any of the tables or classes in the model"""
+    # XXX: Is init_model actually used by anything?  Could these be combined?
+    session.configure(bind=engine, extension=extension)
+    TableBase.metadata.bind = engine
+    #TableBase.metadata.create_all()
+
 
 def now():
     return datetime.datetime.now(pytz.utc)
-
-def init_model(engine):
-    """Call me before using any of the tables or classes in the model"""
-    meta.Session.configure(bind=engine)
-    meta.engine = engine
-
-def initialize(engine):
-    """Call me before using any of the tables or classes in the model"""
-    # XXX: Is init_model actually used by anything?  Could these be combined?
-    meta.Session.configure(bind=engine)
-    meta.engine = engine
-    meta.metadata.bind = engine
-    meta.metadata.create_all(engine)
-
-
-TableBase = declarative_base(metadata=meta.metadata)
 
 
 ### CORE
@@ -527,16 +523,16 @@ class Certificate(TableBase):
         self.revoked_time = now()
 
     @classmethod
-    def get(cls, Session, id=None, serial=None):
+    def get(cls, session, id=None, serial=None):
         try:
             if id is not None:
-                return Session.query(Certificate).filter_by(id=id).one()
+                return session.query(Certificate).filter_by(id=id).one()
             if serial is not None:
                 if isinstance(serial, int):
                     serial = '{0:x}'.format(serial)
                 else:
                     serial = unicode(serial.lower())
-                return Session.query(Certificate).filter_by(serial=serial).one()
+                return session.query(Certificate).filter_by(serial=serial).one()
         except NoResultFound:
             return None
 
@@ -545,7 +541,7 @@ class Certificate(TableBase):
 
 def get_or_create_tag(name):
     try:
-        return meta.Session.query(Tag).filter_by(name=name).one()
+        return session.query(Tag).filter_by(name=name).one()
     except NoResultFound:
         return Tag(name)
 
@@ -564,12 +560,12 @@ class Label(TableBase):
     user_id = Column(Integer, ForeignKey('users.id'))
     encapsulation = Column(Enum(u'public', u'private', name='labels_encapsulation'), nullable=False)
 
-artwork_tags = Table('artwork_tags', meta.metadata,
+artwork_tags = Table('artwork_tags', TableBase.metadata,
     Column('artwork_id', Integer, ForeignKey('artwork.id'), primary_key=True),
     Column('tag_id', Integer, ForeignKey('tags.id'), primary_key=True),
 )
 
-artwork_labels = Table('artwork_labels', meta.metadata,
+artwork_labels = Table('artwork_labels', TableBase.metadata,
     Column('artwork_id', Integer, ForeignKey('artwork.id'), primary_key=True),
     Column('label_id', Integer, ForeignKey('labels.id'), primary_key=True),
 )
@@ -592,7 +588,7 @@ class Log(TableBase):
 
     __mapper_args__ = {'order_by': timestamp.desc()}
 
-log_privileges = Table('log_privileges', meta.metadata,
+log_privileges = Table('log_privileges', TableBase.metadata,
     Column('log_id', Integer, ForeignKey('logs.id'), primary_key=True, nullable=False),
     Column('priv_id', Integer, ForeignKey('privileges.id'), primary_key=True, nullable=False),
 )

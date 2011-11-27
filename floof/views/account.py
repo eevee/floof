@@ -15,7 +15,8 @@ import wtforms.form, wtforms.fields, wtforms.validators
 from floof.forms import DisplayNameField, TimezoneField
 import floof.lib.auth
 from floof.lib.openid_ import OpenIDError, openid_begin, openid_end
-from floof.model import Resource, Discussion, UserProfileRevision, IdentityURL, User, Role, meta
+from floof.model import Resource, Discussion, UserProfileRevision, IdentityURL, User, Role
+from floof import model
 
 log = logging.getLogger(__name__)
 
@@ -117,7 +118,7 @@ def login_finish(context, request):
         return HTTPSeeOther(location=location)
 
     # Find who owns this URL, if anyone
-    identity_owner = meta.Session.query(User) \
+    identity_owner = model.session.query(User) \
         .filter(User.identity_urls.any(url=identity_url)) \
         .limit(1).first()
 
@@ -212,7 +213,7 @@ class RegistrationForm(wtforms.form.Form):
     timezone = TimezoneField(u'Timezone')
 
     def validate_username(form, field):
-        if meta.Session.query(User).filter_by(name=field.data).count():
+        if model.session.query(User).filter_by(name=field.data).count():
             raise wtforms.validators.ValidationError(
                 'Your username is already taken. Please try again.')
 
@@ -223,7 +224,7 @@ def register(context, request):
     # Check identity URL
     identity_url = request.session.get('pending_identity_url')
     if not identity_url or \
-       meta.Session.query(IdentityURL) \
+       model.session.query(IdentityURL) \
             .filter_by(url=identity_url).count():
 
         # Not in the session or is already registered.  Neither makes
@@ -251,7 +252,7 @@ def register(context, request):
             reduce_display_name(display_name))
 
     # Create db records
-    base_user = meta.Session.query(Role).filter_by(name=u'user').one()
+    base_user = model.session.query(Role).filter_by(name=u'user').one()
     resource = Resource(type=u'users')
     discussion = Discussion(resource=resource)
     user = User(
@@ -264,12 +265,12 @@ def register(context, request):
         display_name=display_name,
         has_trivial_display_name=has_trivial_display_name,
     )
-    meta.Session.add_all((user, resource, discussion))
+    model.session.add_all((user, resource, discussion))
 
     openid = IdentityURL(url=identity_url)
     user.identity_urls.append(openid)
 
-    meta.Session.flush()
+    model.session.flush()
 
     log.info('User #{0} registered: {1}'.format(user.id, user.name))
 
@@ -297,10 +298,10 @@ def add_identity(context, request):
         # You shouldn't be here
         return HTTPBadRequest()
 
-    meta.Session.add(IdentityURL(user=request.user, url=identity_url))
+    model.session.add(IdentityURL(user=request.user, url=identity_url))
 
     try:
-        meta.Session.flush()
+        model.session.flush()
     except IntegrityError:
         # Somehow you're trying to add an already-claimed URL.  This shouldn't
         # happen either
@@ -325,6 +326,6 @@ def profile(context, request):
     if request.method == 'POST' and form.validate():
         profile = request.user.profile = form.profile.data
         rev = UserProfileRevision(user=request.user, updated_by=request.user, content=profile)
-        meta.Session.add(rev)
+        model.session.add(rev)
 
     return {}

@@ -5,7 +5,6 @@ from pyramid.view import view_config
 
 from floof import model
 from floof.lib.gallery import GallerySieve
-from floof.model import meta
 
 log = logging.getLogger(__name__)
 
@@ -14,7 +13,7 @@ log = logging.getLogger(__name__)
     request_method='GET',
     renderer='tags/index.mako')
 def index(context, request):
-    q = meta.Session.query(model.Tag).order_by(model.Tag.name)
+    q = model.session.query(model.Tag).order_by(model.Tag.name)
     return dict(
         tags=q,
     )

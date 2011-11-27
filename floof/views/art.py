@@ -12,7 +12,6 @@ import wtforms.form, wtforms.fields, wtforms.validators
 from floof import model
 from floof.forms import MultiCheckboxField, MultiTagField
 from floof.lib.gallery import GallerySieve
-from floof.model import meta
 
 # XXX import from somewhere
 class CommentForm(wtforms.form.Form):
@@ -118,7 +117,7 @@ def upload(context, request):
     hash = hasher.hexdigest().decode('ascii')
 
     # Assert that the thing is unique
-    existing_artwork = meta.Session.query(model.Artwork) \
+    existing_artwork = model.session.query(model.Artwork) \
         .filter_by(hash = hash) \
         .all()
     if existing_artwork:
@@ -207,7 +206,7 @@ def upload(context, request):
     for tag in form.tags.data:
         artwork.tags.append(tag)
 
-    meta.Session.add_all([artwork, discussion, resource])
+    model.session.add_all([artwork, discussion, resource])
 
     request.session.flash(u'Uploaded!', level=u'success', icon=u'image--plus')
     return HTTPSeeOther(location=request.route_url('art.view', artwork=artwork))
@@ -232,7 +231,7 @@ def view(artwork, request):
     # If the user is not anonymous, get the previous rating if it exists
     current_rating = None
     if request.user:
-        rating_obj = meta.Session.query(model.ArtworkRating) \
+        rating_obj = model.session.query(model.ArtworkRating) \
             .with_parent(artwork) \
             .with_parent(request.user) \
             .first()
@@ -267,7 +266,7 @@ def rate(artwork, request):
         return HTTPBadRequest()
 
     # Get the previous rating, if there was one
-    rating_obj = meta.Session.query(model.ArtworkRating) \
+    rating_obj = model.session.query(model.ArtworkRating) \
         .filter_by(artwork=artwork, user=request.user) \
         .first()
 
@@ -282,7 +281,7 @@ def rate(artwork, request):
             user=request.user,
             rating=rating,
         )
-        meta.Session.add(rating_obj)
+        model.session.add(rating_obj)
 
     # If the request has the asynchronous parameter, we return the number/sum
     # of ratings to update the widget

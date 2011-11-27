@@ -10,7 +10,6 @@ from zope.sqlalchemy import ZopeTransactionExtension
 
 from floof.lib.setup import generate_ca
 from floof.lib.setup import populate_db
-from floof.model import meta
 from floof import model
 
 log = logging.getLogger(__name__)
@@ -25,12 +24,12 @@ if __name__ == '__main__':
     conf = appconfig('config:' + ini_spec)
 
     # Set up the SQLAlchemy environment
-    engine = engine_from_config(conf, 'sqlalchemy.')
-    meta.Session.configure(bind=engine, extension=ZopeTransactionExtension())
-    model.TableBase.metadata.bind = engine
+    model.initialize(
+        engine_from_config(conf, 'sqlalchemy.'),
+        extension=ZopeTransactionExtension())
 
-    populate_db(meta)
-    generate_ca(conf, meta)
+    populate_db(model.TableBase.metadata, model.session)
+    generate_ca(conf)
 
     # XXX: This may be bad juju
     transaction.commit()

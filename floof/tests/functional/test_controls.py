@@ -7,7 +7,6 @@ from openid import oidutil
 from urlparse import parse_qs, urlparse
 
 from floof import model
-from floof.model import meta
 from floof.tests import FunctionalTests
 import floof.tests.openidspoofer as oidspoof
 import floof.tests.sim as sim
@@ -27,7 +26,7 @@ class TestControls(FunctionalTests):
         super(TestControls, self).setUp()
 
         self.user = sim.sim_user()
-        meta.Session.flush()
+        model.session.flush()
 
         self.default_environ = {
                 'tests.user_id': self.user.id,
@@ -70,7 +69,7 @@ class TestControls(FunctionalTests):
                 ],
                 extra_environ={'tests.user_id': self.user.id},
                 )
-        meta.Session.flush()
+        model.session.flush()
         response = self.app.get(
                 self.url('controls.info'),
                 extra_environ={'tests.user_id': self.user.id},
@@ -155,7 +154,7 @@ class TestControls(FunctionalTests):
         assert 'can already authenticate with that OpenID' in response_end
 
         # Test deletion
-        oid = meta.Session.query(model.IdentityURL) \
+        oid = model.session.query(model.IdentityURL) \
                 .filter_by(url=spoofer.url) \
                 .one()
         response = self.app.post(
@@ -176,7 +175,7 @@ class TestControls(FunctionalTests):
         assert ':{0}/id/flooftest2</option>'.format(PORT) not in response_end, 'Deletion of OpenID identity URL failed.'
 
         # Test rejection of deletion of final OpenID URL
-        q = meta.Session.query(model.IdentityURL).filter_by(user_id=self.user.id)
+        q = model.session.query(model.IdentityURL).filter_by(user_id=self.user.id)
         assert q.count() < 2, 'Test user has more that one OpenID URL, when they should not.'
         assert q.count() > 0, 'Test user no OpenID URLs, when they should have one.'
         oid = q.one()
@@ -290,7 +289,7 @@ class TestControls(FunctionalTests):
                 extra_environ=self.default_environ,
                 )
         assert 'selected="selected" value="disabled"' in response, 'Allowed change to method requiring a certificate when user did not present one in request.'
-        user = meta.Session.query(model.User).filter_by(id=self.user.id).one()
+        user = model.session.query(model.User).filter_by(id=self.user.id).one()
         assert len(user.valid_certificates) > 0, 'User does not appear to have any valid certificates, even though we just created one.'
         serial = user.valid_certificates[0].serial
         environ = copy.deepcopy(self.default_environ)
@@ -340,11 +339,11 @@ class TestControls(FunctionalTests):
         # Spoof a successful OpenID login
         spoofer = self.spoofer
         spoofer.update(user=u'user', accept=True)
-        user = meta.Session.query(model.User).filter_by(id=self.user.id).one()
+        user = model.session.query(model.User).filter_by(id=self.user.id).one()
         idurl = model.IdentityURL()
         idurl.url = spoofer.url
         user.identity_urls.append(idurl)
-        meta.Session.flush()
+        model.session.flush()
         response = self.app.post(
                 self.url('account.login_begin'),
                 params=[

@@ -6,7 +6,6 @@ from decorator import decorator
 
 from floof.lib.auth import stash_request
 from floof.lib.helpers import flash, redirect
-from floof.model import meta
 from floof import model
 
 log = logging.getLogger(__name__)
