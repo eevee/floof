@@ -30,8 +30,8 @@
     <h1>Names</h1>
     <p>Your <dfn>username</dfn> appears in your userpage URL.  It has to be unique, you can't change it, and it can only use letters, numbers, and underscores.</p>
     <p>You can also pick a <dfn>display name</dfn> which shows next to your art and comments.  It can be anything you want and can be changed at any time.</p>
-    <p>If your display name doesn't look anything like your username, we'll show them both, like this: <code><strong>Awesome Guy</strong> (sephirothluvr2016)</code></p>
-    <p>But if your display name is just your username with some capitals and spaces, that's all we'll show: <code><strong>SephirothLuvr2016</strong></code></p>
+    <p>If your display name doesn't look anything like your username, we'll show them both, like this: <code><strong>Awesome Guy</strong> (sephiroth_luvr_2016)</code></p>
+    <p>But if your display name is just your username with some capitals, and/or with some underscores replaced by spaces, that's all we'll show: <code><strong>Sephiroth Luvr 2016</strong></code></p>
     <p>Confused?  Just leave "display name" blank, and you can worry about it later.</p>
 </aside>
 
