@@ -33,6 +33,8 @@ ${lib.secure_form(request.path_url, multipart=True)}
     <dd>${lib.field_errors(form.relationship)}</dd>
     % endif
 
+    ${lib.field(form.remark, rows=8, cols=80)}
+
     <dd class="standard-form-footer">
         <button>Upload!</button>
     </dd>

@@ -60,7 +60,7 @@
             else:
                 rating_score = artwork.rating_score # XXX * config['rating_radius']
         %>\
-        % if 1 or request.user.can('art.rate'):
+        % if request.user.can('art.rate'):
             <script type="text/javascript">
             $("div.art-rater").rater({
                 rate_url: "${request.route_url('art.rate', artwork=artwork)}",
@@ -94,6 +94,7 @@
             </div>
         </div>
     </div>
+
     <h1 id="tags">Tags</h1>
     <p>\
     % for tag in artwork.tag_objs:
@@ -116,6 +117,11 @@
     ${lib.field_errors(form.tags)}
     % endif
     % endfor
+
+    % if artwork.remark:
+    <h1>Remarks</h1>
+    <div class="content rich-text">${h.render_rich_text(artwork.remark)}</div>
+    % endif
 </section>
 <section class="column">
     <h1>Stats</h1>

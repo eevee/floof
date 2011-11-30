@@ -220,10 +220,13 @@ class Artwork(TableBase):
     original_filename = Column(Unicode(255), nullable=False)
     mime_type = Column(Unicode(255), nullable=False)
     file_size = Column(Integer, nullable=False)
-    __mapper_args__ = {'polymorphic_on': media_type}
     rating_count = Column(Integer, nullable=False, default=0)
     rating_sum = Column(Float, nullable=False, default=0)
     rating_score = Column(Float, nullable=True, default=None)
+    # TODO should this (and the comment prose) be a special column type?
+    remark = Column(UnicodeText, nullable=False, default=u'')
+
+    __mapper_args__ = {'polymorphic_on': media_type}
 
     @property
     def resource_title(self):

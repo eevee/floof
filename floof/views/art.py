@@ -60,6 +60,7 @@ def get_number_of_colors(image):
         raise ValueError("Unknown palette mode, argh!")
 
 class UploadArtworkForm(wtforms.form.Form):
+    # XXX need some kinda field lengths or something on these
     file = wtforms.fields.FileField(u'')
     title = wtforms.fields.TextField(u'Title')
     relationship = MultiCheckboxField(u'',
@@ -70,6 +71,8 @@ class UploadArtworkForm(wtforms.form.Form):
         ],
     )
     tags = MultiTagField(u'Tags')
+
+    remark = wtforms.fields.TextAreaField(u'Remark')
 
 @view_config(
     route_name='art.upload',
@@ -171,8 +174,9 @@ def upload(context, request):
     storage.put(u'thumbnail', hash, buf)
 
     # Deal with user-supplied metadata
-    # nb: it's perfectly valid to have no title
+    # nb: it's perfectly valid to have no title or remark
     title = form.title.data.strip()
+    remark = form.remark.data.strip()
 
     # Stuff it all in the db
     resource = model.Resource(type=u'artwork')
@@ -185,6 +189,7 @@ def upload(context, request):
         mime_type = mimetype,
         file_size = file_size,
         resource = resource,
+        remark = remark,
     )
     artwork = model.MediaImage(
         height = height,
