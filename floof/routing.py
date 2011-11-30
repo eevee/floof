@@ -26,7 +26,7 @@ def configure_routing(config):
 
     # Miscellaneous root stuff
     r('root', '/')
-    r('filestore', '/filestore/{class_}/{key}')
+    r('filestore', '/filestore/{class_}/{key}', pregenerator=filestore_pregenerator)
     r('reproxy', '/reproxy')
     r('cookies_disabled', '/cookies_disabled')
     r('log', '/log')
@@ -206,3 +206,13 @@ def _make_url_friendly(title):
     """
     # RFC 3986 section 2.3 says: letters, numbers, and -_.~ are unreserved
     return re.sub('[^-_.~a-zA-Z0-9]', '-', title)
+
+def filestore_pregenerator(request, elements, kw):
+    """Pregenerator for the filestore, which may run under a different domain
+    name in the case of a CDN cacher thinger.
+    """
+    cdn_root = request.registry.settings.get('cdn_root')
+    if cdn_root:
+        kw['_app_url'] = cdn_root
+
+    return elements, kw
