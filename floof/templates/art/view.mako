@@ -67,8 +67,7 @@
                 value: ${current_rating or '0'},  // XXX ugghghuguhg
                 num_ratings: ${artwork.rating_count},
                 rating_sum: ${rating_score or 'null'},
-                ##XXX auth_token: "${h.authentication_token()}", auth_token_field: "${h.token_key}"})
-                auth_token: "", auth_token_field: ""})
+                auth_token: "${request.session.get_csrf_token()}", auth_token_field: "csrf_token"})
             </script>
             <noscript>
                 <div class="rater-info"><span class="rater-num-ratings">${artwork.rating_count}</span> (<span class="rater-rating-sum">${rating_score or u'—'}</span>)</div>
