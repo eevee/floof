@@ -26,7 +26,7 @@
     <h1>Art</h1>
     <div class="column-container">
     <div class="column-2x">
-    <dl class="standard-form">
+    <dl class="standard-deflist">
         <dt>Title</dt>
         <dd>${artwork.title or 'Untitled'}</dd>
         <dt>Uploader</dt>
@@ -125,7 +125,7 @@
 </section>
 <section class="column">
     <h1>Stats</h1>
-    <dl class="standard-form">
+    <dl class="standard-deflist">
         ## XXX some of these only apply to some media types
         <dt>Filename</dt>
         <dd>${artwork.original_filename}</dd>

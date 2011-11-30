@@ -49,7 +49,8 @@
             % endif
             </menu>
             <menu>
-                <li id="mini-site-title"><a id="site-title" href="${request.route_url('root')}">${request.registry.settings['site_title']}</a></li>
+                ## XXX resurrect this with a mini-logo once there's some branding
+                ##<li id="mini-site-title"><a id="site-title" href="${request.route_url('root')}">${request.registry.settings['site_title']}</a></li>
                 ## XXX it would be cool if these links could just introspect
                 ## the view, rather than duplicating the permission here
                 <li><a href="${request.route_url('art.browse')}">Art</a></li>

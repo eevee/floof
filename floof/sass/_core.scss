@@ -31,8 +31,8 @@ body > header {
     #banner {
         position: relative;
         overflow: hidden;
-        height: 200px;
-        background: url(/images/test-banner.png) -600px 0;
+        height: 100px;
+        background: url(/images/test-banner.png) -600px -100px;
 
         #site-title {
             display: block;
@@ -106,19 +106,19 @@ body > header {
                 > menu {
                     display: none;
                     position: absolute;
+                    z-index: 9999;
                     width: 10em;
                     padding: 0.5em;
                     right: 0;
                     top: 2em;
                     margin-top: 1px;
 
-                    background: #d0d0d0;
-                    border: 1px solid #606060;
+                    background: hsla(0, 0%, 30%, 0.9);
+                    border: 1px solid hsla(0, 0%, 30%, 1.0);
                     border-top: none;
                     @include box-shadow(2px 2px 3px #e0e0e0);
 
                     > li {
-
                         button {
                             width: 100%;
                             text-align: left;
@@ -324,15 +324,17 @@ input[type="submit"], input[type="button"], input[type="submit"], input[type="im
 }
 
 select,
-input[type="text"] {
+input[type="text"],
+textarea {
     color: #404040;
     background: #fff;
     padding: 0.25em;
     border: 1px solid #999;
-    border-radius: 3px;
+    @include border-radius(3px);
 }
 
-input[type="text"] {
+input[type="text"],
+textarea {
     font-size: inherit;
 
     @include box-shadow(inset 1px 1px 2px -1px $shadow);
@@ -420,12 +422,10 @@ dl.standard-form {
         float: left;
         clear: left;
         width: 11em;
-        padding: 0.5em 0;
         text-align: right;
         color: #999;
     }
     > dd {
-        padding: 0.5em 0;
         margin-left: 12em;  // float width
 
         &:after {
@@ -439,6 +439,7 @@ dl.standard-form {
     }
     > dt,
     > dd {
+        padding: 0.5em 0;
         line-height: 2;
     }
 
@@ -472,6 +473,17 @@ span.monospace {
 
 ////////////////////////////////////////////////////////////////////////////////
 // Global, generic components
+
+// General definition list
+dl.standard-deflist {
+    @extend dl.standard-form;
+
+    > dt,
+    > dd {
+        padding: 0.33em 0;
+        line-height: 1.33;
+    }
+}
 
 // Three-column containers
 .column-container {
