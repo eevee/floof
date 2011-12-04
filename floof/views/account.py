@@ -5,6 +5,7 @@ import re
 from pyramid import security
 from pyramid.httpexceptions import HTTPBadRequest, HTTPSeeOther
 from pyramid.renderers import render_to_response
+from pyramid.security import effective_principals
 from pyramid.view import view_config
 from sqlalchemy.exc import IntegrityError
 from webhelpers.util import update_params
@@ -91,6 +92,8 @@ def login_begin(context, request):
 
 
 def safe_openid_login(request, identity_owner, identity_url):
+    """Helper function, catches any exceptions that may be raised on OpenID
+    login."""
     try:
         auth_headers = security.remember(
             request, identity_owner, openid_url=identity_url)
@@ -174,7 +177,7 @@ def login_finish(context, request):
 
         if return_key:
             # Fetch a stashed request
-            old_url = fetch_stash(request, return_key)['url']
+            old_url = fetch_stash(request, key=return_key)['url']
             if old_url:
                 location = update_params(old_url, return_key=return_key)
                 log.debug('Following Return Key \'{0}\' to URL: {1}'
@@ -327,7 +330,7 @@ def register(context, request):
 
 @view_config(
     route_name='account.add_identity',
-    permission='__authenticated__',
+    permission='auth.openid',
     request_method='POST')
 def add_identity(context, request):
     identity_url = request.session.pop('pending_identity_url', None)

@@ -10,13 +10,13 @@ from wtforms.ext.sqlalchemy.fields import QuerySelectMultipleField
 from floof import model
 from floof.forms import FloofForm, MultiCheckboxField
 from floof.lib.openid_ import OpenIDError, openid_begin, openid_end
-from floof.lib.stash import stash_request
+from floof.lib.stash import stash_post
 
 log = logging.getLogger(__name__)
 
 # XXX this all needs cleaning up, and some ajax, and whatever.
 # XXX two forms on one page also raises questions about how best to handle invalid forms
-class AddOpenIDForm(wtforms.form.Form):
+class AddOpenIDForm(FloofForm):
     new_openid = wtforms.TextField(u'New OpenID', [wtforms.validators.Required()])
 
 class RemoveOpenIDForm(FloofForm):
@@ -69,7 +69,7 @@ class AuthenticationForm(FloofForm):
     renderer='account/controls/openid.mako')
 def openid(context, request):
     user = request.user
-    add_openid_form = AddOpenIDForm()
+    add_openid_form = AddOpenIDForm(request)
     remove_openid_form = RemoveOpenIDForm(request)
     remove_openid_form.openids.query = model.session.query(model.IdentityURL).with_parent(user)
 
@@ -78,6 +78,7 @@ def openid(context, request):
         remove_openid_form=remove_openid_form,
     )
 
+
 @view_config(
     route_name='controls.openid.add',
     permission='auth.openid',
@@ -85,7 +86,7 @@ def openid(context, request):
     renderer='account/controls/openid.mako')
 def openid_add(context, request):
     user = request.user
-    form = AddOpenIDForm(request.POST) # XXX fetch_post(session, request))
+    form = AddOpenIDForm(request, request.POST)
     remove_form = RemoveOpenIDForm(request)
     remove_form.openids.query = model.session.query(model.IdentityURL).with_parent(user)
 
@@ -118,7 +119,7 @@ def openid_add(context, request):
 def openid_add_finish(context, request):
     user = request.user
     # XXX we should put the attempted openid in here
-    form = AddOpenIDForm() # XXX fetch_post(session, request))
+    form = AddOpenIDForm(request)
     remove_form = RemoveOpenIDForm(request)
     remove_form.openids.query = model.session.query(model.IdentityURL).with_parent(user)
 
@@ -167,7 +168,7 @@ def openid_remove(context, request):
 
     ret = dict(
         remove_openid_form=form,
-        add_openid_form=AddOpenIDForm(),
+        add_openid_form=AddOpenIDForm(request),
     )
 
     # Delete one or more OpenID identity URLs
@@ -205,5 +206,5 @@ def authentication_commit(context, request):
         request.session.flash(u'Authentication options updated.', level=u'success')
         return HTTPSeeOther(location=request.path_url)
 
-    stash_request(request, _immediate=True)
+    stash_post(request, immediate=True)
     return HTTPSeeOther(location=request.path_url)

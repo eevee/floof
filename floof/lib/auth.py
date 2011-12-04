@@ -481,6 +481,9 @@ def could_have_permission(permission, context, request):
     `permission` in the given `context` or could hold it after
     :term:`authentication upgrade`."""
 
+    if context is None:
+        return False
+
     if not hasattr(context, '__acl__'):
         # XXX is this bit of convenience appropriate?
         context = contextualize(context)
@@ -517,23 +520,19 @@ def attempt_privilege_escalation(permission, context, request):
 
         principal = altset.pop()
 
-        if 'trusted:openid' in effective_principals(request):
-            msg = "You need to re-authenticate with your OpenID identity " \
-                  "to complete this action"
-        else:
-            msg = "You need to authenticate with an OpenID identity to " \
-                  "complete this action"
-
         if principal in ('trusted:openid', 'trusted:openid_recent'):
             # Can elevate by performing an OpenID authentication; so set a
             # return_key and redirect to the login screen
-            from floof.lib.stash import stash_request
-            key = stash_request(request)
-            location = request.route_url('account.login',
-                                         _query=[('return_key', key)])
-            request.session.flash(msg, level='notice')
+            from floof.lib.stash import stash_post
             from pyramid.httpexceptions import HTTPSeeOther
-            raise HTTPSeeOther(location=location)
+
+            key = stash_post(request)
+            request.session.flash("You need to re-authenticate with an OpenID "
+                                  "identity to complete this action",
+                                  level='notice')
+
+            raise HTTPSeeOther(location=request.route_url(
+                    'account.login', _query=[('return_key', key)]))
 
 def current_view_permission(request):
     """Returns the permission on the current (non-error) view or None.
