@@ -3,7 +3,14 @@ nav.side-navigation{
     width: 20em;
     margin-right: 1em;
 
+    ul {
+        list-style-type: none;
+        margin-left: 0;
+    }
+
     li {
+        padding: 0;
+
         &.selected {
             padding: 0.5em;
             background: darken($body-bg, 4%);
