@@ -40,7 +40,7 @@ Comments for: ${discussion.resource.member.resource_title}\
 
     ## Only show this form if we're displaying ALL comments; otherwise it's not
     ## obviously attached to the current comment
-    % if not comment and h.has_permission('comments.add', request.context, request):
+    % if not comment and request.user.can('comments.add', request.context):
     <section>
         <h1>
             ${lib.icon('balloon-white')}
