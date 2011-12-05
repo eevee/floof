@@ -51,11 +51,27 @@
 Session:
 ${pprint.pformat(request.session)}
 
-Auth:
+Authn:
 ${pprint.pformat(request.auth)}
 
 Principals:
 ${pprint.pformat(effective_principals(request))}
+
+Current request context ACLs:
+<% from floof.lib.auth import permissions_in_context %>\
+<% ctx = request.context or request.root %>\
+% while ctx is not None:
+    ${getattr(ctx, '__name__', 'Unnamed Context') or 'Root'}:
+<% perms = permissions_in_context(ctx, request) %>\
+% if perms:
+% for perm, allowed in perms:
+        ${perm}: ${'Allowed' if allowed else 'Denied'}
+% endfor
+% else:
+        None
+% endif
+<% ctx = getattr(ctx, '__parent__', None) %>\
+% endwhile
     </pre>
 </li>
 <li>

@@ -447,6 +447,28 @@ def get_ca(settings):
 # The key point is that the user may perform the upgrade autonomously -- no new
 # permissions need to be administratively granted.
 
+def permissions_in_context(context, request):
+    """Returns a list of (permission, allowed) tuples for each permission
+    defined in the ACL (``__acl__``) of the `context`.  allowed is a boolean
+    that is True if ``request.user`` holds that permission in that context."""
+
+    acl = getattr(context, '__acl__', None)
+
+    if not acl:
+        return []
+
+    permissions = set()
+    for action, principal, perms in acl:
+        if not hasattr(perms, '__iter__'):
+            perms = [perms]
+        permissions.update(set(perms))
+
+    results = []
+    for perm in sorted(permissions):
+        results.append((perm, request.user.can(perm, context)))
+
+    return results
+
 def outstanding_principals(permission, context, request):
     """Returns a list of sets of principals, where the attainment of all of the
     principals in any one of the sets would be sufficient to grant the current
