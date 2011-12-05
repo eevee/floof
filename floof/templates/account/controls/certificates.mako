@@ -4,7 +4,7 @@
 <%def name="panel_title()">SSL Certificates</%def>
 <%def name="panel_icon()">${lib.icon('key')}</%def>
 
-<h2>About Certificates</h2>
+<h1>About Certificates</h1>
 <p>SSL/TLS Client Certificates are small files that allow you to
 authenticate to online applications in a manner that is more resistant
 to unauthorized use than passwords.  As implemented here, they also
@@ -21,10 +21,10 @@ installed, you can change your
 Authentication Options</a> to require that you present that certificate
 to log on at all.</p>
 
-<h2>Generate New Certificate</h2>
+<h1>Generate New Certificate</h1>
 <div class="halfsplit">
     ${lib.secure_form(request.path_url)}
-    <h3>Generate Certificate in Browser</h3>
+    <h2>Generate Certificate in Browser</h2>
     <p>This will cause your browser to generate and install a certificate
     automatically.</p>
     <p>This is the easiest option, but it's not supported by all
@@ -45,7 +45,7 @@ to log on at all.</p>
 </div>
 <div class="halfsplit">
     ${lib.secure_form(request.route_url('controls.certs.generate_server', name=request.user.name))}
-    <h3>Generate Certificate on Server</h3>
+    <h2>Generate Certificate on Server</h2>
     <p>This will return a PKCS12 certificate file for download and
     manual installation.</p>
     <p>Is universally browser-compatible, but you'll have to work out
@@ -63,7 +63,7 @@ to log on at all.</p>
     ${h.end_form()}
 </div>
 
-<h2 style="clear:both;">Your Currently Active Certificates</h2>
+<h1 style="clear:both;">Your Currently Active Certificates</h1>
 % if not request.user.valid_certificates:
 <p>You have no active certificates.</p>
 % else:
@@ -93,7 +93,7 @@ to log on at all.</p>
 </table>
 % endif
 
-<h2>Your Revoked and Expired Certificates</h2>
+<h1>Your Revoked and Expired Certificates</h1>
 % if not request.user.invalid_certificates:
 <p>You have no revoked or expired certificates.</p>
 % else:

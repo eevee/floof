@@ -39,7 +39,7 @@ class RemoveOpenIDForm(FloofForm):
                     'are currently logged in.')
 
 class AuthenticationForm(FloofForm):
-    cert_auth = wtforms.fields.SelectField(u'Certificate Certificates', choices=[
+    cert_auth = wtforms.fields.SelectField(u'Cert Auth Method', choices=[
             (u'disabled', u'Disallow using client certificates for login (default)'),
             (u'allowed', u'Allow using client certificates for login'),
             (u'sensitive_required', u'Allow using client certificates for login; Require for Sensitive Operations'),
