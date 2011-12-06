@@ -13,10 +13,8 @@ from datetime import datetime, timedelta
 from functools import partial
 
 from pyramid.interfaces import IAuthenticationPolicy
-from pyramid.security import ACLAllowed, ACLDenied
 from pyramid.security import Authenticated, Everyone
 from pyramid.security import effective_principals, has_permission
-from pyramid.security import has_permission
 from pyramid.security import principals_allowed_by_permission
 from pyramid.settings import asbool
 from sqlalchemy.orm import joinedload_all
@@ -624,7 +622,7 @@ def help_trusted_openid(request):
 def help_trusted_openid_recent(request):
     if 'trust:openid' in effective_principals(request):
         return "Re-authenticate with your OpenID"
-    return trusted_openid(request)
+    return help_trusted_openid(request)
 
 auth_actions = dict([
     ('auth:secure', help_auth_secure),

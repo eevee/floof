@@ -390,12 +390,24 @@ class TestControls(FunctionalTests):
         path, params = pu[2], pu[4]
         assert path == self.url('controls.auth'), 'Unexpected redirect path: {0}'.format(path)
         assert 'return_key={0}'.format(return_key) in params, 'Return key did not appear in the post-re-auth redirect URL.'
+
+        # Submission should have been turned into a POST, so we should get
+        # another redirect
+        response = self.app.get(
+                path,
+                params=params,
+                extra_environ=environ,
+                status=303,
+                )
+        pu = urlparse(response.headers['location'])
+        path, params = pu[2], pu[4]
+        assert path == self.url('controls.auth'), 'Unexpected redirect path: {0}'.format(path)
+
         response = self.app.get(
                 path,
                 params=params,
                 extra_environ=environ,
                 status=200,
                 )
-        assert 'selected="selected" value="allowed"' in response, 'POST\'d choice prior to re-auth did not appear to persist.'
         cert_auth = model.session.query(model.User).filter_by(id=self.user.id).one().cert_auth
-        assert cert_auth == u'disabled', 'Automatically submitted a form after an OpenID re-auth detour.'
+        assert cert_auth != u'disabled', 'Failed to automatically submit a form after an OpenID re-auth detour.'

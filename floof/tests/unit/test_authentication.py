@@ -4,7 +4,7 @@ import time
 from pyramid.security import Authenticated, Everyone
 from pyramid.testing import DummyRequest
 
-from floof.model import meta
+from floof import model
 from floof.tests import UnitTests
 from floof.tests import sim
 
@@ -23,7 +23,7 @@ class TestFloofAuthnPolicy(UnitTests):
         super(TestFloofAuthnPolicy, self).setUp()
 
         self.user = sim.sim_user()
-        meta.Session.flush()
+        model.session.flush()
 
         self.policy = FloofAuthnPolicy()
 
