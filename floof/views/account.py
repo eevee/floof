@@ -56,6 +56,47 @@ def account_login(context, request):
 
 
 @view_config(
+    route_name='account.browserid.login',
+    request_method='POST',
+    renderer='json')
+def account_login_browserid(context, request):
+    import vep
+    verifier = vep.RemoteVerifier()
+    data = verifier.verify(request.POST.get('assertion'), 'https://localhost')
+    print "BrowserID response:", data
+
+    def fail(msg):
+        request.session.flash(msg, level=u'error', icon='key--exclamation')
+        # XXX setting the status to 403 triggers Pyramid's exception view
+        #request.response.status = '403 Forbidden'
+        return {'next_url': request.route_url('account.login')}
+
+    if data.get('status') != 'okay':
+        return fail("BrowserID authentication failed.")
+
+    email = data.get('email')
+    identity_owner = model.session.query(User) \
+        .filter_by(email=email) \
+        .limit(1).first()
+
+    if not identity_owner:
+        return fail("The email address '{0}' does not belong to any account "
+                    "on this system.".format(email))
+
+    try:
+        auth_headers = security.remember(
+            request, identity_owner, browserid_addr=email)
+        request.session.changed()
+    except:
+        return fail("BrowserID log in failed.")
+
+    request.session.flash('Logged in with BrowserID', level=u'success',
+                          icon='user')
+    request.response.headerlist.extend(auth_headers)
+    return {'next_url': request.route_url('root')}
+
+
+@view_config(
     route_name='account.login_begin',
     request_method='POST',
     renderer='account/login.mako')

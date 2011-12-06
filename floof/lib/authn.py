@@ -76,15 +76,15 @@ class FloofAuthnPolicy(object):
 
         return principals
 
-    def remember(self, request, user, openid_url=None, **kw):
+    def remember(self, request, user, openid_url=None, browserid_addr=None, **kw):
         """Remembers a set of (stateful) credentials authenticating the `user`.
 
         Deviates from the Pyramid authentication policy model in that
         `principal` is the user (as an SQLAlchemy model object) not a
         principal.
 
-        At present, only accepts calls that include both a `user` and an
-        `openid_url` parameter.
+        At present, only accepts calls that include both a `user` and either a
+        `openid_url` or `browserid_addr` parameter.
 
         Raises Exceptions on error; either `ValueError` if no parameters are
         given or one of the auth-specific exceptions defined in
@@ -93,6 +93,8 @@ class FloofAuthnPolicy(object):
         """
         if openid_url:
             request.auth.login_openid(request, user, openid_url)
+        elif browserid_addr:
+            request.auth.login_browserid(request, user, browserid_addr)
         else:
             raise ValueError("A credential, such as openid_url, must be "
                              "passed to this function.")
@@ -123,6 +125,8 @@ class CertRevokedError(Exception): pass
 class CertVerificationError(Exception): pass
 class OpenIDAuthDisabledError(Exception): pass
 class OpenIDNotFoundError(Exception): pass
+class BrowserIDAuthDisabledError(Exception): pass
+class BrowserIDNotFoundError(Exception): pass
 class AuthConflictError(Exception): pass
 
 
@@ -162,8 +166,10 @@ class Authenticizer(object):
 
     """
     # These are used for injecting tokens and trust flags during tests
-    _cred_tokens = ['cert_serial', 'openid_url', 'openid_timestamp']
-    _trust_flags = ['cert', 'openid', 'openid_recent']
+    _cred_tokens = ['cert_serial', 'openid_url', 'openid_timestamp',
+                    'browserid_email', 'browserid_timestamp']
+    _trust_flags = ['cert', 'openid', 'openid_recent', 'browserid',
+                    'browserid_recent']
 
     def __init__(self, request):
         config = request.registry.settings
@@ -213,6 +219,16 @@ class Authenticizer(object):
             error("Your OpenID is no longer accepted as your account has disabled OpenID authentication.")
         except AuthConflictError:
             error("Your OpenID conflicted with your certificate and has been cleared.")
+
+        try:
+            self.check_browserid()
+        except BrowserIDNotFoundError:
+            error("I don't recognize your BrowserID email address.")
+        except BrowserIDAuthDisabledError:
+            error("Your BrowserID is no longer accepted as your account has disabled BrowserID authentication.")
+        except AuthConflictError:
+            error("Your BrowserID conflicted with either your certificate or "
+                  "your OpenID has been cleared.")
 
         if 'paste.testing' in request.environ:
             self._setup_testing_late(request)
@@ -339,6 +355,43 @@ class Authenticizer(object):
         if not self.user:
             self.user = openid.user
 
+    def check_browserid(self):
+        """Check BrowserID state and add authentication if valid, else
+        clear."""
+
+        email = self.state.pop('browserid_addr', None)
+        timestamp = self.state.pop('browserid_timestamp', None)
+
+        if not email or not timestamp:
+            # No (or corrupted) BrowserID login. By popping, our obligation to
+            # clear relevent state is already fulfilled, so just return
+            return
+
+        # TODO: Optimize eagerloading
+        # TODO: Add a seperate IdentityEmailAddr table
+        q = model.session.query(model.User) \
+            .options(joinedload_all('roles')) \
+            .filter_by(email=email)
+
+        try:
+            user = q.one()
+        except NoResultFound:
+            raise BrowserIDNotFoundError
+
+        if user.cert_auth == 'required':
+            raise BrowserIDAuthDisabledError
+        if self.user and self.user.id != user.id:
+            raise AuthConflictError
+
+        # At this point, we're confident that the stored BrowserID login is valid
+
+        self.state['browserid_addr'] = email
+        self.state['browserid_timestamp'] = timestamp
+        self.trust.append('browserid')
+
+        if not self.user:
+            self.user = user
+
     def login_openid(self, request, user, url):
         """Log in via OpenID, adding appropriate authentication state.
 
@@ -358,6 +411,26 @@ class Authenticizer(object):
 
         self.state['openid_url'] = url
         self.state['openid_timestamp'] = calendar.timegm(datetime.now().timetuple())
+
+    def login_browserid(self, request, user, email):
+        """Log in via BrowserID, adding appropriate authentication state.
+
+        Remember that any authentication change will only take effect on the
+        next request.  The typical scenario is that the user is redirected at
+        the end of a request that calls this method.
+
+        Also remember to save the session after this!
+        """
+        if email != user.email:
+            raise BrowserIDNotFoundError
+
+        check_certreq_override(request, user)
+
+        if user.cert_auth == 'required':
+            raise BrowserIDAuthDisabledError
+
+        self.state['browserid_addr'] = email
+        self.state['browserid_timestamp'] = calendar.timegm(datetime.now().timetuple())
 
     def clear(self):
         """Clears all auth state, logging out unless certs are in use."""
@@ -379,11 +452,13 @@ class Authenticizer(object):
                     self.state['openid_timestamp'])
 
         return ("<Authenticizer ( User: {0}, Cert: {1}, OpenID URL: {2}, "
-                "OpenID Age: {3}, Trust Flags: {4} )>".format(
+                "OpenID Age: {3}, BrowserID Addr: {4}, Trust Flags: "
+                "{5} )>".format(
                     self.user.name if self.user else None,
                     self.state.get('cert_serial'),
                     self.state.get('openid_url'),
                     openid_age,
+                    self.state.get('browserid_addr'),
                     repr(self.trust),
                     ))
 

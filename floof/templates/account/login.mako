@@ -2,6 +2,9 @@
 <%namespace name="lib" file="/lib.mako" />
 
 <%def name="title()">Log in or register</%def>
+<%def name="script_dependencies()">
+    ${h.javascript_link('/js/browserid.js')}
+</%def>
 
 <section>
 <% auth = object() %>
@@ -68,5 +71,16 @@ ${h.end_form()}
     <p>You can enter something that looks like an email address because we also support Webfinger, a system for asking a Web site about its users.  For common OpenID providers that don't also support Webfinger, we fake it.</p>
     <p>You can read a bunch of stuff on <a href="http://en.wikipedia.org/wiki/OpenID">Wikipedia</a> or at the <a href="http://openid.net/">OpenID Foundation</a>.</p>
 </section>
+
+
+<h1>Log in with BrowserID</h1>
+<noscript>
+    <p>It looks like you don't have Javascript enabled for this site.</p>
+    <p>Unfortunately, BrowserID requires Javascript to work.</p>
+</noscript>
+<a href="#" id="browserid" title="Sign-in with BrowserID">
+    <img src="https://browserid.org/i/sign_in_blue.png" alt="Sign in">
+</a>
+<script src="https://browserid.org/include.js" async></script>
 
 </section>

@@ -27,6 +27,7 @@ UPGRADABLE_PRINCIPALS = ('auth:', 'trusted:')
 
 TRUST_MAP = dict([
     ('trusted_for:auth', [
+        ('role:user', 'auth:insecure', 'trusted:browserid'),
         ('role:user', 'auth:insecure', 'trusted:openid_recent'),
         ('role:user', 'auth:insecure', 'trusted:cert'),
         ('role:user', 'auth:secure', 'trusted:cert'),
@@ -261,14 +262,14 @@ MSG_AUTH_SEC = (
 
 def help_auth_secure(request):
     msg = ''
-    if len(request.user.certificates) < 1:
+    if len(request.user.valid_certificates) < 1:
         msg += MSG_GEN_CERT
     msg += MSG_AUTH_SEC
     return msg
 
 def help_trusted_cert(request):
     msg = ''
-    if len(request.user.certificates) < 1:
+    if len(request.user.valid_certificates) < 1:
         msg += MSG_GEN_CERT
     msg += MSG_PRESENT_CERT
     return msg
