@@ -659,7 +659,7 @@ Certificate.user = relation(User, innerjoin=True, backref='certificates')
 
 # Tags & Labels
 Label.user = relation(User, innerjoin=True, backref='labels')
-Label.artwork = relation(Artwork, secondary=artwork_labels)
+Label.artwork = relation(Artwork, secondary=artwork_labels, backref='labels')
 
 # Logs
 Log.user = relation(User, backref='logs',

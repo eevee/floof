@@ -5,6 +5,7 @@ import unicodedata
 
 from wtforms import fields, widgets, ValidationError
 from wtforms.widgets import HTMLString, html_params
+from wtforms.ext.sqlalchemy.fields import QuerySelectMultipleField
 import pytz
 
 from floof import model
@@ -63,6 +64,12 @@ class MultiCheckboxField(fields.SelectMultipleField):
     """
     widget = PassthroughListWidget(prefix_label=False)
     option_widget = widgets.CheckboxInput()
+
+class QueryMultiCheckboxField(QuerySelectMultipleField):
+    """`MultiCheckboxField` for SQLAlchemy queries."""
+    widget = PassthroughListWidget(prefix_label=False)
+    option_widget = widgets.CheckboxInput()
+
 
 class MultiTagField(fields.TextField):
 

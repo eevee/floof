@@ -117,6 +117,17 @@
     % endif
     % endfor
 
+    <h1>Labels</h1>
+    <ul>
+        % for label in artwork.labels:
+        ## TODO better permissions here.  invoke pyramid's ACL stuff perhaps!
+        % if label.encapsulation != 'private' or label.user == request.user:
+        <li>${label.name}</li>
+        % endif
+        % endfor
+    </ul>
+
+
     % if artwork.remark:
     <h1>Remarks</h1>
     <div class="content rich-text">${h.render_rich_text(artwork.remark)}</div>
