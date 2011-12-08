@@ -295,11 +295,12 @@ class GallerySieve(object):
         ))
 
     def filter_by_label(self, label):
-        """Filter the gallery down to a particular label.  Note that labels are
-        user-specific, so this usually only makes sense when browsing a
-        specific user's art.
+        """Filter by a user's particular label.
+
+        This method DOES NOT CHECK that the label is viewable; do that yourself.
         """
-        raise NotImplementedError
+        self.query = self.query.filter(
+            model.Artwork.labels.any(id=label.id))
 
 
     def order_by(self, order):

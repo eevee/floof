@@ -84,6 +84,11 @@ def configure_routing(config):
     r('tags.view', '/tags/{name}', **kw)
     r('tags.artwork', '/tags/{name}/artwork', **kw)
 
+    # Labels
+    # XXX well this is getting complicated!  needs to check user, needs to check id, needs to generate correctly, needs a title like art has
+    kw = sqla_route_options('label', 'id', floof.model.Label.id)
+    r('labels.artwork', '/users/{username}/labels/{id}', **kw)
+
     # Administration
     r('admin.dashboard', '/admin')
     r('admin.log', '/admin/log')
