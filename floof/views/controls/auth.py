@@ -189,15 +189,13 @@ def openid_remove(context, request):
     renderer='account/controls/authentication.mako')
 def authentication(context, request):
     form = AuthenticationForm(request, obj=request.user)
-    return dict(
-        form=form,
-    )
+    return {'form': form}
 
-# XXX this one is full of things to fix
 @view_config(
     route_name='controls.auth',
     permission='auth.method',
-    request_method='POST')
+    request_method='POST',
+    renderer='account/controls/authentication.mako')
 def authentication_commit(context, request):
     form = AuthenticationForm(request, request.POST, request.user)
 
@@ -206,5 +204,4 @@ def authentication_commit(context, request):
         request.session.flash(u'Authentication options updated.', level=u'success')
         return HTTPSeeOther(location=request.path_url)
 
-    stash_post(request, immediate=True)
-    return HTTPSeeOther(location=request.path_url)
+    return {'form': form}

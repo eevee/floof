@@ -61,7 +61,7 @@ def manage_stashes(event):
 
             request.method = 'POST'
 
-        drop_stash(request, key=stash['key'])
+        drop_stash(request, request.path, key=stash['key'])
 
 
 def stash_post(request, route_name=None, immediate=False, post=None):
@@ -124,7 +124,7 @@ def fetch_stash(request, path=None, key=None):
                 return stash
 
 
-def drop_stash(request, path=None, key=None):
+def drop_stash(request, path, key=None):
     stashes = request.session.get(SESSION_KEY, dict())
     if path in stashes and stashes[path]['key'] == key:
         del stashes[path]
