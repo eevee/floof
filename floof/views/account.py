@@ -2,6 +2,8 @@
 import logging
 import re
 
+from ssl import SSLError
+
 from pyramid import security
 from pyramid.httpexceptions import HTTPBadRequest, HTTPSeeOther
 from pyramid.renderers import render_to_response
@@ -9,14 +11,17 @@ from pyramid.security import effective_principals
 from pyramid.view import view_config
 from sqlalchemy.exc import IntegrityError
 from webhelpers.util import update_params
+
 import wtforms.form, wtforms.fields, wtforms.validators
 
 from floof.forms import DisplayNameField, TimezoneField
 from floof.lib.authn import DEFAULT_CONFIDENCE_EXPIRY
+from floof.lib.authn import BrowserIDRemoteVerifier
+from floof.lib.authn import BrowserIDAuthDisabledError, BrowserIDNotFoundError
 from floof.lib.authn import OpenIDAuthDisabledError, OpenIDNotFoundError
 from floof.lib.stash import fetch_stash, get_stash_keys, key_from_request
 from floof.lib.openid_ import OpenIDError, openid_begin, openid_end
-from floof.model import Discussion, IdentityURL, Resource
+from floof.model import Discussion, IdentityURL, IdentityEmail, Resource
 from floof.model import Role, User, UserProfileRevision
 from floof import model
 
@@ -60,39 +65,46 @@ def account_login(context, request):
     request_method='POST',
     renderer='json')
 def account_login_browserid(context, request):
-    import vep
-    verifier = vep.RemoteVerifier()
-    data = verifier.verify(request.POST.get('assertion'), 'https://localhost')
-    print "BrowserID response:", data
-
     def fail(msg):
         request.session.flash(msg, level=u'error', icon='key--exclamation')
         # XXX setting the status to 403 triggers Pyramid's exception view
         #request.response.status = '403 Forbidden'
         return {'next_url': request.route_url('account.login')}
 
-    if data.get('status') != 'okay':
-        return fail("BrowserID authentication failed.")
+    verifier = BrowserIDRemoteVerifier()
+    try:
+        data = verifier.verify(request.POST.get('assertion'), 'https://localhost')
+    except SSLError:
+        return fail('Connection to authentication server failed or timed out.')
+
+    print "BrowserID response:", data
 
     email = data.get('email')
-    identity_owner = model.session.query(User) \
+    if data.get('status') != 'okay' or not email:
+        return fail("BrowserID authentication failed.")
+
+    identity_email = model.session.query(IdentityEmail) \
         .filter_by(email=email) \
         .limit(1).first()
 
-    if not identity_owner:
+    if not identity_email:
         return fail("The email address '{0}' does not belong to any account "
                     "on this system.".format(email))
 
     try:
         auth_headers = security.remember(
-            request, identity_owner, browserid_addr=email)
+            request, identity_email.user, browserid_email=email)
         request.session.changed()
-    except:
+    except BrowserIDNotFoundError:
         return fail("BrowserID log in failed.")
+    except BrowserIDAuthDisabledError:
+        return fail("Your BrowserID is no longer accepted as your account has "
+                    "disabled BrowserID authentication.")
 
-    request.session.flash('Logged in with BrowserID', level=u'success',
-                          icon='user')
+    request.session.flash(
+            'Logged in with BrowserID', level=u'success', icon='user')
     request.response.headerlist.extend(auth_headers)
+
     return {'next_url': request.route_url('root')}
 
 

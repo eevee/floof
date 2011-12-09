@@ -1,5 +1,6 @@
 # encoding: utf8
 import logging
+from ssl import SSLError
 
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.security import effective_principals
@@ -8,27 +9,32 @@ import wtforms
 from wtforms.ext.sqlalchemy.fields import QuerySelectMultipleField
 
 from floof import model
-from floof.forms import FloofForm, MultiCheckboxField
+from floof.forms import FloofForm
+from floof.lib.authn import BrowserIDRemoteVerifier
 from floof.lib.openid_ import OpenIDError, openid_begin, openid_end
-from floof.lib.stash import stash_post
 
 log = logging.getLogger(__name__)
+
 
 # XXX this all needs cleaning up, and some ajax, and whatever.
 # XXX two forms on one page also raises questions about how best to handle invalid forms
 class AddOpenIDForm(FloofForm):
     new_openid = wtforms.TextField(u'New OpenID', [wtforms.validators.Required()])
 
+
 class RemoveOpenIDForm(FloofForm):
-    #openids = MultiCheckboxField(u'', coerce=int)
     openids = QuerySelectMultipleField(u'Remove OpenIDs', get_label=lambda row: row.url)
 
     def validate_openids(form, field):
         if not field.data:
             raise wtforms.ValidationError('You must select at least one OpenID identity URL to delete.')
 
-        if len(field.data) >= len(field._get_object_list()):
-            raise wtforms.ValidationError('You must keep at least one OpenID identity URL.')
+        user = form.request.user
+        total_ids = len(user.identity_urls) + len(user.identity_emails)
+        if len(field.data) >= total_ids:
+            raise wtforms.ValidationError(
+                    'You must keep at least either one OpenID identity URL '
+                    'or one BrowserID identity email address.')
 
         # XXX less hackish way to do this without adding an attr to
         # Authenticizer for every freakin property of the session's auth?
@@ -37,6 +43,31 @@ class RemoveOpenIDForm(FloofForm):
             raise wtforms.ValidationError(
                     'You cannot remove the OpenID identity URL with which you '
                     'are currently logged in.')
+
+
+class RemoveBrowserIDForm(FloofForm):
+    browserids = QuerySelectMultipleField(u'Remove BrowserIDs', get_label=lambda row: row.email)
+
+    def validate_browserids(form, field):
+        if not field.data:
+            raise wtforms.ValidationError(
+                    'You must select at least one BrowserID identity email '
+                    'address to delete.')
+
+        user = form.request.user
+        total_ids = len(user.identity_urls) + len(user.identity_emails)
+        if len(field.data) >= total_ids:
+            raise wtforms.ValidationError(
+                    'You must keep at least either one BrowserID identity '
+                    'email address or one OpenID identity URL.')
+
+        # XXX see RemoveOpenIDForm.validate_openids
+        curr_email = form.request.auth.state.get('browserid_email')
+        if curr_email in [obj.email for obj in field.data]:
+            raise wtforms.ValidationError(
+                    'You cannot remove the BrowserID identity email address '
+                    'with which you are currently logged in.')
+
 
 class AuthenticationForm(FloofForm):
     cert_auth = wtforms.fields.SelectField(u'Cert Auth Method', choices=[
@@ -61,6 +92,87 @@ class AuthenticationForm(FloofForm):
                         'setting without first loading this page while the '
                         'certificate is installed in your browser and being '
                         'successfully sent to the site.')
+
+
+@view_config(
+    route_name='controls.browserid',
+    permission='auth.browserid',
+    request_method='GET',
+    renderer='account/controls/browserid.mako')
+def browserid(context, request):
+    user = request.user
+    form = RemoveBrowserIDForm(request)
+    form.browserids.query = model.session.query(model.IdentityEmail).with_parent(user)
+
+    return {'form': form}
+
+
+@view_config(
+    route_name='controls.browserid.add',
+    permission='auth.browserid',
+    request_method='POST',
+    renderer='json')
+def browserid_add(context, request):
+    # XXX These first handful of lines duplicate view account.browserid.login
+    def fail(msg):
+        request.session.flash(msg, level=u'error', icon='key--exclamation')
+        # XXX setting the status to 403 triggers Pyramid's exception view
+        #request.response.status = '403 Forbidden'
+        return {'next_url': request.route_url('controls.browserid')}
+
+    verifier = BrowserIDRemoteVerifier()
+    try:
+        data = verifier.verify(request.POST.get('assertion'), 'https://localhost')
+    except SSLError:
+        return fail('Connection to authentication server failed or timed out.')
+
+    print "BrowserID response:", data
+
+    email = data.get('email')
+    if data.get('status') != 'okay' or not email:
+        return fail("BrowserID authentication failed.")
+
+    extant_email = model.session.query(model.IdentityEmail) \
+        .filter_by(email=email) \
+        .limit(1).first()
+
+    if extant_email:
+        if extant_email.user == request.user:
+            other_account = 'your account'
+        else:
+            other_account = "the account '{0}'".format(extant_email.user.name)
+        return fail("The email address '{0}' already belongs to {1}."
+                    .format(email, other_account))
+
+    browserid = model.IdentityEmail(email=email)
+    request.user.identity_emails.append(browserid)
+    request.session.flash("Added BrowserID email address '{0}'".format(email),
+                          level=u'success', icon='user')
+
+    return {'next_url': request.route_url('controls.browserid')}
+
+
+@view_config(
+    route_name='controls.browserid.remove',
+    permission='auth.browserid',
+    request_method='POST',
+    renderer='account/controls/browserid.mako')
+def browserid_remove(context, request):
+    user = request.user
+    form = RemoveBrowserIDForm(request, request.POST)
+    form.browserids.query = model.session.query(model.IdentityEmail).with_parent(user)
+
+    if not form.validate():
+        return {'form': form}
+
+    for target in form.browserids.data:
+        user.identity_emails.remove(target)
+        request.session.flash(
+            u"Removed BrowserID identity email address: {0}"
+            .format(target.email), level=u'success')
+
+    return HTTPSeeOther(location=request.route_url('controls.browserid'))
+
 
 @view_config(
     route_name='controls.openid',
@@ -179,7 +291,7 @@ def openid_remove(context, request):
         request.session.flash(
             u"Removed OpenID identifier: {0}".format(target.url),
             level=u'success')
-        model.session.delete(target)
+        user.identity_urls.remove(target)
     return HTTPSeeOther(location=request.route_url('controls.openid'))
 
 @view_config(

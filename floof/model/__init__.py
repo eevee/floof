@@ -172,6 +172,14 @@ class IdentityURL(TableBase):
     user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
     url = Column(Unicode(250), nullable=False, index=True, unique=True)
 
+# My sincere apologies if anyone is miffed by my calling email addresses
+# "emails"; I chose brevity over correctness. --epii
+class IdentityEmail(TableBase):
+    __tablename__ = 'identity_emails'
+    id = Column(Integer, primary_key=True, nullable=False)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    email = Column(Unicode(256), nullable=False, index=True, unique=True)
+
 class UserWatch(TableBase):
     __tablename__ = 'user_watches'
     user_id = Column(Integer, ForeignKey('users.id'), nullable=False, primary_key=True)
@@ -582,7 +590,11 @@ make_resource_type(User)
 make_resource_type(Artwork)
 
 # Users
-IdentityURL.user = relation(User, innerjoin=True, backref='identity_urls')
+User.identity_urls = relation(
+    IdentityURL, innerjoin=True, backref='user', cascade="all,delete-orphan")
+User.identity_emails = relation(
+    IdentityEmail, innerjoin=True, backref='user', cascade="all,delete-orphan")
+
 User.watches = relation(UserWatch,
     primaryjoin=User.id==UserWatch.user_id,
     backref=backref('user', innerjoin=True))

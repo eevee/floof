@@ -79,8 +79,11 @@ ${h.end_form()}
     <p>Unfortunately, BrowserID requires Javascript to work.</p>
 </noscript>
 <a href="#" id="browserid" title="Sign-in with BrowserID">
-    <img src="https://browserid.org/i/sign_in_blue.png" alt="Sign in">
+    <img src="https://browserid.org/i/sign_in_blue.png" alt="Sign in with BorwserID" />
 </a>
 <script src="https://browserid.org/include.js" async></script>
+<script type="text/javascript">
+    $(browseridOnClick('#browserid', '${request.route_path("account.browserid.login")}'));
+</script>
 
 </section>

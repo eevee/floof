@@ -17,6 +17,8 @@ from pyramid.security import Authenticated, Everyone
 from pyramid.settings import asbool
 from sqlalchemy.orm import joinedload_all
 from sqlalchemy.orm.exc import NoResultFound
+from vep import RemoteVerifier
+from vep.utils import secure_urlopen
 from zope.interface import implements
 
 from floof import model
@@ -76,7 +78,7 @@ class FloofAuthnPolicy(object):
 
         return principals
 
-    def remember(self, request, user, openid_url=None, browserid_addr=None, **kw):
+    def remember(self, request, user, openid_url=None, browserid_email=None, **kw):
         """Remembers a set of (stateful) credentials authenticating the `user`.
 
         Deviates from the Pyramid authentication policy model in that
@@ -84,7 +86,7 @@ class FloofAuthnPolicy(object):
         principal.
 
         At present, only accepts calls that include both a `user` and either a
-        `openid_url` or `browserid_addr` parameter.
+        `openid_url` or `browserid_email` parameter.
 
         Raises Exceptions on error; either `ValueError` if no parameters are
         given or one of the auth-specific exceptions defined in
@@ -93,8 +95,8 @@ class FloofAuthnPolicy(object):
         """
         if openid_url:
             request.auth.login_openid(request, user, openid_url)
-        elif browserid_addr:
-            request.auth.login_browserid(request, user, browserid_addr)
+        elif browserid_email:
+            request.auth.login_browserid(request, user, browserid_email)
         else:
             raise ValueError("A credential, such as openid_url, must be "
                              "passed to this function.")
@@ -358,8 +360,9 @@ class Authenticizer(object):
     def check_browserid(self):
         """Check BrowserID state and add authentication if valid, else
         clear."""
+        # XXX this is very similar to check_openid() above
 
-        email = self.state.pop('browserid_addr', None)
+        email = self.state.pop('browserid_email', None)
         timestamp = self.state.pop('browserid_timestamp', None)
 
         if not email or not timestamp:
@@ -368,29 +371,28 @@ class Authenticizer(object):
             return
 
         # TODO: Optimize eagerloading
-        # TODO: Add a seperate IdentityEmailAddr table
-        q = model.session.query(model.User) \
-            .options(joinedload_all('roles')) \
+        q = model.session.query(model.IdentityEmail) \
+            .options(joinedload_all('user.roles')) \
             .filter_by(email=email)
 
         try:
-            user = q.one()
+            browserid = q.one()
         except NoResultFound:
             raise BrowserIDNotFoundError
 
-        if user.cert_auth == 'required':
+        if browserid.user.cert_auth == 'required':
             raise BrowserIDAuthDisabledError
-        if self.user and self.user.id != user.id:
+        if self.user and self.user.id != browserid.user.id:
             raise AuthConflictError
 
         # At this point, we're confident that the stored BrowserID login is valid
 
-        self.state['browserid_addr'] = email
+        self.state['browserid_email'] = email
         self.state['browserid_timestamp'] = timestamp
         self.trust.append('browserid')
 
         if not self.user:
-            self.user = user
+            self.user = browserid.user
 
     def login_openid(self, request, user, url):
         """Log in via OpenID, adding appropriate authentication state.
@@ -421,7 +423,7 @@ class Authenticizer(object):
 
         Also remember to save the session after this!
         """
-        if email != user.email:
+        if email not in (e.email for e in user.identity_emails):
             raise BrowserIDNotFoundError
 
         check_certreq_override(request, user)
@@ -429,7 +431,7 @@ class Authenticizer(object):
         if user.cert_auth == 'required':
             raise BrowserIDAuthDisabledError
 
-        self.state['browserid_addr'] = email
+        self.state['browserid_email'] = email
         self.state['browserid_timestamp'] = calendar.timegm(datetime.now().timetuple())
 
     def clear(self):
@@ -458,9 +460,16 @@ class Authenticizer(object):
                     self.state.get('cert_serial'),
                     self.state.get('openid_url'),
                     openid_age,
-                    self.state.get('browserid_addr'),
+                    self.state.get('browserid_email'),
                     repr(self.trust),
                     ))
+
+
+class BrowserIDRemoteVerifier(RemoteVerifier):
+    """Add a timeout to :class:`vep.RemoteVerifier`"""
+    def __init__(self, *args, **kwargs):
+        urlopen = partial(secure_urlopen, timeout=5)
+        RemoteVerifier.__init__(self, *args, urlopen=urlopen, **kwargs)
 
 
 def get_certificate_serial(request):
