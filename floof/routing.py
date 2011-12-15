@@ -5,7 +5,7 @@ Some useful helpers are at the bottom.  Be familiar with them!
 """
 import re
 
-import floof.model
+import floof.model as model
 from pyramid.exceptions import NotFound
 from sqlalchemy.orm.exc import NoResultFound
 
@@ -60,14 +60,15 @@ def configure_routing(config):
     r('controls.certs.revoke', '/account/controls/certificates/revoke/{id}')
 
     # User pages
-    kw = sqla_route_options('user', 'name', floof.model.User.name)
+    kw = sqla_route_options('user', 'name', model.User.name)
     r('users.view', '/users/{name}', **kw)
     r('users.art_by_label', '/users/{name}/art/{label}', **kw)
     r('users.profile', '/users/{name}/profile', **kw)
     r('users.watchstream', '/users/{name}/watchstream', **kw)
+    r('labels.user_index', '/users/{name}/labels', **kw)
 
     # Artwork
-    kw = sqla_route_options('artwork', 'id', floof.model.Artwork.id)
+    kw = sqla_route_options('artwork', 'id', model.Artwork.id)
     kw['pregenerator'] = artwork_pregenerator
     r('art.browse', '/art')
     r('art.upload', '/art/upload')
@@ -79,15 +80,16 @@ def configure_routing(config):
     # Tags
     # XXX what should the tag name regex be, if anything?
     # XXX should the regex be checked in the 'factory' instead?  way easier that way...
-    kw = sqla_route_options('tag', 'name', floof.model.Tag.name)
+    kw = sqla_route_options('tag', 'name', model.Tag.name)
     r('tags.list', '/tags')
     r('tags.view', '/tags/{name}', **kw)
     r('tags.artwork', '/tags/{name}/artwork', **kw)
 
     # Labels
     # XXX well this is getting complicated!  needs to check user, needs to check id, needs to generate correctly, needs a title like art has
-    kw = sqla_route_options('label', 'id', floof.model.Label.id)
-    r('labels.artwork', '/users/{username}/labels/{id}', **kw)
+    user_router = SugarRouter(config, '/users/{user}', model.User.name)
+    label_router = user_router.chain('/labels/{label}', model.Label.id, rel=model.Label.user)
+    label_router.add_route('labels.artwork', '')
 
     # Administration
     r('admin.dashboard', '/admin')
@@ -112,8 +114,8 @@ def configure_routing(config):
     mapper = config.get_routes_mapper()
     parent_routes = [mapper.get_route(name) for name in parent_route_names]
     commentables = dict(
-        users=floof.model.User.name,
-        art=floof.model.Artwork.id,
+        users=model.User.name,
+        art=model.Artwork.id,
     )
 
     def comments_factory(request):
@@ -123,7 +125,7 @@ def configure_routing(config):
 
         try:
             sqla_column = commentables[type]
-            entity = floof.model.session.query(sqla_column.parententity).filter(sqla_column == identifier).one()
+            entity = model.session.query(sqla_column.parententity).filter(sqla_column == identifier).one()
         except (NoResultFound, KeyError):
             # 404!
             raise NotFound()
@@ -133,7 +135,7 @@ def configure_routing(config):
 
         # URLs to specific comments should have those comments as the context
         try:
-            return floof.model.session.query(floof.model.Comment).with_parent(entity.discussion).filter(floof.model.Comment.id == request.matchdict['comment_id']).one()
+            return model.session.query(model.Comment).with_parent(entity.discussion).filter(model.Comment.id == request.matchdict['comment_id']).one()
         except NoResultFound:
             raise NotFound()
 
@@ -162,6 +164,119 @@ def configure_routing(config):
     r('comments.view', '/{type}/{identifier}/comments/{comment_id}', factory=comments_factory, pregenerator=comments_pregenerator)
     r('comments.reply', '/{type}/{identifier}/comments/{comment_id}/write', factory=comments_factory, pregenerator=comments_pregenerator)
 
+class SugarRouter(object):
+    """Glues routing to the ORM.
+
+    Use me like this:
+
+        foo_router = SugarRouter(config, '/foos/{foo}', model.Foo.identifier)
+        foo_router.add_route('foo_edit', '/edit')
+
+    This will route `/foos/{foo}/edit` to `foo_edit`, with the bonus that the
+    context will be set to the corresponding `Foo` object.
+
+    The reverse works as well:
+
+        request.route_url('foo_edit', foo=some_foo_row)
+    """
+
+    # TODO: support URLs like /art/123-title-that-doesnt-matter
+    #       ...but only do it for the root url, i think
+
+    def __init__(self, config, url_prefix, sqla_column, parent_router=None, rel=None):
+        self.config = config
+        self.url_prefix = url_prefix
+        self.sqla_column = sqla_column
+        self.sqla_table = sqla_column.parententity
+
+        self.parent_router = parent_router
+        self.sqla_rel = rel
+        assert (self.parent_router is None) == (self.sqla_rel is None)
+
+        # This is the {key} that appears in the matchdict and generated route,
+        # as well as the kwarg passed to route_url
+        match = re.search(r'[{](\w+)[}]', url_prefix)
+        if not match:
+            raise ValueError("Can't find a route kwarg in {0!r}".format(url_prefix))
+        self.key = match.group(1)
+
+
+    ### Dealing with chaining
+
+    def chain(self, url_prefix, sqla_column, rel):
+        """Create a new sugar router with this one as the parent."""
+        return self.__class__(
+            self.config, url_prefix, sqla_column,
+            parent_router=self, rel=rel)
+
+    @property
+    def full_url_prefix(self):
+        """Constructs a chain of url prefixes going up to the root."""
+        if self.parent_router:
+            ret = self.parent_router.full_url_prefix
+        else:
+            ret = ''
+
+        ret += self.url_prefix
+        return ret
+
+    def filter_sqlalchemy_query(self, query, request):
+        """Takes a query, filters it as demanded by the matchdict, and returns
+        a new one.
+        """
+        query = query.filter(self.sqla_column == request.matchdict[self.key])
+
+        if self.parent_router:
+            query = query.join(self.sqla_rel)
+            query = self.parent_router.filter_sqlalchemy_query(
+                query, request)
+
+        return query
+
+
+    ### Actual routing stuff
+
+    def add_route(self, route_name, suffix, **kwargs):
+        """Analog to `config.add_route()`, with magic baked in.  Extra kwargs
+        are passed along.
+        """
+        kwargs['pregenerator'] = self.pregenerator
+        kwargs['factory'] = self.factory
+        self.config.add_route(route_name, self.full_url_prefix + suffix, **kwargs)
+
+    def pregenerator(self, request, elements, kw):
+        """Passed to Pyramid as a bound method when creating a route.
+
+        Converts the arguments to route_url (which should be row objects) into
+        URL-friendly strings.
+        """
+        # Get the row object, and get the property from it
+        row = kw.pop(self.key)
+        kw[self.key] = self.sqla_column.__get__(row, type(row))
+
+        if self.parent_router:
+            # Parent needs its own treatment here, too.  Fill in the parent
+            # object automatically
+            kw[self.parent_router.key] = self.sqla_rel.__get__(row, type(row))
+            elements, kw = self.parent_router.pregenerator(request, elements, kw)
+
+        return elements, kw
+
+    def factory(self, request):
+        """Passed to Pyramid as a bound method when creating a route.
+
+        Translates a matched URL to an ORM row, which becomes the context.
+        """
+        # This yields the "context", which should be the row object
+        try:
+            q = model.session.query(self.sqla_table)
+            q = self.filter_sqlalchemy_query(q, request)
+            return q.one()
+        except NoResultFound:
+            # 404!
+            raise NotFound()
+
+
 def sqla_route_options(url_key, match_key, sqla_column):
     """Returns a dict of route options that are helpful for routes representing SQLA objects.
 
@@ -183,7 +298,7 @@ def sqla_route_options(url_key, match_key, sqla_column):
     def factory(request):
         # This yields the "context", which should be the row object
         try:
-            return floof.model.session.query(sqla_column.parententity).filter(sqla_column == request.matchdict[match_key]).one()
+            return model.session.query(sqla_column.parententity).filter(sqla_column == request.matchdict[match_key]).one()
         except NoResultFound:
             # 404!
             raise NotFound()

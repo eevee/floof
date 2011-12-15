@@ -176,6 +176,7 @@ def main(global_config, **settings):
         (_RichSessionFlashMixin,
             session_factory_from_settings(settings)),
         {})
+
     config = Configurator(
         settings=settings,
         request_factory=FloofRequest,
