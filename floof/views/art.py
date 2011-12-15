@@ -8,9 +8,10 @@ import magic
 from pyramid.httpexceptions import HTTPBadRequest, HTTPSeeOther
 from pyramid.view import view_config
 import wtforms.form, wtforms.fields, wtforms.validators
+from wtforms.ext.sqlalchemy.fields import QuerySelectMultipleField
 
 from floof import model
-from floof.forms import MultiCheckboxField, MultiTagField
+from floof.forms import MultiCheckboxField, MultiTagField, QueryMultiCheckboxField
 from floof.lib.gallery import GallerySieve
 
 # XXX import from somewhere
@@ -72,6 +73,8 @@ class UploadArtworkForm(wtforms.form.Form):
     )
     tags = MultiTagField(u'Tags')
 
+    labels = None  # I am populated dynamically based on user
+
     remark = wtforms.fields.TextAreaField(u'Remark')
 
 @view_config(
@@ -81,7 +84,14 @@ class UploadArtworkForm(wtforms.form.Form):
     renderer='art/upload.mako')
 def upload(context, request):
     """Uploads something.  Sort of important, you know."""
-    form = UploadArtworkForm(request.POST)
+    # Tack label fields onto the form
+    class DerivedForm(UploadArtworkForm):
+        labels = QueryMultiCheckboxField(u'Labels',
+            query_factory=lambda: model.session.query(model.Label).with_parent(request.user),
+            get_label=lambda label: label.name,
+        )
+
+    form = DerivedForm(request.POST)
     ret = dict(form=form)
 
     # XXX this overloading is dummmmmb
@@ -208,8 +218,13 @@ def upload(context, request):
             )
         )
 
+    # Attach tags and labels
     for tag in form.tags.data:
         artwork.tags.append(tag)
+
+    for label in form.labels.data:
+        artwork.labels.append(label)
+
 
     model.session.add_all([artwork, discussion, resource])
     model.session.flush()  # for primary keys

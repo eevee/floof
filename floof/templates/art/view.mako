@@ -1,5 +1,6 @@
 <%inherit file="/base.mako" />
 <%namespace name="lib" file="/lib.mako" />
+<%namespace name="artlib" file="/art/lib.mako" />
 <%namespace name="comments_lib" file="/comments/lib.mako" />
 
 <%def name="title()">${artwork.title or 'Untitled'} - Artwork</%def>
@@ -116,6 +117,14 @@
     ${lib.field_errors(form.tags)}
     % endif
     % endfor
+
+    <h1>Labels</h1>
+    <ul class="standard-list">
+        % for label in artwork.labels_visible_to(request.user):
+        <li>${artlib.label(label)}</li>
+        % endfor
+    </ul>
+
 
     % if artwork.remark:
     <h1>Remarks</h1>

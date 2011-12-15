@@ -14,6 +14,22 @@ def media_icon(type):
         return 'question'
 %>
 
+<%!
+    _label_icons = dict(
+        private='tag-label-red',
+        public='tag-label-black',
+        gallery='tag-label-green',
+        plug='plug',
+    )
+%>
+<%def name="label(label_)">
+## Render a label.  Includes an appropriate icon and a link.
+<a href="${request.route_url('labels.artwork', label=label_)}">
+    ${lib.icon(_label_icons[label_.encapsulation])}
+    ${label_.name}
+</a>
+</%def>
+
 <%def name="thumbnail(artwork)">
 ## Spits out..  a thumbnail of this artwork.  It's an <li>, so this should be
 ## called inside a <ul>.
