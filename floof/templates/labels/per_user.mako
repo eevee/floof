@@ -7,8 +7,8 @@
     <h1>${title()}</h1>
 
     <ul class="standard-list">
-        % for label in target_user.labels:
-        <li><a href="${request.route_url('labels.artwork', label=label)}">${label.name}</a></li>
+        % for label in target_user.labels_visible_to(request.user):
+        <li>${artlib.label(label)}</li>
         % endfor
     </ul>
 </section>

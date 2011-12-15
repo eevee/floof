@@ -1,5 +1,6 @@
 <%inherit file="/base.mako" />
 <%namespace name="lib" file="/lib.mako" />
+<%namespace name="artlib" file="/art/lib.mako" />
 <%namespace name="comments_lib" file="/comments/lib.mako" />
 
 <%def name="title()">${artwork.title or 'Untitled'} - Artwork</%def>
@@ -118,12 +119,9 @@
     % endfor
 
     <h1>Labels</h1>
-    <ul>
-        % for label in artwork.labels:
-        ## TODO better permissions here.  invoke pyramid's ACL stuff perhaps!
-        % if label.encapsulation != 'private' or label.user == request.user:
-        <li>${label.name}</li>
-        % endif
+    <ul class="standard-list">
+        % for label in artwork.labels_visible_to(request.user):
+        <li>${artlib.label(label)}</li>
         % endfor
     </ul>
 

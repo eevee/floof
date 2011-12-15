@@ -187,6 +187,15 @@ class User(TableBase):
             self._profile = UserProfile()
         self._profile.content = value
 
+    def labels_visible_to(self, viewer):
+        """Returns a list of the labels that `viewer`, another user, can see.
+        """
+        return [
+            label for label in self.labels
+            if self == viewer or label.encapsulation in ('public', 'plug')
+        ]
+
+
 class IdentityURL(TableBase):
     __tablename__ = 'identity_urls'
     id = Column(Integer, primary_key=True, nullable=False)
@@ -262,6 +271,14 @@ class Artwork(TableBase):
             filename_parts.append(u'gif')
 
         return u'.'.join(filename_parts)
+
+    def labels_visible_to(self, viewer):
+        """Returns a list of the labels that `viewer`, some user, can see.
+        """
+        return [
+            label for label in self.labels
+            if label.user == viewer or label.encapsulation in ('public', 'plug')
+        ]
 
 
 # Dynamic subclasses of the 'artwork' table for storing metadata for different
