@@ -65,11 +65,18 @@ def account_login(context, request):
     request_method='POST',
     renderer='json')
 def account_login_browserid(context, request):
+    return_key = key_from_request(request)
+
     def fail(msg):
         request.session.flash(msg, level=u'error', icon='key--exclamation')
         # XXX setting the status to 403 triggers Pyramid's exception view
         #request.response.status = '403 Forbidden'
-        return {'next_url': request.route_url('account.login')}
+        next_url = request.route_url('account.login')
+        if return_key is not None:
+            next_url = update_params(next_url, return_key=return_key)
+        return {'next_url': next_url}
+
+    # Verify the identity assertion
 
     verifier = BrowserIDRemoteVerifier()
     try:
@@ -78,6 +85,8 @@ def account_login_browserid(context, request):
         return fail('Connection to authentication server failed or timed out.')
 
     print "BrowserID response:", data
+
+    # Attempt to resolve the identity to a local user
 
     email = data.get('email')
     if data.get('status') != 'okay' or not email:
@@ -91,6 +100,8 @@ def account_login_browserid(context, request):
         return fail("The email address '{0}' does not belong to any account "
                     "on this system.".format(email))
 
+    # Attempt to log in
+
     try:
         auth_headers = security.remember(
             request, identity_email.user, browserid_email=email)
@@ -101,11 +112,29 @@ def account_login_browserid(context, request):
         return fail("Your BrowserID is no longer accepted as your account has "
                     "disabled BrowserID authentication.")
 
+    # Successful authentication; handle redirection appropriately
+
+    if identity_email.user == request.user:
+        # Someone is just freshening up their cookie
+        request.session.flash(u'Re-authentication successful', icon='user')
+
+        if return_key is not None:
+            old_url = fetch_stash(request, key=return_key)['url']
+            if old_url:
+                next_url = update_params(old_url, return_key=return_key)
+                log.debug('Following Return Key \'{0}\' to URL: {1}'
+                          .format(return_key, next_url))
+                return {'next_url': next_url}
+
+        return {'next_url': request.route_url('root')}
+
+    # Existing user; new login
     request.session.flash(
             'Logged in with BrowserID', level=u'success', icon='user')
     request.response.headerlist.extend(auth_headers)
 
     return {'next_url': request.route_url('root')}
+
 
 
 @view_config(
@@ -248,9 +277,7 @@ def login_finish(context, request):
                 log.debug('Following Return Key \'{0}\' to URL: {1}'
                           .format(return_key, location))
                 return HTTPSeeOther(location, headers=auth_headers)
-
-        return HTTPSeeOther(location=request.route_url('root'),
-                            headers=auth_headers)
+        return HTTPSeeOther(request.route_url('root'), headers=auth_headers)
 
     else:
         # Existing user; new login

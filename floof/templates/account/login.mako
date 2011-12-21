@@ -82,8 +82,13 @@ ${h.end_form()}
     <img src="https://browserid.org/i/sign_in_blue.png" alt="Sign in with BorwserID" />
 </a>
 <script src="https://browserid.org/include.js" async></script>
+<%
+    path = request.route_path("account.browserid.login")
+    if form.return_key.data:
+        path = h.update_params(path, return_key=form.return_key.data)
+%>\
 <script type="text/javascript">
-    $(browseridOnClick('#browserid', '${request.route_path("account.browserid.login")}'));
+    $(browseridOnClick('#browserid', '${path}'));
 </script>
 
 </section>

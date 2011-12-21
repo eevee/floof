@@ -223,7 +223,7 @@ class Authenticizer(object):
             error("Your OpenID conflicted with your certificate and has been cleared.")
 
         try:
-            self.check_browserid()
+            self.check_browserid(config)
         except BrowserIDNotFoundError:
             error("I don't recognize your BrowserID email address.")
         except BrowserIDAuthDisabledError:
@@ -357,7 +357,7 @@ class Authenticizer(object):
         if not self.user:
             self.user = openid.user
 
-    def check_browserid(self):
+    def check_browserid(self, config):
         """Check BrowserID state and add authentication if valid, else
         clear."""
         # XXX this is very similar to check_openid() above
@@ -390,6 +390,15 @@ class Authenticizer(object):
         self.state['browserid_email'] = email
         self.state['browserid_timestamp'] = timestamp
         self.trust.append('browserid')
+
+        # Evaluate BrowserID freshness
+        confidence_expiry_secs = int(config.get(
+            'auth.browserid.expiry_seconds',
+            DEFAULT_CONFIDENCE_EXPIRY))
+
+        age = datetime.now() - datetime.fromtimestamp(timestamp)
+        if age <= timedelta(seconds=confidence_expiry_secs):
+            self.trust.append('browserid_recent')
 
         if not self.user:
             self.user = browserid.user
@@ -448,19 +457,22 @@ class Authenticizer(object):
     openid_url = property(_get_state('openid_url'))
 
     def __repr__(self):
-        openid_age = None
-        if 'openid_timestamp' in self.state:
-            openid_age = datetime.now() - datetime.fromtimestamp(
-                    self.state['openid_timestamp'])
+        ages = {}
+        for mech in ('openid', 'browserid'):
+            idx = mech + '_timestamp'
+            if idx in self.state:
+                age = datetime.now() - datetime.fromtimestamp(self.state[idx])
+                ages[mech] = age
 
         return ("<Authenticizer ( User: {0}, Cert: {1}, OpenID URL: {2}, "
-                "OpenID Age: {3}, BrowserID Addr: {4}, Trust Flags: "
-                "{5} )>".format(
+                "OpenID Age: {3}, BrowserID Addr: {4}, BrowserID Age: {5}, "
+                "Trust Flags: {6} )>".format(
                     self.user.name if self.user else None,
                     self.state.get('cert_serial'),
                     self.state.get('openid_url'),
-                    openid_age,
+                    ages.get('openid'),
                     self.state.get('browserid_email'),
+                    ages.get('browserid'),
                     repr(self.trust),
                     ))
 
