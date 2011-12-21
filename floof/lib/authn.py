@@ -464,17 +464,22 @@ class Authenticizer(object):
                 age = datetime.now() - datetime.fromtimestamp(self.state[idx])
                 ages[mech] = age
 
-        return ("<Authenticizer ( User: {0}, Cert: {1}, OpenID URL: {2}, "
-                "OpenID Age: {3}, BrowserID Addr: {4}, BrowserID Age: {5}, "
-                "Trust Flags: {6} )>".format(
-                    self.user.name if self.user else None,
-                    self.state.get('cert_serial'),
-                    self.state.get('openid_url'),
-                    ages.get('openid'),
-                    self.state.get('browserid_email'),
-                    ages.get('browserid'),
-                    repr(self.trust),
-                    ))
+        get = self.state.get
+
+        ret = '<Authenticizer ( User: {0}, '.format(
+                self.user.name if self.user else None)
+
+        if get('cert_serial'):
+            ret += 'Cert: {0}, '.format(get('cert_serial'))
+        if get('openid_url'):
+            ret += 'OpenID: {0} @ {1}, '.format(
+                    get('openid_url'), ages.get('openid'))
+        if get('browserid_email'):
+            ret += 'BrowserID: {0} @ {1}, '.format(
+                    get('browserid_email'), ages.get('browserid'))
+        ret += 'Trust Flags: {0} )>'.format(repr(self.trust))
+
+        return ret
 
 
 class BrowserIDRemoteVerifier(RemoteVerifier):
