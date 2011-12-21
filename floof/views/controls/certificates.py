@@ -1,18 +1,19 @@
 # encoding: utf8
 import logging
 
-from pyramid.httpexceptions import HTTPNotFound, HTTPSeeOther
+from pyramid.httpexceptions import HTTPForbidden, HTTPNotFound, HTTPSeeOther
 from pyramid.response import Response
 from pyramid.view import view_config
 from sqlalchemy.orm.exc import NoResultFound
 import wtforms
 
 from floof import model
-from floof.forms import KeygenField
+from floof.forms import FloofForm, KeygenField
 from floof.lib.auth import get_ca
 from floof.lib.helpers import friendly_serial
 
 log = logging.getLogger(__name__)
+
 
 def get_cert(serial, user=None, check_validity=False):
     """Helper for fetching certs and running common authorization checks."""
@@ -34,8 +35,8 @@ def get_cert(serial, user=None, check_validity=False):
 
     return cert
 
-# XXX also include CryptoAPI method?
-class CertificateForm(wtforms.form.Form):
+
+class CertificateForm(FloofForm):
     days = wtforms.fields.SelectField(u'New Certificate Validity Period',
             coerce=int,
             choices=[(31, '31 days'), (366, '1 year'), (1096, '3 years')]
@@ -60,7 +61,7 @@ class ServerCertificateForm(CertificateForm):
             ])
     generate_server = wtforms.fields.SubmitField(u'Generate On Server')
 
-class RevokeCertificateForm(wtforms.form.Form):
+class RevokeCertificateForm(FloofForm):
     ok = wtforms.fields.SubmitField(u'Revoke Certificate')
     cancel = wtforms.fields.SubmitField(u'Cancel')
 
@@ -72,8 +73,8 @@ class RevokeCertificateForm(wtforms.form.Form):
     renderer='account/controls/certificates.mako')
 def certificates(context, request, err=None):
     return dict(
-        browser_form=BrowserCertificateForm(),
-        server_form=ServerCertificateForm(),
+        browser_form=BrowserCertificateForm(request),
+        server_form=ServerCertificateForm(request),
     )
 
 @view_config(
@@ -82,11 +83,11 @@ def certificates(context, request, err=None):
     request_method='POST',
     renderer='account/controls/certificates.mako')
 def certificates_generate_client(context, request):
-    form = BrowserCertificateForm(request.POST) # XXX fetch_post(session, request))
+    form = BrowserCertificateForm(request, request.POST)
 
     ret = dict(
         browser_form=form,
-        server_form=ServerCertificateForm(),
+        server_form=ServerCertificateForm(request),
     )
 
     if not form.validate():
@@ -123,7 +124,7 @@ def certificates_generate_client(context, request):
     request_method='POST',
     renderer='account/controls/certificates.mako')
 def certificates_generate_server(context, request):
-    form = ServerCertificateForm(request.POST)
+    form = ServerCertificateForm(request, request.POST)
     if not form.validate():
         return dict(form=form)
 
@@ -172,11 +173,11 @@ def certificates_download(context, request):
     request_method='GET',
     renderer='account/controls/certificates_revoke.mako')
 def certificates_revoke(context, request, id=None):
-    form = RevokeCertificateForm()
+    form = RevokeCertificateForm(request)
     cert = get_cert(request.matchdict['serial'], request.user)
 
     will_override_auth = len(request.user.valid_certificates) == 1 and \
-            user.cert_auth in ['required', 'sensitive_required']
+            request.user.cert_auth in ['required', 'sensitive_required']
 
     return dict(
         form=form,
