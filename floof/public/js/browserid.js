@@ -7,7 +7,14 @@ function gotVerifiedEmailFactory(path) {
                 url: path,
                 data: { assertion: assertion, csrf_token: csrf_token },
                 success: function(res, status, xhr) {
+                    // TODO: handle a bum return value `res` (undefined or
+                    // missing attributes, etc)
                     if (res === null) {}//loggedOut();
+                    else if (res.post_id) {
+                        form = $('#' + res.post_id)
+                        form.action = res.next_url;
+                        form.submit();
+                    }
                     else location.href = res.next_url;
                 },
                 error: function(res, status, xhr) {
@@ -16,7 +23,7 @@ function gotVerifiedEmailFactory(path) {
             });
         }
         else {
-            // not sure what this implies yet
+            // user aborted BrowserID authn
         }
     }
 }

@@ -90,5 +90,8 @@ ${h.end_form()}
 <script type="text/javascript">
     $(browseridOnClick('#browserid', '${path}'));
 </script>
+${lib.secure_form(request.route_url('account.register'), id='postform')}
+    ${h.tags.hidden('display_only', value='true')}
+${h.end_form()}
 
 </section>

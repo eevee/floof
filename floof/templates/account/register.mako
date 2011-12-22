@@ -7,11 +7,13 @@
     ${h.javascript_link('/js/timezone-guesser.js')}
 </%def>
 
+<% identity = identity_webfinger or identity_url or identity_email %>\
+
 % if request.user:
 <section>
     <h1>Add a new login to your account</h1>
 
-    <p>You're already logged in as ${lib.user_link(request.user)}, and you're trying to identify as <code>${identity_webfinger or identity_url}</code>.</p>
+    <p>You're already logged in as ${lib.user_link(request.user)}, and you're trying to identify as <code>${identity}</code>.</p>
     <p>You can link this to your account as a secondary identity.  That way, if you lose access to your main identity, you can still log in.</p>
 
     ${lib.secure_form(request.route_url('account.add_identity'))}
@@ -43,7 +45,7 @@ ${lib.secure_form(request.route_url('account.register'), style="overflow: hidden
             <code>${identity_webfinger}</code> <br>
             as <code>${identity_url}</code>
         % else:
-            <code>${identity_url}</code>
+            <code>${identity}</code>
         % endif
     </dd>
     ${lib.field(form.username, hint_text=u"up to 24 characters.  lowercase letters, numbers, underscores.  can't be changed!")}
