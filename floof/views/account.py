@@ -78,6 +78,11 @@ def account_login_browserid(context, request):
 
     # Verify the identity assertion
     # TODO: versions of PyVEP >= 0.2 provide granular exceptions; use them
+    audience = request.registry.settings.get('auth.browserid.audience')
+    if not audience:
+        log.warning("Config key 'auth.browserid.audience' is missing or "
+                    "blank; BrowserID authentication will fail.")
+
     verifier = BrowserIDRemoteVerifier()
     try:
         data = verifier.verify(request.POST.get('assertion'), 'https://localhost')
