@@ -290,13 +290,11 @@ def register(context, request):
             reduce_display_name(display_name))
 
     # Create db records
-    base_user = model.session.query(Role).filter_by(name=u'user').one()
     resource = Resource(type=u'users')
     discussion = Discussion(resource=resource)
     user = User(
         name=form.username.data,
         email=form.email.data,
-        role=base_user,
         resource=resource,
         timezone=form.timezone.data,
 
@@ -304,6 +302,9 @@ def register(context, request):
         has_trivial_display_name=has_trivial_display_name,
     )
     model.session.add_all((user, resource, discussion))
+
+    base_user = model.session.query(Role).filter_by(name=u'user').one()
+    user.roles.append(base_user)
 
     openid = IdentityURL(url=identity_url)
     user.identity_urls.append(openid)
