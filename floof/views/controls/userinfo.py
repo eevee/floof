@@ -1,7 +1,5 @@
 # encoding: utf8
 import logging
-import re
-import unicodedata
 
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.view import view_config
@@ -9,6 +7,7 @@ import wtforms
 
 from floof import model
 from floof.forms import DisplayNameField, IDNAField, TimezoneField
+from floof.lib.helpers import reduce_display_name
 
 log = logging.getLogger(__name__)
 
@@ -28,19 +27,6 @@ class UserInfoForm(wtforms.form.Form):
             ])
     timezone = TimezoneField(u'Timezone')
     submit = wtforms.SubmitField(u'Update')
-
-def reduce_display_name(name):
-    """Return a reduced version of a display name for comparison with a
-    username.
-    """
-    # Strip out diacritics
-    name = ''.join(char for char in unicodedata.normalize('NFD', name)
-                   if not unicodedata.combining(char))
-
-    name = re.sub(r'\s+', '_', name)
-    name = name.lower()
-
-    return name
 
 @view_config(
     route_name='controls.info',
@@ -63,11 +49,7 @@ def user_info_commit(context, request):
     form = UserInfoForm(request.POST, user)
 
     if not form.validate():
-        return {
-            'form': form,
-        }
-        return render_to_response(
-            'account/controls/user_info.mako', {'form': form}, request=request)
+        return {'form': form}
 
     form.populate_obj(user)
 

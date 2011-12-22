@@ -5,6 +5,7 @@ available to Controllers. This module is available to templates as 'h'.
 """
 from __future__ import absolute_import
 import re
+import unicodedata
 
 import lxml.html
 import lxml.html.clean
@@ -94,3 +95,17 @@ def friendly_serial(serial):
             result += ':'
 
     return result[:-1]
+
+
+def reduce_display_name(name):
+    """Return a reduced version of a display name for comparison with a
+    username.
+    """
+    # Strip out diacritics
+    name = ''.join(char for char in unicodedata.normalize('NFD', name)
+                   if not unicodedata.combining(char))
+
+    name = re.sub(r'\s+', '_', name)
+    name = name.lower()
+
+    return name

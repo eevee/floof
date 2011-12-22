@@ -280,7 +280,7 @@ def register(context, request):
             request=request)
 
     # XXX waiting on auth_dev2 branch to merge to factor this out of controls
-    from floof.views.controls import reduce_display_name
+    from floof.lib.helpers import reduce_display_name
     if not form.display_name.data:
         display_name = None
         has_trivial_display_name = False
