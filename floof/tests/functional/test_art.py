@@ -56,9 +56,9 @@ class TestArt(FunctionalTests):
         assert art.height == 500
         assert art.width == 400
         assert art.number_of_colors == 10
-        assert art.frames == None
-        assert art.length == None
-        assert art.quality == None
+        assert art.frames is None
+        assert art.length is None
+        assert art.quality is None
 
         # Check on relationships
         relationships = art.user_artwork
@@ -71,7 +71,7 @@ class TestArt(FunctionalTests):
         location = response.headers['location']
         # And it should have the title in the URL; note that the ! is
         # URL-escaped as %21 in the response header
-        assert location.endswith(u'%21test-title')
+        assert location.endswith(u'-test-title')
 
         # Test viewing the new artwork
         response = self.app.get(self.url('art.view', artwork=art))
