@@ -29,16 +29,6 @@ class TestFloofAuthnPolicy(UnitTests):
 
         self.policy = FloofAuthnPolicy()
 
-        self.env_openid_old = {
-                'tests.user_id': self.user.id,
-                'tests.auth_trust': ['openid'],
-                }
-
-        self.env_openid_recent = {
-                'tests.user_id': self.user.id,
-                'tests.auth_trust': ['openid', 'openid_recent'],
-                }
-
     def test_principals_unauthenticated(self):
         request = create_authn_request(self.config)
         principals = self.policy.effective_principals(request)
@@ -69,8 +59,10 @@ class TestFloofAuthnPolicy(UnitTests):
             assert 'auth:{0}'.format(nature) in principals
 
     def test_principals_trusted(self):
-        authn_flags = ['cert', 'openid']
-        additional_flags = ['openid_recent']
+        authn_flags = ['cert', 'openid', 'browserid']
+        additional_flags = [
+                'openid_recent', 'openid_recent',
+                'browserid_recent', 'browserid_recent']
         all_flags = authn_flags + additional_flags
 
         for i in xrange(len(all_flags)):
@@ -78,6 +70,7 @@ class TestFloofAuthnPolicy(UnitTests):
                 env = self.env(*combo)
                 request = create_authn_request(self.config, environ=env)
                 principals = self.policy.effective_principals(request)
+                print combo, principals
 
                 if not any([f for f in combo if f in authn_flags]):
                     # With no flags from authn_flags, no user should resolve
