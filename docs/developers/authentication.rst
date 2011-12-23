@@ -9,13 +9,15 @@ Overview
 Authentication in ``floof`` aims to provide the end user with both flexibility
 and a reasonably high standard of security.
 
-Two primary mechanisms of authentication are supported:
+Three primary mechanisms of authentication are supported:
 
-1. OpenID
-2. TLS Client Certificates
+1. BrowserID
+2. OpenID
+3. TLS Client Certificates
 
-It is expected that most users will use only OpenID, with just administrators
-and a minority of power users employing client certificates.
+It is expected that most users will use only BrowserID, with some using OpenID
+and just administrators and a minority of power users employing client
+certificates.
 
 In ``floof``, the scope of 'authentication' runs from the interpretation of
 `credential tokens` to the assignment of :term:`principal` identifiers.  These
@@ -59,8 +61,9 @@ At present:
    HTTP server (if the client presented a valid certificate within the context
    of the current TLS session); and
 
-2. The URL and timestamp of the most recent successful OpenID validation is
-   stored in the Pyramid session.
+2. The URL and timestamp of the most recent successful OpenID validation and
+   the email address and timestamp of the most recent successful BrowserID
+   validation are stored in the Pyramid session.
 
 
 Resolving Identity
@@ -74,6 +77,7 @@ resolved to a user identity in the following order:
 
 1. TLS Client Certificate
 2. OpenID
+3. BrowserID
 
 Once one authentication mechanism has resolved a credential token to a user,
 subsequent mechanisms that resolve to a conflicting user will be ignored and
@@ -102,12 +106,14 @@ There are four types of concrete principal identifiers:
 
 3. Authentication mechanism and status identifiers, currently prefixed with
    ``trusted:``.  These indicate the currently valid credential tokens and
-   their properties, such as whether an OpenID verification was preformed
-   'recently'.  e.g.:
+   their properties, such as whether a BrowserID or OpenID verification was
+   preformed 'recently'.  e.g.:
 
    -  ``trusted:cert``
    -  ``trusted:openid``
    -  ``trusted:openid_recent``
+   -  ``trusted:browserid``
+   -  ``trusted:browserid_recent``
 
 4. Authentication setting identifiers, prefixed with ``auth:``.  These indicate
    properties of a user's authentication settings, such as whether a
