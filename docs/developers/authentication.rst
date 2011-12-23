@@ -17,18 +17,18 @@ Two primary mechanisms of authentication are supported:
 It is expected that most users will use only OpenID, with just administrators
 and a minority of power users employing client certificates.
 
-In ``floof``, the scope of 'Authentication' runs from the interpretation of
-credentials tokens to the assignment of :term:`principal` identifiers.  These
+In ``floof``, the scope of 'authentication' runs from the interpretation of
+`credential tokens` to the assignment of :term:`principal` identifiers.  These
 principal identifiers are then used by :ref:`section-developers-authz`
 components to assign permissions within a particular :term:`context`.
 
 Note that the actual authentication of credentials, such as the verification of
-an X.509 client certificate or the OpenID authentication process are beyond the
-scope of this documentation section.  Instead of considering raw credentials
-such as an X.509 certificate or usernames and passwords, this section assumes
-that previous successful validations of such credentials have been stored or
-are passed on each request as `credential tokens`, such as the serial of an
-X.509 certificate or an OpenID URL.
+an X.509 client certificate or the OpenID authentication process, are beyond
+the scope of this documentation section.  Instead of considering raw
+credentials such as an X.509 certificate or usernames and passwords, this
+section assumes that previous successful validations of such credentials have
+been stored or are passed on each request as `credential tokens`, such as the
+serial of an X.509 certificate or an OpenID URL.
 
 
 Authentication Flow
@@ -76,8 +76,8 @@ resolved to a user identity in the following order:
 2. OpenID
 
 Once one authentication mechanism has resolved a credential token to a user,
-subsequent mechanisms that resolve a conflicting user will be ignored and the
-conflicting credential tokens will be purged, if possible.
+subsequent mechanisms that resolve to a conflicting user will be ignored and
+the conflicting credential tokens will be purged, if possible.
 
 At this point, the authentication flow will know the request's authenticated
 user (if any) and the valid mechanisms on which their authentication status is
@@ -87,9 +87,12 @@ based.
 Retrieving Concrete Principal Identifiers
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-There are three types of concrete principal identifiers:
+There are four types of concrete principal identifiers:
 
-1. Role identifiers, prefixed with ``role:``.  These are assigned by
+1. User identifiers, prefixed with ``user:``, that contain simply the user ID
+   of the active user, modelled as a principal identifier for convenience.
+
+2. Role identifiers, prefixed with ``role:``.  These are assigned by
    administrators and are stored in their own database table, and represent
    static authorization properties of the user.  e.g.:
 
@@ -97,7 +100,7 @@ There are three types of concrete principal identifiers:
    -  ``role:banned``
    -  ``role:user``
 
-2. Authentication mechanism and status identifiers, currently prefixed with
+3. Authentication mechanism and status identifiers, currently prefixed with
    ``trusted:``.  These indicate the currently valid credential tokens and
    their properties, such as whether an OpenID verification was preformed
    'recently'.  e.g.:
@@ -106,7 +109,7 @@ There are three types of concrete principal identifiers:
    -  ``trusted:openid``
    -  ``trusted:openid_recent``
 
-3. Authentication setting identifiers, prefixed with ``auth:``.  These indicate
+4. Authentication setting identifiers, prefixed with ``auth:``.  These indicate
    properties of a user's authentication settings, such as whether a
    client certificate is required for sensitive operations.  e.g.:
 
@@ -138,9 +141,9 @@ Authorization
 
 These and other principal identifiers are based purely on a request's
 credential tokens, that is, on a user's authentication status, and are the same
-across all contexts.  To actually be able to perform restricted actions
-requires the translation of these principal identifiers into into actual
-permissions.  This translation depends on the relevant Pyramid context of the
+across all contexts.  To actually be permitted to perform restricted actions
+requires the translation of these principal identifiers into into
+`permissions`.  This translation depends on the relevant Pyramid context of the
 action or its target, and is covered in detail under
 :ref:`section-developers-authz`.
 

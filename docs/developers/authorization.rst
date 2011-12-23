@@ -15,7 +15,8 @@ The Pyramid built-in authorization policy
 :class:`pyramid.authorization.ACLAuthorizationPolicy` is used by ``floof``.
 This policy uses the ``__acl__`` attribute on a context object and, if
 necessary, on its parent objects to perform the mapping from principal
-identifiers to permissions.
+identifiers to permissions.  Parents are pointed to by an object's
+``__parent__`` attribute.
 
 In general, contexts in ``floof`` will be members of a context tree rooted at
 the instance of :class:`floof.resource.FloofRoot`.
