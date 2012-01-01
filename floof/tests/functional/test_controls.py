@@ -1,7 +1,6 @@
 import copy
 import hashlib
 import OpenSSL.crypto as ssl
-import time
 
 from openid import oidutil
 from urlparse import parse_qs, urlparse
@@ -26,13 +25,10 @@ class TestControls(FunctionalTests):
         """Creates a user to be used as a fake login."""
         super(TestControls, self).setUp()
 
-        self.user = sim.sim_user()
+        self.user = sim.sim_user(credentials=[])
         model.session.flush()
 
-        self.default_environ = {
-                'tests.user_id': self.user.id,
-                'tests.auth_trust': ['openid', 'openid_recent'],
-                }
+        self.default_environ = {'tests.user_id': self.user.id}
 
     @classmethod
     def setUpClass(cls):
@@ -260,7 +256,7 @@ class TestControls(FunctionalTests):
         environ['tests.auth_trust'] = ['cert']
         response = self.app.get(
                 self.url('controls.auth'),
-                extra_environ=self.default_environ,
+                extra_environ=environ,
                 )
         assert 'selected="selected" value="disabled"' in response, 'Could not find evidence of anticipated default value.'
 
@@ -269,11 +265,11 @@ class TestControls(FunctionalTests):
                 params=[
                     ('cert_auth', u'required')
                     ],
-                extra_environ=self.default_environ,
+                extra_environ=environ,
                 )
         response = self.app.get(
                 self.url('controls.auth'),
-                extra_environ=self.default_environ,
+                extra_environ=environ,
                 )
         cert_auth = model.session.query(model.User).filter_by(id=self.user.id).one().cert_auth
         assert cert_auth == u'disabled', 'Allowed change to method requiring a certificate when user has no certificates.'

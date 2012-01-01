@@ -1,20 +1,22 @@
 import itertools
-import time
+
+from functools import partial
 
 from pyramid.security import Authenticated, Everyone
 from pyramid.testing import DummyRequest
 
-from floof import model
 from floof.tests import UnitTests
 from floof.tests import sim
 
 from floof.lib.auth import Authenticizer, FloofAuthnPolicy
+
 
 def create_authn_request(config, params=None, environ=None):
     request = DummyRequest(
             registry=config.registry, params=params, environ=environ)
     request.auth = Authenticizer(request)
     return request
+
 
 class TestFloofAuthnPolicy(UnitTests):
 
@@ -23,7 +25,7 @@ class TestFloofAuthnPolicy(UnitTests):
         super(TestFloofAuthnPolicy, self).setUp()
 
         self.user = sim.sim_user()
-        model.session.flush()
+        self.env = partial(sim.sim_user_env, self.user)
 
         self.policy = FloofAuthnPolicy()
 
@@ -45,19 +47,13 @@ class TestFloofAuthnPolicy(UnitTests):
         assert len(principals) == 1
 
     def test_principals_role(self):
-        env = {
-                'tests.user_id': self.user.id,
-                'tests.auth_trust': ['cert'],
-                }
+        env = self.env('cert')
         request = create_authn_request(self.config, environ=env)
         principals = self.policy.effective_principals(request)
         assert 'role:user' in principals
 
     def test_principals_secure(self):
-        env = {
-                'tests.user_id': self.user.id,
-                'tests.auth_trust': ['cert'],
-                }
+        env = self.env('cert')
         request = create_authn_request(self.config, environ=env)
 
         methods = {
@@ -73,26 +69,31 @@ class TestFloofAuthnPolicy(UnitTests):
             assert 'auth:{0}'.format(nature) in principals
 
     def test_principals_trusted(self):
-        def makeone(auth_trust):
-            env = {
-                'tests.user_id': self.user.id,
-                'tests.auth_trust': auth_trust,
-                }
-            request = create_authn_request(self.config, environ=env)
-            return self.policy.effective_principals(request)
+        authn_flags = ['cert', 'openid']
+        additional_flags = ['openid_recent']
+        all_flags = authn_flags + additional_flags
 
-        trust_flags = ['cert', 'openid', 'openid_recent']
+        for i in xrange(len(all_flags)):
+            for combo in itertools.combinations(all_flags, i + 1):
+                env = self.env(*combo)
+                request = create_authn_request(self.config, environ=env)
+                principals = self.policy.effective_principals(request)
 
-        for i in xrange(len(trust_flags)):
-            for auth_trust in itertools.combinations(trust_flags, i + 1):
-                principals = makeone(auth_trust)
+                if not any([f for f in combo if f in authn_flags]):
+                    # With no flags from authn_flags, no user should resolve
+                    assert principals == set([Everyone])
+                    continue
 
                 assert Everyone in principals
                 assert Authenticated in principals
                 assert 'user:{0}'.format(self.user.id) in principals
 
-                for mech in auth_trust:
-                    assert 'trusted:{0}'.format(mech) in principals
+                for mech in combo:
+                    flag = 'trusted:{0}'.format(mech)
+                    if mech.endswith('_recent') and mech[:-7] not in combo:
+                        assert flag not in principals
+                    else:
+                        assert flag in principals
 
     def test_principal_derivation_trustedfor_auth(self):
         pass

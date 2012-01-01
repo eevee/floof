@@ -47,26 +47,7 @@ def generate_ca(conf):
         expire = now + timedelta(days=3653)
         site_title = conf.local_conf['site_title']
 
-        # Generate a new private key
-        ca_key = ssl.PKey()
-        ca_key.generate_key(ssl.TYPE_RSA, 2048)
-
-        # Generate a new (public) CA certificate from the key
-        ca = ssl.X509()
-        ca.set_version(2)  # Value 2 means v3
-        ca.set_serial_number(1)
-        ca.get_subject().organizationName = site_title
-        ca.get_subject().commonName = 'Client Certificate CA'
-        ca.set_notBefore(now.strftime('%Y%m%d%H%M%SZ'))
-        ca.set_notAfter(expire.strftime('%Y%m%d%H%M%SZ'))
-        ca.set_issuer(ca.get_subject())
-        ca.set_pubkey(ca_key)
-        ca.add_extensions([
-                ssl.X509Extension('subjectKeyIdentifier', False, 'hash', ca),
-                ssl.X509Extension('basicConstraints', True, 'CA:TRUE'),
-                ssl.X509Extension('keyUsage', True, 'cRLSign, keyCertSign'),
-                ])
-        ca.sign(ca_key, 'sha256')
+        ca, ca_key = gen_ca_certs(site_title, now, expire)
 
         # Save the new key and certificate out to files
         if not os.path.isdir(cert_dir):
@@ -88,3 +69,27 @@ def generate_ca(conf):
         with open(os.path.join(cert_dir, 'ca.pem'), 'rU') as f:
             ca_cert = ssl.load_certificate(ssl.FILETYPE_PEM, f.read())
         print "  Will use this file as the SSL Client Certificate CA."
+
+def gen_ca_certs(site_title, now, expire):
+    # Generate a new private key
+    ca_key = ssl.PKey()
+    ca_key.generate_key(ssl.TYPE_RSA, 2048)
+
+    # Generate a new (public) CA certificate from the key
+    ca = ssl.X509()
+    ca.set_version(2)  # Value 2 means v3
+    ca.set_serial_number(1)
+    ca.get_subject().organizationName = site_title
+    ca.get_subject().commonName = 'Client Certificate CA'
+    ca.set_notBefore(now.strftime('%Y%m%d%H%M%SZ'))
+    ca.set_notAfter(expire.strftime('%Y%m%d%H%M%SZ'))
+    ca.set_issuer(ca.get_subject())
+    ca.set_pubkey(ca_key)
+    ca.add_extensions([
+            ssl.X509Extension('subjectKeyIdentifier', False, 'hash', ca),
+            ssl.X509Extension('basicConstraints', True, 'CA:TRUE'),
+            ssl.X509Extension('keyUsage', True, 'cRLSign, keyCertSign'),
+            ])
+    ca.sign(ca_key, 'sha256')
+
+    return ca, ca_key

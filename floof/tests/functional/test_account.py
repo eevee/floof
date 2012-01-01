@@ -1,12 +1,14 @@
 import time
 
+from itertools import chain
+
 from floof import model
 from floof.tests import FunctionalTests
+from floof.tests import sim
 
-import floof.tests.sim as sim
 
 class TestAccount(FunctionalTests):
-    
+
     def setUp(self):
         """Creates a user to be used as a fake login."""
         super(TestAccount, self).setUp()
@@ -29,60 +31,53 @@ class TestAccount(FunctionalTests):
 
     def test_logins(self):
         """Test logging in with various ``cert_auth` values, using mechanism overrides."""
+        externalids = [['openid']]
+        cert_with_others = [
+                ['cert', 'openid'],
+                ]
         runsheet = dict(
                 disabled=[
-                    ('logged_out', []),
-                    ('pending', ['cert']),
-                    ('logged_in', ['openid']),
-                    ('logged_in', ['cert', 'openid']),
+                    ('logged_out', ([], ['cert'])),
+                    ('logged_in', chain(externalids, cert_with_others)),
                     ],
                 allowed=[
-                    ('logged_out', []),
-                    ('logged_in', ['cert']),
-                    ('logged_in', ['openid']),
-                    ('logged_in', ['cert', 'openid']),
+                    ('logged_out', ([],)),
+                    ('logged_in', chain(['cert'], externalids, cert_with_others)),
                     ],
                 sensitive_required=[
-                    ('logged_out', []),
-                    ('logged_in', ['cert']),
-                    ('logged_in', ['openid']),
-                    ('logged_in', ['cert', 'openid']),
+                    ('logged_out', ([],)),
+                    ('logged_in', chain(['cert'], externalids, cert_with_others)),
                     ],
                 required=[
-                    ('logged_out', []),
-                    ('logged_in', ['cert']),
-                    ('pending', ['openid']),
-                    ('logged_in', ['cert', 'openid']),
+                    ('logged_out', chain([], externalids)),
+                    ('logged_in', chain(['cert'], cert_with_others)),
                     ],
                )
+
         response = self.app.get(self.url('root'))
         assert 'Log in or register' in response, 'Page does not appear logged out even when no auth data should be present.'
-        response = self.app.post(
-                self.url('controls.certs.generate_server', name=self.user.name),
-                params=[
-                    ('days', 31),
-                    ('generate_server', u'Generate On Server'),
-                    ],
-                extra_environ=self.default_environ,
-                )
+
         user = model.session.query(model.User).filter_by(id=self.user.id).one()
-        assert len(user.certificates) == 1, 'Expected user to have exactly one certificate, found {0}'.format(len(user.certificates))
-        serial = user.certificates[0].serial
+        assert len(user.certificates) == 1, 'Expected user to have exactly one certificate, found {0}. (Test setup error)'.format(len(user.certificates))
+
         for cert_auth in runsheet:
             user.cert_auth = cert_auth
             model.session.flush()
-            for test in runsheet[cert_auth]:
-                result, mechs = test
-                extra = dict()
-                extra['tests.auth_trust'] = mechs
-                response = self.app.post(self.url('account.logout'))
-                response = self.app.get(self.url('root'), extra_environ=extra)
-                if 'Hello, <a href=' in response:
-                    assert result == 'logged_in', 'Wound up in state "logged_in", wanted "{0}", for cert_auth "{1}" with authed mechanisms: {2}'.format(result, cert_auth, mechs)
-                if 'Complete log in for {0}'.format(user.name) in response:
-                    assert result == 'pending', 'Wound up in state "pending", wanted "{0}", for cert_auth "{1}" with authed mechanisms: {2}'.format(result, cert_auth, mechs)
-                if 'Log in or register' in response:
-                    assert result == 'logged_out', 'Wound up in state "logged_out", wanted "{0}", for cert_auth "{1}" with authed mechanisms: {2}'.format(result, cert_auth, mechs)
+
+            for result, mech_combos in runsheet[cert_auth]:
+                for mech_combo in mech_combos:
+                    if isinstance(mech_combo, basestring):
+                        # XXX is there a more elegant way?
+                        mech_combo = [mech_combo]
+
+                    extra = sim.sim_user_env(self.user, *mech_combo)
+                    response = self.app.post(self.url('account.logout'))
+                    response = self.app.get(self.url('root'), extra_environ=extra)
+
+                    if 'Log in or register' in response:
+                        assert result == 'logged_out', 'Wound up in state "logged_out", wanted "{0}", for cert_auth "{1}" with authed mechanisms: {2}'.format(result, cert_auth, mech_combo)
+                    else:
+                        assert result == 'logged_in', 'Wound up in state "logged_in", wanted "{0}", for cert_auth "{1}" with authed mechanisms: {2}'.format(result, cert_auth, mech_combo)
 
     def test_login_cert_invalid(self):
         """Test automatic fallback to "allowed" if the user has no valid certs."""

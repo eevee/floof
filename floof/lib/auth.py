@@ -180,6 +180,10 @@ class Authenticizer(object):
     that don't all match.
 
     """
+
+    _cred_tokens = ['cert_serial', 'openid_url', 'openid_timestamp']
+    _trust_flags = ['cert', 'openid', 'openid_recent']
+
     def __init__(self, request):
         config = request.registry.settings
 
@@ -198,21 +202,19 @@ class Authenticizer(object):
         """A list of authentication mechanisms satisfied that the current
         request authenticates :attr:`user`."""
 
-        # Test amenity: set user
-        if 'tests.user_id' in request.environ:
-            # Override user id manually
-            self.clear()
-            self.user = model.session.query(model.User) \
-                    .get(request.environ['tests.user_id'])
-
         # convenience/readability helper
         error = partial(request.session.flash, level='error',
                         icon='key--exclamation')
 
+        # TODO: move the below into check_certificate or its own method
+        verified_serial = None
+        if 'paste.testing' in request.environ:
+            self._setup_testing_early(request)
+            verified_serial = request.environ.get('tests.auth.cert_serial')
+
         # Check for client certificate serial; ATM, the cert serial is passed
         # by the frontend server in an HTTP header.
-        verified_serial = None
-        if asbool(config.get('auth.certs.enabled')):
+        if asbool(config.get('auth.certs.enabled')) and not verified_serial:
             # need to check verification status if we pass requests failing
             # cert auth back to floof (e.g. for user help display)
             # XXX the below 'verify' codes are nginx-isms
@@ -233,8 +235,8 @@ class Authenticizer(object):
         try:
             self.check_certificate(verified_serial)
         except CertNotFoundError:
-            # This should NEVER happen in production (certs should last
-            # forever)
+            log.error("A validated client cert was not found in the DB, yet "
+                      "client certs should persist in the DB indefinately.")
             error("I don't recognize your client certificate.")
         except CertAuthDisabledError:
             error("Client certificates are disabled for your account.")
@@ -252,12 +254,8 @@ class Authenticizer(object):
         except AuthConflictError:
             error("Your OpenID conflicted with your certificate and has been cleared.")
 
-        # Further test amenity: set auth mechanisms
-        if ('tests.user_id' in request.environ or
-                'tests.auth_trust' in request.environ):
-            self.trust = request.environ.get(
-                'tests.auth_trust',
-                ['cert', 'openid', 'openid_recent'])  # maximum trust!
+        if 'paste.testing' in request.environ:
+            self._setup_testing_late(request)
 
         if len(self.trust) == 0:
             # Either there's no user, or none of their current auths are valid.
@@ -269,6 +267,29 @@ class Authenticizer(object):
 
         # for convenience
         self.user.can = partial(could_have_permission, request=request)
+
+    def _setup_testing_early(self, request):
+        """Setup any requested test credential tokens."""
+
+        self.clear()
+        env = request.environ
+
+        if 'tests.user_id' in env:
+            self.user = model.session.query(model.User).get(
+                    env['tests.user_id'])
+
+        else:
+            for token in self._cred_tokens:
+                idx = 'tests.auth.' + token
+                if idx in env:
+                    self.state[token] = env[idx]
+
+    def _setup_testing_late(self, request):
+        """Override trust flags as requested or required."""
+
+        env = request.environ
+        if ('tests.auth_trust' in env or 'tests.user_id' in env):
+            self.trust = env.get('tests.auth_trust', self._trust_flags)
 
     def check_certificate(self, serial):
         """Check a client certificate serial and add authentication if valid."""
@@ -314,7 +335,7 @@ class Authenticizer(object):
         url = self.state.pop('openid_url', None)
         timestamp = self.state.pop('openid_timestamp', None)
 
-        if not url or not timestamp:
+        if not url or timestamp is None:
             # No (or corrupted) OpenID login. By popping, our obligation to
             # clear relevent state is already fulfilled, so just return
             return
