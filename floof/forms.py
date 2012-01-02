@@ -104,14 +104,16 @@ def timezone_choices():
     """
     #TODO: Perfect for caching; the list is unlikely to change more than hourly.
     tzs = []
-    now = datetime.now()
+    now = datetime.utcnow()
     for tz_name in pytz.common_timezones:
         offset = pytz.timezone(tz_name).utcoffset(now)
         offset_real_secs = offset.seconds + offset.days * 24 * 60**2
         offset_hours, remainder = divmod(offset_real_secs, 3600)
         offset_minutes, _ = divmod(remainder, 60)
-        offset_txt = '(UTC {0:0=+3d}:{1:0>2d}) {2}'.format(
-                offset_hours, offset_minutes, tz_name)
+        curr_time = now + offset
+        curr_time = curr_time.strftime('%a %H:%M')
+        offset_txt = '(UTC {0:0=+3d}:{1:0>2d}) [{2}] {3}'.format(
+                offset_hours, offset_minutes, curr_time, tz_name)
         tzs.append((offset_real_secs, tz_name, offset_txt))
     tzs.sort()
     return [tz[1:] for tz in tzs]
