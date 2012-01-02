@@ -1,4 +1,5 @@
 import logging
+import urllib
 
 from openid.consumer.consumer import Consumer
 from openid.consumer.consumer import CANCEL, FAILURE, SUCCESS
@@ -40,6 +41,11 @@ def resolve_webfinger(address):
     user, domain = address.rsplit(u'@', 1)
     if domain in FAKE_WEBFINGER_DOMAINS:
         # XXX possibly phishable or something since this goes into domain name
+        # Do our best to mitigate this: a) strip RFC-3986 "gen-delims" and
+        # b) URL encode.  Need to strip "gen-delims" since Python seemed to be
+        # re-constituting the '/' when it was merely encoded, and presumably
+        # may do so for other reserved characters.
+        user = urllib.quote(user.encode('utf-8').strip(':/?#[]@'), safe='~')
         return FAKE_WEBFINGER_DOMAINS[domain].format(user)
 
     try:
