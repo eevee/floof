@@ -125,6 +125,13 @@ class FloofAuthnPolicy(object):
             raise ValueError("A credential, such as openid_url, must be "
                              "passed to this function.")
 
+        # Renew session identifier on persistant (non-cert) authn status change
+        # (a best practice).  Such renewal is not part of the Pyramid session
+        # interface, so conditionally check for the regenerate_id method that
+        # is present on Beaker sessions
+        if hasattr(request.session, 'regenerate_id'):
+            request.session.regenerate_id()
+
         request.session.save()
         return []
 

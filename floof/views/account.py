@@ -191,6 +191,7 @@ def login_finish(context, request):
         # Existing user; new login
         # Log the successful OpenID authentication, mindful of users that may
         # have OpenID logins disabled, for instance.
+        # XXX should we deny a logged-in user to authenticate as another user?
         auth_headers = security.forget(request)
         headers = safe_openid_login(request, identity_owner, identity_url)
 
