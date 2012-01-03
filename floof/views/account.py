@@ -224,6 +224,7 @@ def logout(context, request):
     # with the crypto api
     # XXX redirect somewhere better than just the front page...?
     auth_headers = security.forget(request)
+    request.session.invalidate()  # Prevent the next user seeing this session
     request.session.flash(u'Logged out.', icon='user-silhouette')
     return HTTPSeeOther(
         location=request.route_url('root'),
