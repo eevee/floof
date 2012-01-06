@@ -2,7 +2,7 @@
 <%namespace name="lib" file="/lib.mako" />
 
 <%def name="panel_title()">SSL Certificates</%def>
-<%def name="panel_icon()">${lib.icon('key')}</%def>
+<%def name="panel_icon()">${lib.icon('certificate')}</%def>
 
 <h1>About Certificates</h1>
 <p>SSL/TLS Client Certificates are small files that allow you to

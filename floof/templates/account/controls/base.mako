@@ -10,10 +10,10 @@
 <ul>
     % for action, icon, title in [ \
         ('index',   'fruit',        u'Index??'), \
-        ('info',    'user',         u'User Info'), \
+        ('info',    'user--pencil', u'User Info'), \
         ('rels',    'users',        u'Watches'), \
-        ('openid',  'user',         u'OpenID Identities'), \
-        ('certs',   'key',          u'SSL Certificates'), \
+        ('openid',  'openid',       u'OpenID Identities'), \
+        ('certs',   'certificate',  u'SSL Certificates'), \
         ('auth',    'key',          u'Authentication Options'), \
     ]:
     % if action == request.matched_route.name.split('.')[1]:

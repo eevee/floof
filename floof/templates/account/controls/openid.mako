@@ -3,7 +3,7 @@
 <%namespace name="lib" file="/lib.mako" />
 
 <%def name="panel_title()">OpenID Identity Settings</%def>
-<%def name="panel_icon()">${lib.icon('user')}</%def>
+<%def name="panel_icon()">${lib.icon('openid')}</%def>
 
 ${lib.secure_form(request.route_url('controls.openid.add'))}
 <dl class="standard-form">
