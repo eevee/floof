@@ -273,7 +273,15 @@ class Authenticizer(object):
         request.session.changed()
 
         # for convenience
-        self.user.can = partial(could_have_permission, request=request)
+        def user_can(permission, context=None):
+            """Returns True if the current user can (potentially after re-auth
+            and/or a settings change) have the given permission in the given
+            context, else False.  context defaults to request.context."""
+            if context is None:
+                context = request.context
+            return could_have_permission(permission, context, request)
+
+        self.user.can = user_can
 
     def _setup_testing_early(self, request):
         """Setup any requested test credential tokens."""

@@ -36,7 +36,7 @@ def error400(context, request):
     context=httpexceptions.HTTPForbidden,
     renderer='error.mako')
 def error403(context, request):
-    if request.user.can(request.permission, request.context):
+    if request.user.can(request.permission):
         outstanding = outstanding_principals(request.permission,
                                              request.context,
                                              request)
