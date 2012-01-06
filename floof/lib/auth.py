@@ -118,6 +118,10 @@ class FloofAuthnPolicy(object):
         At present, only accepts calls that include both a `user` and an
         `openid_url` parameter.
 
+        Raises Exceptions on error; either `ValueError` if no parameters are
+        given or one of the auth-specific exceptions defined in
+        :mod:`floof.lib.auth`.
+
         """
         if openid_url:
             request.auth.login_openid(user, openid_url)
@@ -635,8 +639,7 @@ MSG_PRESENT_CERT = 'Present your client certificate for authentication'
 MSG_GEN_CERT = 'Generate and configure a client certificate'
 MSG_AUTH_SEC = (
         "Configure your certificate authentication option to either "
-        "'Require using client certificates for login' or 'Allow using "
-        "client certificates for login; Required for Sensitive Operations'")
+        "'Require for login' or 'Require for Sensitive Operations only'")
 
 def help_auth_secure(request):
     msg = ''

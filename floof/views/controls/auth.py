@@ -40,10 +40,10 @@ class RemoveOpenIDForm(FloofForm):
 
 class AuthenticationForm(FloofForm):
     cert_auth = wtforms.fields.SelectField(u'Cert Auth Method', choices=[
-            (u'disabled', u'Disallow using client certificates for login (default)'),
-            (u'allowed', u'Allow using client certificates for login'),
-            (u'sensitive_required', u'Allow using client certificates for login; Require for Sensitive Operations'),
-            (u'required', u'Require using client certificates for login'),
+            (u'disabled', u'Disabled (default)'),
+            (u'allowed', u'Allow for login'),
+            (u'sensitive_required', u'Require for Sensitive Operations only'),
+            (u'required', u'Require for login'),
             ])
 
     def validate_cert_auth(form, field):
