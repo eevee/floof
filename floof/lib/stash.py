@@ -49,6 +49,7 @@ def manage_stashes(event):
 
     if stash:
         request.stash = stash
+        log.debug("Consuming stash '{0}: {1}'", request.path, stash)
 
         if key and stash['post']:
             # Extra layer of protection against abuse of this mechanism
@@ -88,6 +89,8 @@ def stash_post(request, route_name=None, immediate=False, post=None):
     )
 
     request.session.changed()
+    log.debug("Added stash '{0}: {1}'".format(path, stashes[path]))
+
     return key
 
 
@@ -98,13 +101,28 @@ def get_stash_keys(request):
 
 def key_from_request(request):
     """Returns request.params['return_key'] if it exists and is a valid key,
-    otherwise None. If return_key exists but is invalid, a warning is
-    logged."""
+    otherwise None.
 
-    key = request.params.get('return_key')
+    If return_key exists but is invalid, a warning is logged.
 
-    if key and key in get_stash_keys(request):
+    If return_key has multiple values, a warning is logged and the first valid
+    key (if any) is returned.
+
+    """
+    valid_keys = get_stash_keys(request)
+
+    # We should never have multiple return_key params in one URL
+    keylist = request.params.getall('return_key')
+    if keylist and len(keylist) > 1:
+        log.warning("More than one return_key was found in a URL; this "
+                    "shouldn't happen.  URL was: '{0}'".format(request.url))
+        keylist = [k for k in keylist if k in valid_keys]
+
+    key = keylist[0] if keylist else None
+
+    if key and key in valid_keys:
         return key
+
     if key:
         log.warning("Unknown return_key value: {0!r}".format(key))
 
