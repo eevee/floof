@@ -29,6 +29,11 @@ import floof.views
 
 log = logging.getLogger(__name__)
 
+def get_shim(name):
+    def _dictlike_get_shim(self):
+        return self.__dict__.get(name)
+    return _dictlike_get_shim
+
 class FloofRequest(Request):
     def __init__(self, *args, **kwargs):
         self.timer = floof.lib.debugging.RequestTimer()
@@ -40,10 +45,9 @@ class FloofRequest(Request):
         self.session.changed()
         return auth
 
-    def get_context(self):
-        # floof assumes this property always exists, which it might not
-        return self.__dict__.get('context')
-    context = property(get_context)
+    # floof auth assumes some properties always exist, which might not
+    context = property(get_shim('context'))
+    root = property(get_shim('root'))
 
     @property
     def permission(self):
