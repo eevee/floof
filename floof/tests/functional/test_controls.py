@@ -191,10 +191,10 @@ class TestControls(FunctionalTests):
         """Test generation, viewing, downloading and revocation of SSL certificates."""
         # Test generation
         response = self.app.get(
-                self.url('controls.certs'),
+                self.url('controls.certs.add'),
                 extra_environ=self.default_environ,
                 )
-        assert 'Generate New Certificate' in response, 'Could not find the anticipated page title.'
+        assert 'Generate on Server' in response, 'Could not find the anticipated page title.'
 
         times = ((31, '30 days, 23 hours'), (366, '365 days, 23 hours'))
         serials = []
@@ -235,8 +235,20 @@ class TestControls(FunctionalTests):
                 self.url('controls.certs.revoke', serial=serials[0]),
                 extra_environ=self.default_environ,
                 )
-        assert 'Permanently Revoke Certificate <span class="monospace">{0}'.format(friendly_serial(serials[0])) in response, 'Unable to find anticipated heading in page.old'
-        assert 'Permanently Revoke Certificate <span class="monospace">{0}</span>'.format(friendly_serial(serials[0])) in response, 'Unable to find anticipated heading in page.'
+        assert 'Revoke Certificate' in response, 'Unable to find anticipated heading in page.'
+        assert friendly_serial(serials[0]) in response, 'Unable to find certificate serial in page.'
+
+        response = self.app.post(
+                self.url('controls.certs.revoke', serial=serials[0]),
+                extra_environ=self.default_environ,
+                )
+        response = self.app.get(
+                self.url('controls.certs'),
+                extra_environ=self.default_environ,
+                )
+        assert self.url('controls.certs.details', serial=serials[0]) in response, '(Not-)Revoked cert not found on certificates page at all.'
+        assert self.url('controls.certs.revoke', serial=serials[0]) in response, 'Revocation link not found for certificate, even though revocation was not confirmed/cancelled.'
+
         response = self.app.post(
                 self.url('controls.certs.revoke', serial=serials[0]),
                 params=[('ok', u'Revoke Certificate')],

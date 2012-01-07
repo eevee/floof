@@ -42,8 +42,16 @@
 
 
 ## User handling
+<%def name="date(t)">\
+${request.user.localtime(t).strftime('%Y-%m-%d')}\
+</%def>
+
 <%def name="time(t)">\
 ${request.user.localtime(t).strftime('%A, %d %B %Y at %H:%M %Z')}\
+</%def>
+
+<%def name="shorttime(t)">\
+${request.user.localtime(t).strftime('%Y-%m-%d %H:%M %Z')}\
 </%def>
 
 <%def name="timedelta(td)">\

@@ -216,6 +216,7 @@ body > section {
     }
 
     section h1:first-child,
+    section h1.top-heading,
     aside h1:first-child {
         margin-top: 0;
     }
@@ -349,6 +350,7 @@ input[type="submit"], input[type="button"], input[type="submit"], input[type="im
 
 select,
 input[type="text"],
+input[type="password"],
 textarea {
     color: #404040;
     background: #fff;

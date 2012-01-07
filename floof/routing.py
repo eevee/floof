@@ -55,6 +55,7 @@ def configure_routing(config):
     r('controls.info', '/account/controls/user_info')
 
     r('controls.certs', '/account/controls/certificates')
+    r('controls.certs.add', '/account/controls/certificates/add')
     r('controls.certs.generate_server',
             '/account/controls/certificates/gen/cert-{name}.p12')
     r('controls.certs.details',

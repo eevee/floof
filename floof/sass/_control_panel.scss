@@ -27,3 +27,27 @@ nav.side-navigation{
         }
     }
 }
+
+table.certificate {
+    tr.invalid {
+        color: #666;
+
+        td:nth-child(1) {
+            text-decoration: line-through;
+        }
+        td:nth-child(2) {
+            color: #600;
+        }
+    }
+
+    tr.valid td:nth-child(2) {
+        color: #060;
+    }
+}
+
+dl.certificate.valid dd:nth-child(4) {
+    color: #060;
+}
+dl.certificate.invalid dd:nth-child(4) {
+    color: #600;
+}

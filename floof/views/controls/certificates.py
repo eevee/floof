@@ -71,17 +71,27 @@ class RevokeCertificateForm(FloofForm):
     permission='auth.certificates',
     request_method='GET',
     renderer='account/controls/certificates.mako')
-def certificates(context, request, err=None):
+def certificates(context, request):
+    return dict()
+
+
+@view_config(
+    route_name='controls.certs.add',
+    permission='auth.certificates',
+    request_method='GET',
+    renderer='account/controls/certificates_add.mako')
+def certificates_add(context, request):
     return dict(
         browser_form=BrowserCertificateForm(request),
         server_form=ServerCertificateForm(request),
     )
 
+
 @view_config(
-    route_name='controls.certs',
+    route_name='controls.certs.add',
     permission='auth.certificates',
     request_method='POST',
-    renderer='account/controls/certificates.mako')
+    renderer='account/controls/certificates_add.mako')
 def certificates_generate_client(context, request):
     form = BrowserCertificateForm(request, request.POST)
 
@@ -176,8 +186,9 @@ def certificates_revoke(context, request, id=None):
     form = RevokeCertificateForm(request)
     cert = get_cert(request.matchdict['serial'], request.user)
 
-    will_override_auth = len(request.user.valid_certificates) == 1 and \
-            request.user.cert_auth in ['required', 'sensitive_required']
+    will_override_auth = (
+            len(request.user.valid_certificates) == 1 and
+            request.user.cert_auth in ['required', 'sensitive_required'])
 
     return dict(
         form=form,
@@ -190,7 +201,11 @@ def certificates_revoke(context, request, id=None):
     permission='auth.certificates',
     request_method='POST')
 def certificates_revoke_commit(context, request):
+    form = RevokeCertificateForm(request, request.POST)
     cert = get_cert(request.matchdict['serial'], request.user)
+
+    if not form.validate() or not form.ok.data:
+        return HTTPSeeOther(location=request.route_url('controls.certs'))
 
     cert.revoke()
     request.session.flash(
