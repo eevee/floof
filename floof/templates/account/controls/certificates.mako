@@ -4,29 +4,8 @@
 <%def name="panel_title()">SSL Certificates</%def>
 <%def name="panel_icon()">${lib.icon('certificate')}</%def>
 
-<h1>About Certificates</h1>
-<p>SSL/TLS Client Certificates are small files that allow you to
-authenticate to online applications in a manner that is more resistant
-to unauthorized use than passwords.  As implemented here, they also
-provide some additional protection against session hijacking.</p>
-
-<p>While this page is aimed at <strong>advanced users</strong> who
-don't mind potentially having to fiddle around with their browser's
-internal settings, feel free to have a play around.  You can't break
-anything by fiddling about here.</p>
-
-<p>Once you've got the hang of it and have a certificate successfully
-installed, you can change your
-<a href="${request.route_url('controls.auth')}">
-Authentication Options</a> to require that you present that certificate
-to log on at all.</p>
-
-<h1>Your Certificates</h1>
-
-% if request.user.certificates:
-    <p><a href="${request.route_url('controls.certs.add')}">
-    ${lib.icon('plus')} Generate New Certificate</a></p>
-% endif
+<p><a href="${request.route_url('controls.certs.add')}">
+${lib.icon('plus', '+')} Generate New Certificate</a></p>
 
 % if not request.user.certificates:
 <p>You have no certificates.</p>
@@ -76,5 +55,20 @@ to log on at all.</p>
 </table>
 % endif
 
-<p><a href="${request.route_url('controls.certs.add')}">
-${lib.icon('plus')} Generate New Certificate</a></p>
+
+<h1>About Certificates</h1>
+<p>SSL/TLS Client Certificates are small files that allow you to
+authenticate to online applications in a manner that is more resistant
+to unauthorized use than passwords.  As implemented here, they also
+provide some additional protection against session hijacking.</p>
+
+<p>This feature is aimed at <strong>advanced users</strong> who
+don't mind potentially having to fiddle around with their browser's
+internal settings.  Howwever, feel free to have a play around on this
+page.  You can't break anything by just fiddling about here.</p>
+
+<p>Once you've got the hang of it and have a certificate successfully
+installed, you can change your
+<a href="${request.route_url('controls.auth')}">
+Authentication Options</a> to require that you present that certificate
+to log on at all.</p>

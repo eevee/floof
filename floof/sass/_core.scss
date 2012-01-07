@@ -486,6 +486,14 @@ dl.standard-form {
 ////////////////////////////////////////////////////////////////////////////////
 // Globally useful div/span classes
 
+.clearfix:after {
+    content: ".";
+    display: block;
+    height: 0;
+    clear: both;
+    visibility: hidden;
+}
+
 .halfsplit {
     float: left;
     padding: 1em;

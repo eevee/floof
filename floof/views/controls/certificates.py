@@ -37,7 +37,7 @@ def get_cert(serial, user=None, check_validity=False):
 
 
 class CertificateForm(FloofForm):
-    days = wtforms.fields.SelectField(u'New Certificate Validity Period',
+    days = wtforms.fields.SelectField(u'Validity Period',
             coerce=int,
             choices=[(31, '31 days'), (366, '1 year'), (1096, '3 years')]
             )
@@ -53,10 +53,10 @@ class BrowserCertificateForm(CertificateForm):
                     'Certificate on Server&quot;.')
 
 class ServerCertificateForm(CertificateForm):
-    name = wtforms.fields.TextField(u'PKCS12 Friendly Name', [
+    name = wtforms.fields.TextField(u'Cert Friendly Name', [
             wtforms.validators.Length(max=64),
             ])
-    passphrase = wtforms.fields.PasswordField(u'PKCS12 Passphrase', [
+    passphrase = wtforms.fields.PasswordField(u'Cert Passphrase', [
             wtforms.validators.Length(max=64),
             ])
     generate_server = wtforms.fields.SubmitField(u'Generate On Server')
