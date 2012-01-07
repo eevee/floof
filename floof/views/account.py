@@ -39,7 +39,12 @@ class LoginForm(wtforms.form.Form):
 def account_login(context, request):
     # XXX worth mentioning on this page how to log in with SSL, and offer a
     # crypto link if they already hit cancel and want to try again
-    form = LoginForm(return_key=key_from_request(request))
+
+    # Auto-fill OpenID on re-auth
+    return_key = key_from_request(request)
+    openid = request.auth.openid_url if return_key else None
+
+    form = LoginForm(openid_identifier=openid, return_key=return_key)
     return {'form': form}
 
 

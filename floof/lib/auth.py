@@ -454,6 +454,11 @@ class Authenticizer(object):
         """
         return self.state.get('cert_serial', None)
 
+    @property
+    def openid_url(self):
+        """Returns the URL for the active OpenID auth, or None."""
+        return self.state.get('openid_url', None)
+
     def __repr__(self):
         openid_age = None
         if 'openid_timestamp' in self.state:
