@@ -29,10 +29,16 @@ import floof.views
 
 log = logging.getLogger(__name__)
 
+
+# Raised when the CSRF token check fails but no cookies have been sent
+class NoCookiesError(Exception): pass
+
+
 def get_shim(name):
     def _dictlike_get_shim(self):
         return self.__dict__.get(name)
     return _dictlike_get_shim
+
 
 class FloofRequest(Request):
     def __init__(self, *args, **kwargs):
@@ -152,9 +158,7 @@ def prevent_csrf(event):
 
         # Token is wrong!
         if not request.cookies:
-            # XXX need a raisable exception here
-            #redirect(url(controller='main', action='cookies_disabled'))
-            pass
+            raise NoCookiesError
 
         from pyramid.exceptions import Forbidden
         raise Forbidden('Possible cross-site request forgery detected.')
