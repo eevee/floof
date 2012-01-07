@@ -11,14 +11,13 @@ the certificate below?  You will no longer be able to log in with this
 certificate.<p>
 
 % if cert.serial == request.auth.certificate_serial:
-<p>You are currently using this certificate.  Revoking it may
-automatically log you out.  If you still wish to continue, please
+<p><strong>You are currently using this certificate.  Revoking it may
+automatically log you out.</strong>  If you still wish to continue, please
 ensure that you have an alternate way of logging in.</p>
     % if will_override_auth:
-    <p>This is your last valid certificate.  If you revoke it, then your
-    client certificate authentication method will be overwritten from
-    ${request.user.cert_auth} to &quot;Allowed for login&quot; at next
-    login.</p>
+    <p><strong>This is your last valid certificate.</strong>  If you revoke
+    it, then your client certificate authentication method will be overwritten
+    from ${request.user.cert_auth} to &quot;Allowed for login&quot;.</p>
     % endif
 % endif
 

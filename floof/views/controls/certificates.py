@@ -3,6 +3,7 @@ import logging
 
 from pyramid.httpexceptions import HTTPForbidden, HTTPNotFound, HTTPSeeOther
 from pyramid.response import Response
+from pyramid.security import effective_principals
 from pyramid.view import view_config
 from sqlalchemy.orm.exc import NoResultFound
 import wtforms
@@ -188,7 +189,7 @@ def certificates_revoke(context, request, id=None):
 
     will_override_auth = (
             len(request.user.valid_certificates) == 1 and
-            request.user.cert_auth in ['required', 'sensitive_required'])
+            request.user.cert_auth in [u'required', u'sensitive_required'])
 
     return dict(
         form=form,
@@ -211,5 +212,12 @@ def certificates_revoke_commit(context, request):
     request.session.flash(
         u"Certificate {0} revoked successfully.".format(friendly_serial(cert.serial)),
         level=u'success')
+
+    principals = effective_principals(request)
+    trust = [p for p in principals if p.startswith('trusted:')]
+    serial = request.auth.certificate_serial
+    if trust == ['trusted:cert'] and cert.serial == serial:
+        # The user will be logged out by this revocation
+        return HTTPSeeOther(location=request.route_url('account.login'))
 
     return HTTPSeeOther(location=request.route_url('controls.certs'))

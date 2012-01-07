@@ -221,12 +221,20 @@ def login_finish(context, request):
 def logout(context, request):
     """Logs the user out, if possible."""
 
+    cert_active = 'trusted:cert' in effective_principals(request)
+
     # XXX if you're using a client cert, this should try hard to log you out
     # with the crypto api
     # XXX redirect somewhere better than just the front page...?
     auth_headers = security.forget(request)
     request.session.invalidate()  # Prevent the next user seeing this session
-    request.session.flash(u'Logged out.', icon='user-silhouette')
+
+    if cert_active:
+        request.session.flash(u'You must stop sending your client certificate '
+                              'to complete your log out.', level='warning')
+    else:
+        request.session.flash(u'Logged out.', icon='user-silhouette')
+
     return HTTPSeeOther(
         location=request.route_url('root'),
         headers=auth_headers,

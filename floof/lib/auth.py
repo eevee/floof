@@ -124,7 +124,7 @@ class FloofAuthnPolicy(object):
 
         """
         if openid_url:
-            request.auth.login_openid(user, openid_url)
+            request.auth.login_openid(request, user, openid_url)
         else:
             raise ValueError("A credential, such as openid_url, must be "
                              "passed to this function.")
@@ -215,7 +215,7 @@ class Authenticizer(object):
 
         # convenience/readability helper
         error = partial(request.session.flash, level='error',
-                        icon='key--exclamation')
+                        icon='key--exclamation', allow_duplicate=False)
 
         # TODO: move the below into check_certificate or its own method
         verified_serial = None
@@ -252,9 +252,9 @@ class Authenticizer(object):
         except CertAuthDisabledError:
             error("Client certificates are disabled for your account.")
         except CertExpiredError:
-            error("That client certificate has expired.")
+            error("The client certificate you are presenting has expired.")
         except CertRevokedError:
-            error("That client certificate has been revoked.")
+            error("The client certificate you are presenting has been revoked.")
 
         try:
             self.check_openid(config)
@@ -275,6 +275,8 @@ class Authenticizer(object):
 
         print self, request.url
         request.session.changed()
+
+        self._certreq_override(request, self.user)
 
         # for convenience
         def user_can(permission, context=None):
@@ -393,7 +395,20 @@ class Authenticizer(object):
         if not self.user:
             self.user = openid.user
 
-    def login_openid(self, user, url):
+    def _certreq_override(self, request, user):
+        """To prevent fequent accidental lockout, set cert_auth option to
+        "allowed" if the user has no valid certs."""
+        if (user and
+                not user.valid_certificates and
+                user.cert_auth in ('required', 'sensitive_required')):
+            old = user.cert_auth
+            user.cert_auth = 'allowed'
+            request.session.flash(
+                    "You no longer have any valid certificates, so your "
+                    "Authentication Option has been reset to 'Allowed for "
+                    "login'", level='warning')
+
+    def login_openid(self, request, user, url):
         """Log in via OpenID, adding appropriate authentication state.
 
         Remember that any authentication change will only take effect on the
@@ -402,12 +417,13 @@ class Authenticizer(object):
 
         Also remember to save the session after this!
         """
-        # XXX Temporarily drop auth level if user's certs have all expired
+        if not url in (u.url for u in user.identity_urls):
+            raise OpenIDNotFoundError
+
+        self._certreq_override(request, user)
 
         if user.cert_auth == 'required':
             raise OpenIDAuthDisabledError
-        if not url in (u.url for u in user.identity_urls):
-            raise OpenIDNotFoundError
 
         self.state['openid_url'] = url
         self.state['openid_timestamp'] = calendar.timegm(datetime.now().timetuple())
