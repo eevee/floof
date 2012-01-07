@@ -405,8 +405,10 @@ class Authenticizer(object):
             user.cert_auth = 'allowed'
             request.session.flash(
                     "You no longer have any valid certificates, so your "
-                    "Authentication Option has been reset to 'Allowed for "
-                    "login'", level='warning')
+                    "<a href=\"{0}\">Authentication Option</a> has been reset "
+                    "to 'Allowed for login'"
+                    .format(request.route_url('controls.auth')),
+                    level='warning', html_escape=False)
 
     def login_openid(self, request, user, url):
         """Log in via OpenID, adding appropriate authentication state.

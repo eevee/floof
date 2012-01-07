@@ -71,7 +71,7 @@ class _RichSessionFlashMixin(object):
         success='tick-circle',
     )
 
-    def flash(self, message, icon=None, level='notice', **kwargs):
+    def flash(self, message, icon=None, level='notice', html_escape=True, **kwargs):
         """Store your flash message with an optional icon and "level" (which
         really just affects the CSS class).
         """
@@ -80,7 +80,8 @@ class _RichSessionFlashMixin(object):
         if icon is None:
             icon = self._default_flash_icons[level]
 
-        to_store = dict(message=message, icon=icon, level=level)
+        to_store = dict(message=message, icon=icon, level=level,
+                        html_escape=html_escape)
         super(_RichSessionFlashMixin, self).flash(to_store, **kwargs)
 
 
