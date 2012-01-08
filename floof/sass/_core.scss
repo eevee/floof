@@ -492,13 +492,15 @@ dl.standard-form {
     height: 0;
     clear: both;
     visibility: hidden;
+    overflow: inherit;
 }
 
 .halfsplit {
     float: left;
-    padding: 1em;
-    width: 42%;
+    width: 48%;
 }
+.halfsplit.left { padding: 0 1.5% 0 0; }
+.halfsplit.right { padding: 0 0 0 1.5%; }
 
 span.monospace {
     font-family: monospace;

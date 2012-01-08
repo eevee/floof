@@ -18,7 +18,7 @@ $(document).ready(function() {
 <p><a href="${request.route_url('controls.certs')}">Go back to Certificates List</a></p>
 
 <div class="clearfix">
-<div class="halfsplit">
+<div class="halfsplit left">
     ${lib.secure_form(request.path_url)}
     <h1 class="top-heading">Generate Certificate in Browser</h1>
     <dl class="standard-form">
@@ -30,7 +30,7 @@ $(document).ready(function() {
     </dl>
     ${h.end_form()}
 </div>
-<div class="halfsplit">
+<div class="halfsplit right">
     <p>This will cause your browser to generate and install a certificate
     automatically.</p>
     <p>It is the easiest option, but it's not supported by all
@@ -50,7 +50,7 @@ $(document).ready(function() {
 </div>
 
 <div class="clearfix">
-<div class="halfsplit">
+<div class="halfsplit left">
     <h1>Generate Certificate on Server</h1>
     ${lib.secure_form(request.route_url('controls.certs.generate_server', name=request.user.name))}
     <dl class="standard-form">
@@ -63,7 +63,7 @@ $(document).ready(function() {
     </dl>
     ${h.end_form()}
 </div>
-<div class="halfsplit">
+<div class="halfsplit right">
     <p>This will return a PKCS12 (.p12) certificate file for download and
     manual installation.</p>
     <p>This method is compatible with any browser, but you'll have to work
