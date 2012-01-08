@@ -89,10 +89,12 @@ def friendly_serial(serial):
 
     result = ''
     length = min(len(serial), 10)
-    for i, char in enumerate(serial[:length]):
+    start = len(serial) - length
+    for i, char in enumerate(serial[start:]):
         result += char
         if i % 2 == 1:
             result += ':'
+    print serial, result
 
     return result[:-1]
 

@@ -488,7 +488,8 @@ class Certificate(TableBase):
                 ])
         cert.sign(ca_key, digest)
 
-        self.serial = u'{0:x}'.format(cert.get_serial_number())
+        # The serial must be 40 chars long
+        self.serial = u'{0:0>40x}'.format(cert.get_serial_number())
         self.created_time = now
         self.expiry_time = expire
         self.bits = bits
