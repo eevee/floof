@@ -276,6 +276,8 @@ class Authenticizer(object):
         print self, request.url
         request.session.changed()
 
+        # This invocation is for the benefit of currently-logged-in
+        # sensitive_required users only
         self._certreq_override(request, self.user)
 
         # for convenience
