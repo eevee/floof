@@ -32,7 +32,7 @@ function browseridOnClick(domspec, submissionPath) {
     return function() {
         $(domspec).click(function() {
             callback = gotVerifiedEmailFactory(submissionPath);
-            navigator.id.getVerifiedEmail(callback);
+            navigator.id.get(callback);
             return false;
         });
     }
