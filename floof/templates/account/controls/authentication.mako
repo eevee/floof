@@ -28,5 +28,7 @@ option.  Some of them are listed below.</p>
     in and perform sensitive operations with just your OpenID.  That is,
     your Certificate Authentication Option will be automatically changed to
     &quot;Allow for login&quot;.</li>
+    <li>Options that require certificates will be hidden until you select
+    &quot;Allow for login&quot; and authenticate with a certificate.</l1>
 </ol>
 ${h.end_form()}

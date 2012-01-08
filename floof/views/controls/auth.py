@@ -189,6 +189,12 @@ def openid_remove(context, request):
     renderer='account/controls/authentication.mako')
 def authentication(context, request):
     form = AuthenticationForm(request, obj=request.user)
+
+    # Trim options that will be denied
+    if (not request.user.cert_auth in ('required', 'sensitive_required') and
+            not 'trusted:cert' in effective_principals(request)):
+        form.cert_auth.choices = form.cert_auth.choices[:2]
+
     return {'form': form}
 
 @view_config(
