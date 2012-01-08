@@ -94,7 +94,6 @@ def friendly_serial(serial):
         result += char
         if i % 2 == 1:
             result += ':'
-    print serial, result
 
     return result[:-1]
 
