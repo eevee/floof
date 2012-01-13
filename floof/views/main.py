@@ -45,7 +45,7 @@ def filestore(context, request):
     class_ = request.matchdict['class_']
     key = request.matchdict['key']
 
-    storage = request.registry.settings['filestore']
+    storage = request.storage
     storage_url = storage.url(class_, key)
     if not storage_url:
         # No such file, oh dear

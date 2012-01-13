@@ -100,7 +100,7 @@ def upload(context, request):
         return ret
 
     # Grab the file
-    storage = request.registry.settings['filestore']
+    storage = request.storage
     uploaded_file = request.POST.get('file')
 
     try:
