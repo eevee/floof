@@ -1,33 +1,16 @@
-import cStringIO
 import os
 import shutil
-import string
 import tempfile
 import urllib2
-import random
 
 import pytest
 import transaction
 
 from floof.model.filestore import get_storage_factory
 from floof.tests import UnitTests
-
-
-class IntentionalError(Exception): pass
-
-
-class AlwaysFailDataManager(object):
-    def abort(self, transaction): pass
-    def tpc_begin(self, transaction): pass
-    def commit(self, transaction): pass
-    def tpc_finish(self, transaction): pass
-    def tpc_abort(self, transaction): pass
-
-    def tpc_vote(self, transaction):
-        raise IntentionalError
-
-    def sortKey(self):
-        return '~~~~hopefullyLast'
+from floof.tests.unit.model.filestore import AlwaysFailDataManager
+from floof.tests.unit.model.filestore import IntentionalError
+from floof.tests.unit.model.filestore import storage_put, storage_put_tester
 
 
 class TestLocalFileStore(UnitTests):
@@ -44,13 +27,12 @@ class TestLocalFileStore(UnitTests):
 
     def tearDown(self):
         self._rmtree()
+        super(TestLocalFileStore, self).tearDown()
 
     def _rmtree(self):
+        # *nix bias, but good grief, we don't want to trip this accidentally
         assert '/tmp/' in self.directory, "Dare not call rmtree on chosen temp directory path '{0}'".format(self.directory)
         shutil.rmtree(self.directory)
-
-    def _make_key(self):
-        return u''.join((random.choice(string.hexdigits) for i in xrange(10)))
 
     def _get_storage(self):
         settings = {
@@ -58,67 +40,22 @@ class TestLocalFileStore(UnitTests):
             'filestore.directory': self.directory
         }
         storage = get_storage_factory(settings)()
+        assert hasattr(storage, 'put')
+        assert hasattr(storage, 'url')
+
         trxn = transaction.begin()
         trxn.join(storage)
 
         return storage
 
-    def _put(self, storage, data=None):
-        if data is None:
-            length = random.choice(range(10, 1000))
-            data = ''.join((random.choice(string.printable)
-                            for i in xrange(length)))
-
-        data = cStringIO.StringIO(data)
-        key = self._make_key()
-        storage.put('class', key, data)
-        data.seek(0)
-
-        return 'class', key, data
-
-    def test_get_factory(self):
-        settings = {'filestore.directory': self.directory}
-        with pytest.raises(ImportError):
-            settings['filestore'] = 'floof.model.filestore.ocal.FileStorage'
-            get_storage_factory(settings)
-            settings['filestore'] = 'foo'
-            get_storage_factory(settings)
-
-        settings['filestore'] = 'floof.model.filestore.local.FileStorage'
-        get_storage_factory(settings)
-        settings['filestore'] = 'local'
-        storage_factory = get_storage_factory(settings)
-
-        storage = storage_factory()
-        assert hasattr(storage, 'put')
-        assert hasattr(storage, 'url')
-
     def test_put(self):
         storage = self._get_storage()
-
         assert len(storage.stage) == 0
-        cls, key, data = self._put(storage)
-
-        # Check that something got inserted into storage.stage
-        assert len(storage.stage) == 1
-        idx = storage._idx(cls, key)
-        assert cls in idx
-        assert key in idx
-        assert idx in storage.stage
-
-        # Check the values of the tuple inserted into storage.stage
-        entry = storage.stage[idx]
-        assert len(entry) == 3
-        c, k, d = entry
-        assert c == cls
-        assert k == key
-        d.seek(0)
-        data.seek(0)
-        assert d.read() == data.read()
+        storage_put_tester(storage)
 
     def test_url(self):
         storage = self._get_storage()
-        cls, key, data = self._put(storage)
+        cls, key, data = storage_put(storage)
 
         # URL should be available immediately
         url = storage.url(cls, key)
@@ -132,7 +69,7 @@ class TestLocalFileStore(UnitTests):
 
     def test_commit_process(self):
         storage = self._get_storage()
-        cls, key, data = self._put(storage)
+        cls, key, data = storage_put(storage)
 
         trxn = transaction.get()
         storage.tpc_begin(trxn)
@@ -158,7 +95,7 @@ class TestLocalFileStore(UnitTests):
 
     def test_other_dm_fail(self):
         storage = self._get_storage()
-        cls, key, data = self._put(storage)
+        cls, key, data = storage_put(storage)
         assert not os.listdir(self.tempdir)
 
         # Simulate voting failure of another datamanager during commit

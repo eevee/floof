@@ -7,11 +7,16 @@ from floof.lib.setup.
 A transaction is begun before each request and aborted immediately following.
 
 Designed to be run with py.test
+
 """
+import os.path
 import transaction
 import unittest
 import webtest
 
+import pytest
+
+from paste.deploy import appconfig
 from pyramid import testing
 from pyramid.paster import get_app
 from pyramid.url import URLMethodsMixin
@@ -39,6 +44,18 @@ def _prepare_env():
 # XXX: major import side-effects ahoy!
 _prepare_env()
 
+
+def test_get_settings():
+    # Get paster to interpret the passed config ini-spec
+    conffile = getattr(pytest.config.option, 'config', None)
+    if conffile is None:
+        return None
+
+    ini_spec = os.path.abspath(conffile)
+    settings = appconfig('config:' + ini_spec)
+    return settings
+
+
 class UnitTests(unittest.TestCase):
     """Brings up a lightweight db and threadlocal environment."""
 
@@ -48,12 +65,13 @@ class UnitTests(unittest.TestCase):
         self.session = floof.model.session()
         # The config will be picked up automatically by Pyramid as a thread
         # local
-        self.config = testing.setUp()
+        self.config = testing.setUp(settings=test_get_settings())
 
     def tearDown(self):
         # Roll back everything and discard the threadlocal environment
         testing.tearDown()
         transaction.abort()
+
 
 class FunctionalTests(UnitTests):
     """Brings up the full Pyramid app."""

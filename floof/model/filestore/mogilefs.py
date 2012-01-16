@@ -14,7 +14,11 @@ log = logging.getLogger(__name__)
 
 
 class FileStorage(BaseFileStorage):
-    """
+    """FileStorage data manager using MogileFS as a backend.
+
+    This class tries hard to follow the Zope transaction manager interface,
+    where :meth:`tpc_finish` should always succeed and only be reached if we
+    are very confident that it will do so.
 
     Note that :meth:`url` cannot know the URL to a newly :meth`put` file until
     the transaction has been commited.
@@ -51,12 +55,14 @@ class FileStorage(BaseFileStorage):
         pass
 
     def commit(self, transaction):
+        """Stores the staged files in MogileFS under a temporary name."""
         for class_, key, stageobj in self.stage.itervalues():
-            # Can't use store_file here; it very rudely closes the file when it's done
             ident = self._identifier(class_, key)
+            # XXX: This rand is probably unnecessary
             rand = uuid.uuid4().hex
             tempident = u':'.join(('__temp__', ident, rand))
             self.temp.append((ident, tempident))
+            # Can't use store_file here; it very rudely closes the file when it's done
             with self.client.new_file(tempident, cls=class_) as f:
                 shutil.copyfileobj(stageobj, f)
 
@@ -64,11 +70,20 @@ class FileStorage(BaseFileStorage):
         pass
 
     def tpc_finish(self, transaction):
+        """Moves the temporary file written in :meth:`commit` to its final
+        name.
+
+        A brief look over the mogile code suggests that this is only issues a
+        single SQL statement, which should make the possibility of this method
+        failing as low as practical.
+
+        """
         for ident, tempident in self.temp:
             self.client.rename(tempident, ident)
         self._finish()
 
     def tpc_abort(self, transaction):
+        """Deletes any temporary files stored to MogileFS, if possible."""
         for ident, tempident in self.temp:
             try:
                 self.client.delete(tempident)
