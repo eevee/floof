@@ -12,21 +12,29 @@ HERE = os.path.abspath(os.path.dirname(__file__))
 
 class PyTest(Command):
     user_options = [('config=', 'c', 'floof paster configuration ini-spec')]
+
     def initialize_options(self):
         self.config = ''
+
     def finalize_options(self):
-        pass
+        if self.config:
+            self.config = os.path.abspath(self.config)
+
     def run(self):
         import sys
         from subprocess import call
-        cmd = ['py.test', 'floof/tests']
+
+        testdir = os.path.join(HERE, 'floof', 'tests')
+        cmd = ['py.test', testdir]
         if self.config:
             cmd.append('--config={0}'.format(self.config))
+
         try:
             ret_val = call(cmd, cwd=HERE)
         except OSError as exc:
             from traceback import print_exc
             from errno import ENOENT
+
             print_exc(exc)
             errno, strerror = exc
             if errno == ENOENT:
@@ -35,7 +43,9 @@ class PyTest(Command):
             else:
                 print ("Unexpected error calling py.test: errno {0}: {1}"
                        .format(errno, strerror))
+
             ret_val = errno or 1
+
         raise SystemExit(ret_val)
 
 

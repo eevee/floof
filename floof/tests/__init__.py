@@ -47,11 +47,11 @@ _prepare_env()
 
 def test_get_settings():
     # Get paster to interpret the passed config ini-spec
-    conffile = getattr(pytest.config.option, 'config', None)
-    if conffile is None:
+    ini_spec = getattr(pytest.config.option, 'config', None)
+    if not ini_spec:
         return None
 
-    ini_spec = os.path.abspath(conffile)
+    ini_spec = os.path.abspath(ini_spec)
     settings = appconfig('config:' + ini_spec)
     return settings
 
@@ -91,7 +91,13 @@ class FunctionalTests(UnitTests):
 
     def __init__(self, *args, **kwargs):
         # FIXME: Hardcoded!
-        wsgiapp = get_app('paster.ini', 'floof-test')
+        ini_spec = getattr(pytest.config.option, 'config', None)
+        if ini_spec:
+            filename, appname = ini_spec.rsplit('#', 1)
+        else:
+            filename, appname = 'paster.ini', 'floof-test'
+
+        wsgiapp = get_app(filename, appname)
         self.app = webtest.TestApp(wsgiapp)
 
         super(FunctionalTests, self).__init__(*args, **kwargs)
