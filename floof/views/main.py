@@ -49,7 +49,7 @@ def filestore(context, request):
     storage_url = storage.url(class_, key)
     if not storage_url:
         # No such file, oh dear
-        log.warn("File {0} is missing".format(key))
+        log.warn("File {0}:{1} is missing".format(class_, key))
         raise NotFound()
 
     # Get the MIME type and a filename
