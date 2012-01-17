@@ -120,8 +120,8 @@
 
     <h1>Labels</h1>
     <ul class="standard-list">
-        % for label in artwork.labels_visible_to(request.user):
-        <li>${artlib.label(label)}</li>
+        % for label in request.user.permitted('label.view', artwork.labels):
+        <li>${artlib.label(label)} (by ${lib.user_link(label.user)})</li>
         % endfor
     </ul>
 

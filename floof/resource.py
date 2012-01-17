@@ -8,7 +8,7 @@ information, and authorization is the focus of this module.
 from pyramid.security import Allow, Deny
 from pyramid.security import Authenticated, Everyone
 
-from floof.model import Comment
+from floof.model import Comment, Label
 
 ROOT_ACL = (
     (Deny, 'banned:interact_with_others', (
@@ -36,6 +36,18 @@ This ACL defines the base, generic permissions that apply in the absence of an
 ORM object with more specific or nuanced principal -> permission mappings.
 """
 
+
+def label_acl(label):
+    acl = [
+        (Allow, 'user:{0}'.format(label.user_id), ('label.view',)),
+        (Allow, 'trusted_for:admin', ('label.view',)),
+    ]
+    if label.encapsulation in ('public', 'plug'):
+        acl.append((Allow, Everyone, ('label.view',)))
+
+    return tuple(acl)
+
+
 ORM_ACLS = {
     Comment: lambda ormobj: (
         (Allow, 'user:{0}'.format(ormobj.author_user_id), (
@@ -47,6 +59,7 @@ ORM_ACLS = {
             'comment.edit',
         )),
     ),
+    Label: label_acl,
 }
 """A mapping from a subset of ORM classes to factory functions that, called
 with an ORM object of that class, will return a Pyramid ACL appropriate for

@@ -24,13 +24,10 @@ def index_per_user(user, request):
 @view_config(
     route_name='labels.artwork',
     request_method='GET',
+    permission='label.view',
     renderer='labels/artwork.mako')
 def artwork(label, request):
     """Show a gallery of artwork for this label."""
-    # XXX this would be a good use for pyramid's authz stuff
-    if label not in label.user.labels_visible_to(request.user):
-        raise HTTPForbidden
-
     gallery_sieve = GallerySieve(user=request.user, formdata=request.params)
     gallery_sieve.filter_by_label(label)
 
