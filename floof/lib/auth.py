@@ -291,6 +291,14 @@ class Authenticizer(object):
 
         self.user.can = user_can
 
+        def user_permitted(permission, lst):
+            """Filter iterable lst to include only ORM objects for which the request's
+            user holds the given permission."""
+            f = lambda obj: request.user.can(permission, contextualize(obj))
+            return filter(f, lst)
+
+        self.user.permitted = user_permitted
+
     def _setup_testing_early(self, request):
         """Setup any requested test credential tokens."""
 
