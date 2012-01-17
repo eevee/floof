@@ -40,9 +40,15 @@ def error400(context, request):
     renderer='error.mako')
 def error403(context, request):
     if request.user.can(request.permission):
-        outstanding = outstanding_principals(request.permission,
+        from floof.lib.auth import UPGRADABLE_PRINCIPALS
+        all_outstanding = outstanding_principals(request.permission,
                                              request.context,
                                              request)
+        outstanding = []
+        for altset in all_outstanding:
+            f = lambda x: x.startswith(UPGRADABLE_PRINCIPALS)
+            if all(map(f, altset)):
+                outstanding.append(altset)
     else:
         outstanding = None
     return _error_view(context, request,
