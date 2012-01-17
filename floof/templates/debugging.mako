@@ -64,8 +64,9 @@ Current request context ACLs:
     ${getattr(ctx, '__name__', 'Unnamed Context') or 'Root'}:
 <% perms = permissions_in_context(ctx, request) %>\
 % if perms:
-% for perm, allowed in perms:
-        ${perm}: ${'Allowed' if allowed else 'Denied'}
+% for perm, allowed, upgradeable in perms:
+        <% status = 'Upgradeable' if upgradeable else 'Denied' %>\
+        ${perm}: ${'Allowed' if allowed else status}
 % endfor
 % else:
         None

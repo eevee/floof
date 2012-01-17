@@ -511,9 +511,12 @@ def get_ca(settings):
 # permissions need to be administratively granted.
 
 def permissions_in_context(context, request):
-    """Returns a list of (permission, allowed) tuples for each permission
-    defined in the ACL (``__acl__``) of the `context`.  allowed is a boolean
-    that is True if ``request.user`` holds that permission in that context."""
+    """Returns a list of ``(permission, allowed, upgradable)`` tuples for each
+    permission defined in the ACL (``__acl__``) of the `context`.  `allowed` is
+    a boolean that is True if ``request.user`` holds that permission in that
+    context and `upgradeable` is a Boolean that is True if `allowed` is False
+    but the permission may be gained by the user by authentication upgrade
+    (typically re-authentication or using cert auth)."""
 
     acl = getattr(context, '__acl__', None)
 
@@ -528,7 +531,11 @@ def permissions_in_context(context, request):
 
     results = []
     for perm in sorted(permissions):
-        results.append((perm, request.user.can(perm, context)))
+        allowed = has_permission(perm, context, request)
+        upgradeable = None
+        if not allowed:
+            upgradeable = could_have_permission(perm, context, request)
+        results.append((perm, allowed, upgradeable))
 
     return results
 
