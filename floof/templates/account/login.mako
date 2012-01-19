@@ -17,6 +17,50 @@
     <h1>Log in or register</h1>
 % endif
 
+<noscript>
+    <p style="text-align: center; color: #600;">It looks like you don't have Javascript enabled for this site.
+    <br />Unfortunately, BrowserID requires Javascript to work.</p>
+</noscript>
+<p style="text-align: center; font-size: 2em;"><a href="#" id="browserid" title="Sign-in with BrowserID">
+    <img src="https://browserid.org/i/sign_in_blue.png" alt="Sign in with BorwserID" />
+</a></p>
+<script src="https://browserid.org/include.js" async></script>
+<%
+    path = request.route_path("account.browserid.login")
+    if form.return_key.data:
+        path = h.update_params(path, return_key=form.return_key.data)
+%>\
+<script type="text/javascript">
+    $(browseridOnClick('#browserid', '${path}'));
+</script>
+
+${lib.secure_form(request.route_url('account.register'), id='postform')}
+    ${h.tags.hidden('display_only', value='true')}
+${h.end_form()}
+
+<aside class="sidebar">
+    <h1>How will this work?</h1>
+    <p>If you haven't used BrowserID before, then you will be asked to:</p>
+    <ol>
+        <li>Provide an email address;</li>
+        <li>Follow a link sent via email to that address to prove it's yours; and</li>
+        <li>Choose a password so you don't need to follow a link in an email every time</li>
+    </ol>
+    <p>You can then use your BrowserID account to log in to any site that supports BrowserID without needing to memorize additional passwords.</p>
+</aside>
+
+<section>
+    <h1>Wait, what?</h1>
+
+    <ul class="standard-list">
+        <li>We don't ask you for a password directly.  We use BrowserID to let you log in using just your email address.</li>
+        <li>Make sure you use an email account that's reliable.  If someone hacks your email account, they can log in here too.</li>
+        <li>We don't tell anyone what email addresses you're using to log in.</li>
+    </ul>
+</section>
+
+
+<h1>Alternative: Log in with OpenID</h1>
 ${lib.secure_form(request.route_url('account.login_begin'))}
     <div id="big-ol-openid-box">
         ${form.return_key() | n}
@@ -26,6 +70,7 @@ ${lib.secure_form(request.route_url('account.login_begin'))}
         </span>
     </div>
 ${h.end_form()}
+
 
 <%
     openid_webfinger_shims = [
@@ -56,42 +101,13 @@ ${h.end_form()}
     <h1>Wait, what?</h1>
 
     <ul class="standard-list">
-        <li>We don't ask you for a password.  Just tell us about an account (or "identity") you already have with another service, and we'll use that to confirm who you are.</li>
+        <li>Don't want to use BrowserID?  Don't want to enable Javascript?  No problem; use OpenID!</li>
+        <li>Just tell us about an account (or "identity") you already have with another service, and we'll use that to confirm who you are.</li>
         <li>For example, if you have a gmail account, enter <kbd><var>username</var>@gmail.com</kbd>.  Google will ask you to push a button to confirm, and that's it!</li>
         <li>It doesn't have to be an actual email address.  Steam works as <kbd><var>username</var>@steamcommunity.com</kbd>.</li>
         <li>Make sure you use an account that's reliable.  In the example above, if someone hacks your Google account, they can log in here, too.  And if Google goes down, you can't log in!</li>
         <li>We don't tell anyone what account you're using to log in; it's no different from giving us your email address.</li>
     </ul>
 </section>
-
-<section>
-    <h1>How it works</h1>
-    <p>You shouldn't have to care, but...</p>
-    <p>This system is called OpenID, and it's designed to let you prove you own a URL.</p>
-    <p>You can enter something that looks like an email address because we also support Webfinger, a system for asking a Web site about its users.  For common OpenID providers that don't also support Webfinger, we fake it.</p>
-    <p>You can read a bunch of stuff on <a href="http://en.wikipedia.org/wiki/OpenID">Wikipedia</a> or at the <a href="http://openid.net/">OpenID Foundation</a>.</p>
-</section>
-
-
-<h1>Log in with BrowserID</h1>
-<noscript>
-    <p>It looks like you don't have Javascript enabled for this site.</p>
-    <p>Unfortunately, BrowserID requires Javascript to work.</p>
-</noscript>
-<a href="#" id="browserid" title="Sign-in with BrowserID">
-    <img src="https://browserid.org/i/sign_in_blue.png" alt="Sign in with BorwserID" />
-</a>
-<script src="https://browserid.org/include.js" async></script>
-<%
-    path = request.route_path("account.browserid.login")
-    if form.return_key.data:
-        path = h.update_params(path, return_key=form.return_key.data)
-%>\
-<script type="text/javascript">
-    $(browseridOnClick('#browserid', '${path}'));
-</script>
-${lib.secure_form(request.route_url('account.register'), id='postform')}
-    ${h.tags.hidden('display_only', value='true')}
-${h.end_form()}
 
 </section>
