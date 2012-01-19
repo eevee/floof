@@ -26,11 +26,11 @@ body#js-disabled .js {
     border: 0.25em solid #eee;
     background: #f4f4f4;
 }
-.upload-block .-upload-thumbnail img {
+.upload-block .-upload-thumbnail canvas {
     text-align: center;
     vertical-align: middle;
 }
-.upload-block button {
+.upload-block button[type='submit'] {
     font-size: 1.33em;
 }
 </style>
@@ -47,17 +47,18 @@ body#js-disabled .js {
     <div class="column-container">
         <section class="column">
             <div class="upload-block">
-                ${lib.field(form.file, multiple=True, accept='image/*')}
-                ##<p><button>Upload!</button></p>
+                <p>${form.file(multiple=True, accept='image/*')}</p>
+                <p><button type="submit">Upload!</button></p>
             </div>
         </section>
         <section class="column-2x">
+            <h1>Describe it</h1>
             <dl class="standard-form">
                 ${lib.field(form.title, size=64, maxlength=133)}
                 ${lib.field(form.remark, rows=8, cols=80)}
             </dl>
 
-            <h1>Organize</h1>
+            <h1>Organize it</h1>
             <dl class="standard-form">
                 ${lib.field(form.tags, size=64)}
 
@@ -80,10 +81,7 @@ body#js-disabled .js {
                 % endif
 
                 ${lib.field(form.labels)}
-
-                <dd class="standard-form-footer">
-                    <button>Upload!</button>
-                </dd>
+                ## TODO thing to add a new label
             </dl>
         </section>
     </div>

@@ -5,14 +5,18 @@ $(function() {
     // 1. Replace it with a more friendly button.  Upload control is ugly.
     // XXX DON'T DO THIS ON OLD BROWSERS; IT WON'T WORK
     var $file_ctl = $form.find('input[type="file"]');
+    var $file_container = $file_ctl.closest('p');
     var $thumbnail_container = $('<div class="-upload-thumbnail"/>');
     var $file_button = $('<button type="button">Choose a file</button>');
-    var $dnd_protip = $('<p>or drag and drop a file from your computer</p>');
-    $file_ctl.after(
+    var $dnd_protip = $('<p>or drag and drop from your computer</p>');
+    var $upload_button = $form.find('button[type="submit"]').closest('p');
+    $file_container.after(
         $('<p/>').append($file_button),
         $dnd_protip,
         $thumbnail_container);
-    $file_ctl.hide();
+    $file_container.hide();
+    $thumbnail_container.hide();
+    $upload_button.hide();
 
     // TODO indicate that these will each become separate artworks...
     $file_button.click(function() { $file_ctl.click(); });
@@ -55,6 +59,9 @@ $(function() {
         });
 
         // TODO only do this on success
-        $file_button.text("Hm, on second thought...");
+        $file_button.text("I changed my mind...");
+        $dnd_protip.hide();
+        $thumbnail_container.show();
+        $upload_button.show();
     });
 });
