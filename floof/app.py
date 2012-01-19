@@ -15,8 +15,9 @@ from sqlalchemy import engine_from_config
 import webob.request
 from zope.sqlalchemy import ZopeTransactionExtension
 
-from floof.lib.auth import Authenticizer, FloofAuthnPolicy
-from floof.lib.auth import current_view_permission
+from floof.lib.authn import Authenticizer, FloofAuthnPolicy
+from floof.lib.authz import auto_privilege_escalation
+from floof.lib.authz import current_view_permission
 from floof.lib.stash import manage_stashes
 from floof.model import filestore
 from floof.resource import FloofRoot
@@ -162,22 +163,6 @@ def prevent_csrf(event):
 
         from pyramid.exceptions import Forbidden
         raise Forbidden('Possible cross-site request forgery detected.')
-
-def auto_privilege_escalation(event):
-    """Help the user upgrade their principals if possible and necessary."""
-
-    request = event.request
-
-    if request.permission is None:
-        # Resource is not protected by a permission
-        return
-
-    if has_permission(request.permission, request.context, request):
-        # Access will be granted; all is well
-        return
-
-    from floof.lib.auth import attempt_privilege_escalation
-    attempt_privilege_escalation(request.permission, request.context, request)
 
 
 def main(global_config, **settings):

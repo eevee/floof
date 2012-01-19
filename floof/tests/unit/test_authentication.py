@@ -8,7 +8,7 @@ from pyramid.testing import DummyRequest
 from floof.tests import UnitTests
 from floof.tests import sim
 
-from floof.lib.auth import Authenticizer, FloofAuthnPolicy
+from floof.lib.authn import Authenticizer, FloofAuthnPolicy
 
 
 def create_authn_request(config, params=None, environ=None):

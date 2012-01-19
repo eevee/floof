@@ -10,7 +10,7 @@ import wtforms
 
 from floof import model
 from floof.forms import FloofForm, KeygenField
-from floof.lib.auth import get_ca
+from floof.lib.authn import get_ca
 from floof.lib.helpers import friendly_serial
 
 log = logging.getLogger(__name__)

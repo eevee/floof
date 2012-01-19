@@ -5,8 +5,8 @@ from pyramid import httpexceptions
 from pyramid.view import view_config
 
 from floof.app import NoCookiesError
-from floof.lib.auth import auth_actions
-from floof.lib.auth import outstanding_principals
+from floof.lib.authz import auth_actions
+from floof.lib.authz import outstanding_principals
 
 log = logging.getLogger(__name__)
 
@@ -42,7 +42,7 @@ def error403(context, request):
     outstanding = None
 
     if request.user.can(request.permission):
-        from floof.lib.auth import UPGRADABLE_PRINCIPALS
+        from floof.lib.authz import UPGRADABLE_PRINCIPALS
         all_outstanding = outstanding_principals(
                 request.permission, request.context, request)
         outstanding = []

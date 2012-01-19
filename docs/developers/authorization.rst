@@ -84,3 +84,10 @@ API
 
 .. automodule:: pyramid.authorization
    :members:
+
+
+``floof.lib.authz``
+^^^^^^^^^^^^^^^^^^^
+
+.. automodule:: floof.lib.authz
+   :members:

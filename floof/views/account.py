@@ -12,8 +12,8 @@ from webhelpers.util import update_params
 import wtforms.form, wtforms.fields, wtforms.validators
 
 from floof.forms import DisplayNameField, TimezoneField
-from floof.lib.auth import DEFAULT_CONFIDENCE_EXPIRY
-from floof.lib.auth import OpenIDAuthDisabledError, OpenIDNotFoundError
+from floof.lib.authn import DEFAULT_CONFIDENCE_EXPIRY
+from floof.lib.authn import OpenIDAuthDisabledError, OpenIDNotFoundError
 from floof.lib.stash import fetch_stash, get_stash_keys, key_from_request
 from floof.lib.openid_ import OpenIDError, openid_begin, openid_end
 from floof.model import Discussion, IdentityURL, Resource

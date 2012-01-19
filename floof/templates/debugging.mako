@@ -58,7 +58,7 @@ Principals:
 ${pprint.pformat(effective_principals(request))}
 
 Current request context ACLs:
-<% from floof.lib.auth import permissions_in_context %>\
+<% from floof.lib.authz import permissions_in_context %>\
 <% ctx = request.context or request.root %>\
 % while ctx is not None:
     ${getattr(ctx, '__name__', 'Unnamed Context') or 'Root'}:

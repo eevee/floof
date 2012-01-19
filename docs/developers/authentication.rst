@@ -133,7 +133,7 @@ manageable way to grant a permission based on common or meaningful combinations
 of other principal identifiers.
 
 The pre-requisites for derived principal identifiers are specified by the
-dictionary :const:`floof.lib.auth.TRUST_MAP`.
+dictionary :const:`floof.lib.authz.TRUST_MAP`.
 
 
 Authorization
@@ -153,22 +153,22 @@ API
 
 The following is documentation of the authentication components of ``floof``.
 
-The :class:`floof.lib.auth.Authenticizer` class is responsible for gathering
+The :class:`floof.lib.authn.Authenticizer` class is responsible for gathering
 and interpreting credential tokens, resolving them to a single user, and
 maintaining an authentication state free of identity conflicts.
 :class:`floof.app.FloofRequest` attaches an instance of this class to itself as
 its ``auth`` attribute, so the current request's Authenticizer should always be
 retrievable from ``request.auth``.
 
-The :class:`floof.lib.auth.FloofAuthnPolicy` implements the Pyramid
+The :class:`floof.lib.authn.FloofAuthnPolicy` implements the Pyramid
 Authentication Policy interface (to an approximation) and is responsible for
 determining the principal identifiers applicable to a particular request, given
 the authenticated user and information on how the user was authenticated and on
 the user's authentication settings.
 
 
-``floof.lib.auth``
+``floof.lib.authn``
 ^^^^^^^^^^^^^^^^^^
 
-.. automodule:: floof.lib.auth
+.. automodule:: floof.lib.authn
    :members:
