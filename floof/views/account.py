@@ -44,6 +44,13 @@ def account_login(context, request):
     return_key = key_from_request(request)
     openid = request.auth.openid_url if return_key else None
 
+    if not request.cookies:
+        request.session.flash(
+                'It looks like you might not have cookies enabled in your '
+                'browser.  Alas, cookies are required to log in.  If you '
+                'think this message is in error, try refreshing the page.',
+                icon='cookie--exclamation', level='warning')
+
     form = LoginForm(openid_identifier=openid, return_key=return_key)
     return {'form': form}
 
