@@ -128,9 +128,10 @@ def openid_end(return_url, request):
 
     if 'return_key' in params and not key_from_request(request):
         # We've followed a return_key that has terminated at the OpenID request
-        # i.e. this is a stashed OpenID request; the OpenID request will
-        # therefore NOT have the return_key in its return_to URL, so strip it
-        log.debug("OpenID check stripping stale return_key(s) '{0}'"
+        # i.e. this is a stashed OpenID request (or a bogus return_key); the
+        # OpenID request will therefore NOT have the return_key in its
+        # return_to URL, so strip it
+        log.debug("OpenID check stripping stale or bogus return_key(s) '{0}'"
                   .format(params.getall('return_key')))
         # Janrain OpenID treats params as a normal dict, so it's safe to lose
         # the MultiDict here (AFAICT).

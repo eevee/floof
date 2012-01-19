@@ -1,20 +1,16 @@
+from copy import deepcopy
 from datetime import datetime
 import random
 import re
 import unicodedata
 
-from wtforms import fields, widgets, ValidationError
+from webob.multidict import MultiDict
+from wtforms import fields, form, widgets, ValidationError
 from wtforms.widgets import HTMLString, html_params
 from wtforms.ext.sqlalchemy.fields import QuerySelectMultipleField
 import pytz
 
 from floof import model
-
-from copy import deepcopy
-from datetime import datetime
-from webob.multidict import MultiDict
-from wtforms import fields, form, widgets
-from wtforms.widgets import HTMLString, html_params
 
 
 class FloofForm(form.Form):
@@ -32,10 +28,8 @@ class FloofForm(form.Form):
                 formdata = deepcopy(formdata)
             formdata.update(request.stash['post'])
 
-        super(FloofForm, self).__init__(formdata=formdata,
-                                        obj=obj,
-                                        prefix=prefix,
-                                        **kwargs)
+        super(FloofForm, self).__init__(formdata=formdata, obj=obj,
+                                        prefix=prefix, **kwargs)
 
 
 class KeygenWidget(widgets.Input):

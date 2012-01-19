@@ -23,8 +23,12 @@ caution using this option since it is subject to race conditions.
 A stash with a False ``immediate`` flag would be used to save POST data
 before redirecting to a re-authentication attempt.
 
+A stash, when returned, is a dict-like object with at least the keys ``key``,
+``url``, ``path``, ``immediate`` and ``post``, although ``post`` may map to an
+empty dict-like object and ``key`` may be None.
+
 Forms that subclass :class:`floof.forms.FloofForm` will automatically set their
-default values to any held in the ``post`` attribute of the active stash (i.e.
+default values to any held in the ``post`` key of the active stash (i.e.
 attached to ``request.stash``)
 
 """
@@ -52,7 +56,8 @@ def manage_stashes(event):
         log.debug("Consuming stash '{0}: {1}'", request.path, stash)
 
         if key and stash['post']:
-            # Extra layer of protection against abuse of this mechanism
+            # Turn this request into a POST.  This side-steps the anti-CSRF
+            # protection measures in floof.app, so check the CSRF token here
             token = stash['post'].get('csrf_token')
             real_token = request.session.get_csrf_token()
 
@@ -85,6 +90,7 @@ def stash_post(request, route_name=None, immediate=False, post=None):
         immediate=immediate,
         key=key,
         url=url,
+        path=path,
         post=post,
     )
 
@@ -95,6 +101,7 @@ def stash_post(request, route_name=None, immediate=False, post=None):
 
 
 def get_stash_keys(request):
+    """Returns a list of all stash keys in the current session."""
     stashes = request.session.setdefault(SESSION_KEY, dict())
     return [s['key'] for s in stashes.values() if s['key']]
 
@@ -109,25 +116,29 @@ def key_from_request(request):
     key (if any) is returned.
 
     """
-    valid_keys = get_stash_keys(request)
-
-    # We should never have multiple return_key params in one URL
     keylist = request.params.getall('return_key')
-    if keylist and len(keylist) > 1:
+    if not keylist:
+        return None
+
+    if len(keylist) > 1:
+        # We should never have multiple return_key params in one URL
         log.warning("More than one return_key was found in a URL; this "
                     "shouldn't happen.  URL was: '{0}'".format(request.url))
-        keylist = [k for k in keylist if k in valid_keys]
 
-    key = keylist[0] if keylist else None
-
-    if key and key in valid_keys:
-        return key
+    valid_keys = get_stash_keys(request)
+    checked_keylist = [k for k in keylist if k in valid_keys]
+    key = checked_keylist[0] if checked_keylist else None
 
     if key:
-        log.warning("Unknown return_key value: {0!r}".format(key))
+        return key
+    else:
+        log.warning("Unknown return_key value: {0!r}".format(keylist[0]))
 
 
 def fetch_stash(request, path=None, key=None):
+    """Retrieve stash from current session.  If the stash is not `immediate`,
+    it will only be retrieved if its `key` is provided."""
+
     stashes = request.session.get(SESSION_KEY, dict())
 
     if path and path in stashes and (
@@ -142,7 +153,11 @@ def fetch_stash(request, path=None, key=None):
                 return stash
 
 
-def drop_stash(request, path, key=None):
-    stashes = request.session.get(SESSION_KEY, dict())
-    if path in stashes and stashes[path]['key'] == key:
-        del stashes[path]
+def drop_stash(request, path=None, key=None):
+    """Drops the stash with the given path.  If the stash is not `immediate`,
+    it will only be dropped if its `key` is provided."""
+
+    stash = fetch_stash(request, path, key)
+    if stash:
+        stashes = request.session.get(SESSION_KEY, dict())
+        del stashes[stash['path']]

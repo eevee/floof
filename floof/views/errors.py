@@ -39,18 +39,18 @@ def error400(context, request):
     context=httpexceptions.HTTPForbidden,
     renderer='error.mako')
 def error403(context, request):
+    outstanding = None
+
     if request.user.can(request.permission):
         from floof.lib.auth import UPGRADABLE_PRINCIPALS
-        all_outstanding = outstanding_principals(request.permission,
-                                             request.context,
-                                             request)
+        all_outstanding = outstanding_principals(
+                request.permission, request.context, request)
         outstanding = []
         for altset in all_outstanding:
             f = lambda x: x.startswith(UPGRADABLE_PRINCIPALS)
             if all(map(f, altset)):
                 outstanding.append(altset)
-    else:
-        outstanding = None
+
     return _error_view(context, request,
                        default_message="I'm afraid I can't let you do that",
                        outstanding_principals=outstanding)

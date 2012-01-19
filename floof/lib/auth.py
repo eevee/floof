@@ -273,7 +273,7 @@ class Authenticizer(object):
             # Wipe the slate clean
             self.clear()
 
-        print self, request.url
+        print self, request.method, request.url
         request.session.changed()
 
         # This invocation is for the benefit of currently-logged-in
