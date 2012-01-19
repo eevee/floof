@@ -152,6 +152,7 @@ class CertNotFoundError(Exception): pass
 class CertAuthDisabledError(Exception): pass
 class CertExpiredError(Exception): pass
 class CertRevokedError(Exception): pass
+class CertVerificationError(Exception): pass
 class OpenIDAuthDisabledError(Exception): pass
 class OpenIDNotFoundError(Exception): pass
 class AuthConflictError(Exception): pass
@@ -187,11 +188,12 @@ class Authenticizer(object):
        raise a relevant error and be sure to catch it in the constructor.
 
     Note: everything within :attr:`state` is meant to be consistent at all
-    times; i.e., there should never be a cert serial, openid, or user id
-    that don't all match.
+    times; i.e., there should never be a cert serial, openid, or other
+    credential token that don't all resolve to the same user, and the
+    constructor should ensure this.
 
     """
-
+    # These are used for injecting tokens and trust flags during tests
     _cred_tokens = ['cert_serial', 'openid_url', 'openid_timestamp']
     _trust_flags = ['cert', 'openid', 'openid_recent']
 
@@ -209,7 +211,7 @@ class Authenticizer(object):
         authentication mechanisms of :class:`Authenticizer` (listed in
         :attr:`trust`) or an instance of :class:`floof.model.AnonymousUser`."""
 
-        self.trust = []  # XXX Work out a better name
+        self.trust = []
         """A list of authentication mechanisms satisfied that the current
         request authenticates :attr:`user`."""
 
@@ -217,40 +219,19 @@ class Authenticizer(object):
         error = partial(request.session.flash, level='error',
                         icon='key--exclamation', allow_duplicate=False)
 
-        # TODO: move the below into check_certificate or its own method
-        verified_serial = None
         if 'paste.testing' in request.environ:
             self._setup_testing_early(request)
-            verified_serial = request.environ.get('tests.auth.cert_serial')
-
-        # Check for client certificate serial; ATM, the cert serial is passed
-        # by the frontend server in an HTTP header.
-        if asbool(config.get('auth.certs.enabled')) and not verified_serial:
-            # need to check verification status if we pass requests failing
-            # cert auth back to floof (e.g. for user help display)
-            # XXX the below 'verify' codes are nginx-isms
-            verify = request.headers.get('X-Floof-SSL-Client-Verify')
-            serial = request.headers.get('X-Floof-SSL-Client-Serial', '')
-            serial = serial.lower()
-
-            if verify == 'SUCCESS':
-                verified_serial = serial
-                log.debug("Successful verification of cert with claimed "
-                          "serial '{0}'".format(serial))
-
-            elif verify == 'FAILED':
-                error("You are presenting an invalid certificate.")
-                log.warning("Unsuccessful verification of cert with claimed "
-                            "serial '{0}'".format(serial))
 
         try:
-            self.check_certificate(verified_serial)
+            self.check_certificate(request)
         except CertNotFoundError:
             log.error("A validated client cert was not found in the DB, yet "
                       "client certs should persist in the DB indefinately.")
             error("I don't recognize your client certificate.")
+        except CertVerificationError:
+            error("The client certificate you are presenting is invalid.")
         except CertAuthDisabledError:
-            error("Client certificates are disabled for your account.")
+            error("You are presenting a valid certificate, but client certificates are disabled for your account.")
         except CertExpiredError:
             error("The client certificate you are presenting has expired.")
         except CertRevokedError:
@@ -280,7 +261,11 @@ class Authenticizer(object):
         # sensitive_required users only
         self._certreq_override(request, self.user)
 
-        # for convenience
+        self.add_convenience_methods(self.user, request)
+
+    def add_convenience_methods(self, user, request):
+        """Add the ``can`` and ``permitted`` convenience methods to the `user`"""
+
         def user_can(permission, context=None):
             """Returns True if the current user can (potentially after re-auth
             and/or a settings change) have the given permission in the given
@@ -289,15 +274,14 @@ class Authenticizer(object):
                 context = request.context
             return could_have_permission(permission, context, request)
 
-        self.user.can = user_can
-
         def user_permitted(permission, lst):
             """Filter iterable lst to include only ORM objects for which the request's
             user holds the given permission."""
             f = lambda obj: request.user.can(permission, contextualize(obj))
             return filter(f, lst)
 
-        self.user.permitted = user_permitted
+        user.can = user_can
+        user.permitted = user_permitted
 
     def _setup_testing_early(self, request):
         """Setup any requested test credential tokens."""
@@ -322,11 +306,12 @@ class Authenticizer(object):
         if ('tests.auth_trust' in env or 'tests.user_id' in env):
             self.trust = env.get('tests.auth_trust', self._trust_flags)
 
-    def check_certificate(self, serial):
+    def check_certificate(self, request):
         """Check a client certificate serial and add authentication if valid."""
 
         self.state.pop('cert_serial', None)
 
+        serial = get_certificate_serial(request)
         if not serial:
             # No cert. Our obligation to wipe cert state is fulfilled above.
             return
@@ -441,33 +426,17 @@ class Authenticizer(object):
         self.state['openid_timestamp'] = calendar.timegm(datetime.now().timetuple())
 
     def clear(self):
-        """Log the user out completely."""
-        # TODO what shall this do with certificates
+        """Clears all auth state, logging out unless certs are in use."""
         self.state.clear()
         self.user = model.AnonymousUser()
         self.trust = []
 
-    @property
-    def can_purge(self):
-        return 'openid' in self.trust
+    # Provide implementation-independent introspection of credential tokens
+    def _get_state(key):
+        return lambda self: self.state.get(key)
 
-    @property
-    def pending_user(self):
-        return False
-        # XXX this is mainly used in login.mako, for when the user has logged
-        # in with one mechanism but only the other one is allowed
-
-    @property
-    def certificate_serial(self):
-        """Returns the serial for the active client certificate, or None if
-        there isn't one.
-        """
-        return self.state.get('cert_serial', None)
-
-    @property
-    def openid_url(self):
-        """Returns the URL for the active OpenID auth, or None."""
-        return self.state.get('openid_url', None)
+    certificate_serial = property(_get_state('cert_serial'))
+    openid_url = property(_get_state('openid_url'))
 
     def __repr__(self):
         openid_age = None
@@ -478,11 +447,46 @@ class Authenticizer(object):
         return ("<Authenticizer ( User: {0}, Cert: {1}, OpenID URL: {2}, "
                 "OpenID Age: {3}, Trust Flags: {4} )>".format(
                     self.user.name if self.user else None,
-                    self.state.get('cert_serial', None),
-                    self.state.get('openid_url', None),
+                    self.state.get('cert_serial'),
+                    self.state.get('openid_url'),
                     openid_age,
                     repr(self.trust),
                     ))
+
+
+def get_certificate_serial(request):
+    """Return a verified certificate serial from `request`, if any, else None.
+
+    Raises CertVerificationError if a certificate has been sent but was invalid
+    according to the front-end server that handled the SSL connection.
+
+    Currently assumes the use of nginx as the front-end server and SSL
+    endpoint.
+
+    """
+    # test amenity
+    env = request.environ
+    if 'paste.testing' in env and 'tests.auth.cert_serial' in env:
+        return env['tests.auth.cert_serial']
+
+    # ATM, the cert serial is passed by the front-end server in an HTTP header.
+    if asbool(request.registry.settings.get('auth.certs.enabled')):
+        # need to check verification status if we pass requests failing
+        # front-end cert auth back to floof (e.g. for user help display)
+        # XXX the below 'verify' codes are nginx-isms
+        verify = request.headers.get('X-Floof-SSL-Client-Verify')
+        serial = request.headers.get('X-Floof-SSL-Client-Serial', '')
+        serial = serial.lower()
+
+        if verify == 'SUCCESS':
+            log.debug("Successful verification of cert with claimed "
+                      "serial '{0}'".format(serial))
+            return serial
+
+        elif verify == 'FAILED':
+            log.warning("Unsuccessful verification of cert with claimed "
+                        "serial '{0}'".format(serial))
+            raise CertVerificationError
 
 
 def get_ca(settings):
