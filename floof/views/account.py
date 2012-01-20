@@ -49,7 +49,10 @@ def account_login(context, request):
     return_key = key_from_request(request)
     openid = request.auth.openid_url if return_key else None
 
-    if not request.cookies:
+    # just_landed is imprecise, but should serve to reduce false positives
+    just_landed = request.referrer is None
+    just_landed = just_landed or (request.host not in request.referrer)
+    if not request.cookies and not just_landed:
         request.session.flash(
                 'It looks like you might not have cookies enabled in your '
                 'browser.  Alas, cookies are required to log in.  If you '
