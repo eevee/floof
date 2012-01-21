@@ -12,6 +12,7 @@ from pyramid.view import view_config
 from sqlalchemy.exc import IntegrityError
 from webhelpers.util import update_params
 
+import vep.errors
 import wtforms.form, wtforms.fields, wtforms.validators
 
 from floof.forms import DisplayNameField, TimezoneField
@@ -80,17 +81,36 @@ def account_login_browserid(context, request):
         return {'next_url': next_url}
 
     # Verify the identity assertion
-    # TODO: versions of PyVEP >= 0.2 provide granular exceptions; use them
+
+    verifier = BrowserIDRemoteVerifier()
     audience = request.registry.settings.get('auth.browserid.audience')
+
     if not audience:
         log.warning("Config key 'auth.browserid.audience' is missing or "
                     "blank; BrowserID authentication will fail.")
 
-    verifier = BrowserIDRemoteVerifier()
+    if 'paste.testing' in request.environ:
+        alternative = request.environ.get('tests.auth.browserid.verifier')
+        verifier = alternative or verifier
+
     try:
-        data = verifier.verify(request.POST.get('assertion'), 'https://localhost')
+        data = verifier.verify(request.POST.get('assertion'), audience)
+
     except SSLError:
         return fail('Connection to authentication server failed or timed out.')
+
+    except vep.errors.ConnectionError:
+        return fail('Unable to connect to verifying server to verify your '
+                    'BrowserID assertion.')
+
+    except vep.errors.TrustError:
+        return fail('Your BrowserID assertion was not valid.')
+
+    except (vep.errors.Error, ValueError) as e:
+        msg = e.args[0] if e.args else 'No error message'
+        log.warning('Unspecified BrowserID failure: {0}'.format(msg))
+        return fail('Encountered an unspecified error while attempting to '
+                    'verify your BrowserID assertion.')
 
     print "BrowserID response:", data
 
@@ -116,10 +136,12 @@ def account_login_browserid(context, request):
         auth_headers = security.remember(
             request, identity_email.user, browserid_email=email)
         request.session.changed()
+
     except BrowserIDNotFoundError:
         return fail("The email address '{0}' is registered against the account "
                     "'{1}'.  To log in as '{1}', log out then back in."
                     .format(email, identity_email.user.name))
+
     except BrowserIDAuthDisabledError:
         return fail("Your BrowserID is no longer accepted as your account has "
                     "disabled BrowserID authentication.")
