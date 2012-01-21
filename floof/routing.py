@@ -29,7 +29,6 @@ def configure_routing(config):
     r('root', '/')
     r('filestore', '/filestore/{class_}/{key}', pregenerator=filestore_pregenerator)
     r('reproxy', '/reproxy')
-    r('cookies_disabled', '/cookies_disabled')
     r('log', '/log')
 
     # Registration and auth

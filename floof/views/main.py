@@ -120,19 +120,6 @@ def reproxy(context, request):
 
 
 @view_config(
-    route_name='cookies_disabled',
-    request_method='GET',
-    renderer='cookies_disabled.mako')
-def cookies_disabled(context, request):
-    if request.cookies:
-        # Something odd has happened, but the "you've got cookies
-        # disabled" message is clearly inappropriate here.
-        return HTTPSeeOther(location=request.route_url('account.login'))
-
-    return dict()
-
-
-@view_config(
     route_name='log',
     request_method='GET',
     renderer='log.mako')
