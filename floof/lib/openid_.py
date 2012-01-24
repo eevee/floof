@@ -1,4 +1,5 @@
 import logging
+import urllib
 
 from openid.consumer.consumer import Consumer
 from openid.consumer.consumer import CANCEL, FAILURE, SUCCESS
@@ -9,6 +10,7 @@ from openid.yadis.discover import DiscoveryFailure
 from urllib2 import HTTPError, URLError
 
 from floof.lib.webfinger import finger
+from floof.lib.stash import key_from_request
 
 log = logging.getLogger(__name__)
 
@@ -40,6 +42,11 @@ def resolve_webfinger(address):
     user, domain = address.rsplit(u'@', 1)
     if domain in FAKE_WEBFINGER_DOMAINS:
         # XXX possibly phishable or something since this goes into domain name
+        # Do our best to mitigate this: a) strip RFC-3986 "gen-delims" and
+        # b) URL encode.  Need to strip "gen-delims" since Python seemed to be
+        # re-constituting the '/' when it was merely encoded, and presumably
+        # may do so for other reserved characters.
+        user = urllib.quote(user.encode('utf-8').strip(':/?#[]@'), safe='~')
         return FAKE_WEBFINGER_DOMAINS[domain].format(user)
 
     try:
@@ -81,7 +88,6 @@ def openid_begin(identifier, return_url, request, max_auth_age=False, sreg=False
         openid_url = webfinger_openid
         session['pending_identity_webfinger'] = identifier
         session.save()
-    print session
 
     cons = Consumer(session=session, store=openid_store)
 
@@ -95,8 +101,7 @@ def openid_begin(identifier, return_url, request, max_auth_age=False, sreg=False
     print 2
 
     if sreg:
-        sreg_req = SRegRequest(optional=['nickname', 'email', 'dob', 'gender',
-                                         'country', 'language', 'timezone'])
+        sreg_req = SRegRequest(optional=['nickname', 'email', 'timezone'])
         auth_request.addExtension(sreg_req)
 
     if max_auth_age is not False and max_auth_age >= 0:
@@ -119,7 +124,20 @@ def openid_end(return_url, request):
 
     cons = Consumer(session=request.session, store=openid_store)
     host = request.headers['host']
-    res = cons.complete(request.params, return_url)
+    params = request.params
+
+    if 'return_key' in params and not key_from_request(request):
+        # We've followed a return_key that has terminated at the OpenID request
+        # i.e. this is a stashed OpenID request (or a bogus return_key); the
+        # OpenID request will therefore NOT have the return_key in its
+        # return_to URL, so strip it
+        log.debug("OpenID check stripping stale or bogus return_key(s) '{0}'"
+                  .format(params.getall('return_key')))
+        # Janrain OpenID treats params as a normal dict, so it's safe to lose
+        # the MultiDict here (AFAICT).
+        params = dict((k, v) for k, v in params.iteritems() if k != 'return_key')
+
+    res = cons.complete(params, return_url)
 
     if res.status == SUCCESS:
         pass
@@ -142,6 +160,8 @@ def openid_end(return_url, request):
         raise OpenIDError("Looks like you canceled the login.")
 
     else:
+        log.error("Unexpected OpenID return status '{0}' with message '{1}'"
+                  .format(res.status, res.message))
         raise OpenIDError("Something has gone hilariously wrong.")
 
     identity_url = unicode(res.identity_url)

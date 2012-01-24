@@ -1,12 +1,12 @@
 import copy
 import hashlib
 import OpenSSL.crypto as ssl
-import time
 
 from openid import oidutil
 from urlparse import parse_qs, urlparse
 
 from floof import model
+from floof.lib.helpers import friendly_serial
 from floof.tests import FunctionalTests
 import floof.tests.openidspoofer as oidspoof
 import floof.tests.sim as sim
@@ -25,14 +25,10 @@ class TestControls(FunctionalTests):
         """Creates a user to be used as a fake login."""
         super(TestControls, self).setUp()
 
-        self.user = sim.sim_user()
+        self.user = sim.sim_user(credentials=[])
         model.session.flush()
 
-        self.default_environ = {
-                'tests.user_id': self.user.id,
-                'tests.auth_openid_uid': self.user.id,
-                'tests.auth_openid_time': time.time(),
-                }
+        self.default_environ = {'tests.user_id': self.user.id}
 
     @classmethod
     def setUpClass(cls):
@@ -48,6 +44,7 @@ class TestControls(FunctionalTests):
                 self.url('controls.index'),
                 extra_environ={'tests.user_id': self.user.id},
                 )
+        assert 'Index' in response
         # Test response...
 
     def test_user_info(self):
@@ -194,11 +191,14 @@ class TestControls(FunctionalTests):
         """Test generation, viewing, downloading and revocation of SSL certificates."""
         # Test generation
         response = self.app.get(
-                self.url('controls.certs'),
+                self.url('controls.certs.add'),
                 extra_environ=self.default_environ,
                 )
-        assert 'Generate New Certificate' in response, 'Could not find the anticipated page title.'
-        for days, time in [(31, '30 days, 23 hours'), (366, '365 days, 23 hours')]:
+        assert 'Generate on Server' in response, 'Could not find the anticipated page title.'
+
+        times = ((31, '30 days, 23 hours'), (366, '365 days, 23 hours'))
+        serials = []
+        for days, time in times:
             response = self.app.post(
                     self.url('controls.certs.generate_server', name=self.user.name),
                     params=[
@@ -210,19 +210,20 @@ class TestControls(FunctionalTests):
                     )
             assert response.content_type == 'application/x-pkcs12', 'Anticipated a response MIME type of "application/x-pkcs12", got {0}'.format(response.content_type)
             pkcs12 = ssl.load_pkcs12(response.body, u'1234')
+            serials.append('{0:x}'.format(pkcs12.get_certificate().get_serial_number()))
             # TODO: Test pkcs12 further... ?
 
         # Test viewing details
         response = self.app.get(
-                self.url('controls.certs.details', id=2),
+                self.url('controls.certs.details', serial=serials[1]),
                 extra_environ=self.default_environ,
                 )
-        assert 'Certificate ID 2' in response, 'Unable to find appropriate time to expiry for new certificate.'
+        assert friendly_serial(serials[1]) in response, 'Unable to find new certificate details page serial.'
         assert 'OU=Users, CN={0}'.format(self.user.name) in response, 'Unable to find appropriate Subject field.'
         assert 'X509v3 Authority Key Identifier:' in response, 'Unable to find Authority Key Identifier X.509 extension.'
         assert 'X509v3 Subject Key Identifier:' in response, 'Unable to find Subject Key Identifier X.509 extension.'
         assert """
-            X509v3 Basic Constraints: 
+            X509v3 Basic Constraints: critical
                 CA:FALSE
             X509v3 Key Usage: critical
                 Digital Signature
@@ -231,73 +232,89 @@ class TestControls(FunctionalTests):
 
         # Test revocation
         response = self.app.get(
-                self.url('controls.certs.revoke', id=1),
+                self.url('controls.certs.revoke', serial=serials[0]),
                 extra_environ=self.default_environ,
                 )
-        assert 'Permanently Revoke Certificate ID 1' in response, 'Unable to find anticipated heading in page.'
+        assert 'Revoke Certificate' in response, 'Unable to find anticipated heading in page.'
+        assert friendly_serial(serials[0]) in response, 'Unable to find certificate serial in page.'
+
         response = self.app.post(
-                self.url('controls.certs.revoke', id=1),
+                self.url('controls.certs.revoke', serial=serials[0]),
+                extra_environ=self.default_environ,
+                )
+        response = self.app.get(
+                self.url('controls.certs'),
+                extra_environ=self.default_environ,
+                )
+        assert self.url('controls.certs.details', serial=serials[0]) in response, '(Not-)Revoked cert not found on certificates page at all.'
+        assert self.url('controls.certs.revoke', serial=serials[0]) in response, 'Revocation link not found for certificate, even though revocation was not confirmed/cancelled.'
+
+        response = self.app.post(
+                self.url('controls.certs.revoke', serial=serials[0]),
                 params=[('ok', u'Revoke Certificate')],
                 extra_environ=self.default_environ,
                 )
         response = self.app.get(
-                self.url(controller='controls.certs'),
+                self.url('controls.certs'),
                 extra_environ=self.default_environ,
                 )
-        assert self.url('controls.certs.details', id=1) in response, 'Revoked cert not found on certificates pasge at all/'
-        assert self.url('controls.certs.revoke', id=1) not in response, 'Revocation link found for supposedly revoked certificate.'
+        assert self.url('controls.certs.details', serial=serials[0]) in response, 'Revoked cert not found on certificates page at all.'
+        assert self.url('controls.certs.revoke', serial=serials[0]) not in response, 'Revocation link found for supposedly revoked certificate.'
 
 
     def test_cert_auth_change(self):
         """Test changing the user certificate authentication option."""
+        environ = copy.deepcopy(self.default_environ)
+        environ['tests.auth_trust'] = ['cert']
         response = self.app.get(
                 self.url('controls.auth'),
-                extra_environ=self.default_environ,
+                extra_environ=environ,
                 )
         assert 'selected="selected" value="disabled"' in response, 'Could not find evidence of anticipated default value.'
+
         response = self.app.post(
                 self.url('controls.auth'),
                 params=[
-                    ('confirm', u'Confirm Authentication Method Change'),
                     ('cert_auth', u'required')
                     ],
-                extra_environ=self.default_environ,
+                extra_environ=environ,
                 )
         response = self.app.get(
                 self.url('controls.auth'),
-                extra_environ=self.default_environ,
+                extra_environ=environ,
                 )
-        assert 'selected="selected" value="disabled"' in response, 'Allowed change to method requiring a certificate when user has no certificates.'
+        cert_auth = model.session.query(model.User).filter_by(id=self.user.id).one().cert_auth
+        assert cert_auth == u'disabled', 'Allowed change to method requiring a certificate when user has no certificates.'
+
+        environ['tests.auth_trust'] = ['openid', 'openid_recent']
         response = self.app.post(
                 self.url('controls.certs.generate_server', name=self.user.name),
                 params=[
                     ('days', 31),
                     ('generate_server', u'Generate On Server'),
                     ],
-                extra_environ=self.default_environ,
+                extra_environ=environ,
                 )
         response = self.app.post(
                 self.url('controls.auth'),
                 params=[
-                    ('confirm', u'Confirm Authentication Method Change'),
                     ('cert_auth', u'required')
                     ],
-                extra_environ=self.default_environ,
+                extra_environ=environ,
                 )
         response = self.app.get(
                 self.url('controls.auth'),
-                extra_environ=self.default_environ,
+                extra_environ=environ,
                 )
-        assert 'selected="selected" value="disabled"' in response, 'Allowed change to method requiring a certificate when user did not present one in request.'
+        cert_auth = model.session.query(model.User).filter_by(id=self.user.id).one().cert_auth
+        assert cert_auth == u'disabled', 'Allowed change to method requiring a certificate when user did not present one in request.'
         user = model.session.query(model.User).filter_by(id=self.user.id).one()
         assert len(user.valid_certificates) > 0, 'User does not appear to have any valid certificates, even though we just created one.'
-        serial = user.valid_certificates[0].serial
-        environ = copy.deepcopy(self.default_environ)
-        environ['tests.auth_cert_serial'] = serial
+
+        environ['tests.auth_trust'] = ['cert']
         response = self.app.post(
                 self.url('controls.auth'),
                 params=[
-                    ('confirm', u'Confirm Authentication Method Change'),
                     ('cert_auth', u'required')
                     ],
                 extra_environ=environ,
@@ -306,12 +323,11 @@ class TestControls(FunctionalTests):
                 self.url('controls.auth'),
                 extra_environ=environ,
                 )
-        assert 'selected="selected" value="required"' in response, 'The authentication method did not appear to update.'
+        cert_auth = model.session.query(model.User).filter_by(id=self.user.id).one().cert_auth
+        assert cert_auth == u'required', 'The authentication method did not appear to update.'
 
     def test_reauth(self):
         """Test re-authentication redirection sequence."""
-        environ = copy.deepcopy(self.default_environ)
-        environ['tests.auth_openid_time'] = 0.0  # Set it to the epoch; definitely invalid
         response = self.app.get(
                 self.url('controls.auth'),
                 extra_environ=self.default_environ,
@@ -320,6 +336,8 @@ class TestControls(FunctionalTests):
         assert 'selected="selected" value="disabled"' in response, 'Expected existing cert_auth value of "disabled" not found.'
 
         # Pretend to try to change our cert_auth options while our auth is too old
+        environ = copy.deepcopy(self.default_environ)
+        environ['tests.auth_trust'] = ['openid']
         response = self.app.post(
                 self.url('controls.auth'),
                 params=[('cert_auth', u'allowed')],
@@ -329,10 +347,10 @@ class TestControls(FunctionalTests):
         # We should be redirected to the login/re-auth page
         try:
             return_key = parse_qs(urlparse(response.headers['location'])[4])['return_key'][0]
-        except ValueError:
+        except KeyError:
             raise AssertionError('Return key not in login GET request.')
         response = self.app.get(response.headers['location'], extra_environ=environ)
-        assert 'you need to re-authenticate' in response, 'Did not appear to give a message about the need to re-authenticate.'
+        assert 'need to re-authenticate' in response, 'Did not appear to give a message about the need to re-authenticate.'
         assert 'name="openid_identifier"' in response, 'Did not appear to prompt for OpenID URL.'
         assert 'value="{0}"'.format(return_key) in response, 'Could not find the return key hidden input in the login page.'
 
@@ -361,7 +379,7 @@ class TestControls(FunctionalTests):
         path, params = spoofer.spoof(location)
         assert path == self.url('account.login_finish'), 'Unexpected redirect path: {0}'.format(path)
         assert 'return_key={0}'.format(return_key) in params, 'Return key did not appear in the OpenID redirect URL.'
-        del environ['tests.auth_openid_time']  # Allow c.auth.openid_time to be reset by the re-auth
+        #TODO actually make the re-auth influence the trust status
         response = self.app.get(
                 path,
                 params=params,
@@ -371,15 +389,33 @@ class TestControls(FunctionalTests):
 
         # We should now be redirected to the Authentication Options page,
         # with the contents of our original POST set as the
-        # default/selected parameters.
+        # default/selected parameters (but the actual change should not yet
+        # have taken place).
+
+        # XXX prefer to avoid setting this explictly
+        environ['tests.auth_trust'].append('openid_recent')
         pu = urlparse(response.headers['location'])
         path, params = pu[2], pu[4]
         assert path == self.url('controls.auth'), 'Unexpected redirect path: {0}'.format(path)
         assert 'return_key={0}'.format(return_key) in params, 'Return key did not appear in the post-re-auth redirect URL.'
+
+        # Submission should have been turned into a POST, so we should get
+        # another redirect
+        response = self.app.get(
+                path,
+                params=params,
+                extra_environ=environ,
+                status=303,
+                )
+        pu = urlparse(response.headers['location'])
+        path, params = pu[2], pu[4]
+        assert path == self.url('controls.auth'), 'Unexpected redirect path: {0}'.format(path)
+
         response = self.app.get(
                 path,
                 params=params,
                 extra_environ=environ,
                 status=200,
                 )
-        assert 'selected="selected" value="allowed"' in response, 'POST\'d choice prior to re-auth did not appear to persist.'
+        cert_auth = model.session.query(model.User).filter_by(id=self.user.id).one().cert_auth
+        assert cert_auth != u'disabled', 'Failed to automatically submit a form after an OpenID re-auth detour.'

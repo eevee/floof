@@ -6,11 +6,8 @@
 
 <%def name="avatar(user, size=100)">\
 <%
-    if user.email:
-        token = user.email.lower()
-    else:
-        token = ''
-    hash = hashlib.md5(token).hexdigest()
+    email = user.email or ''
+    hash = hashlib.md5(email.lower()).hexdigest()
 %>\
 <img src="https://secure.gravatar.com/avatar/${hash}?r=r&s=${size}&d=mm" />\
 </%def>
@@ -45,8 +42,16 @@
 
 
 ## User handling
+<%def name="date(t)">\
+${request.user.localtime(t).strftime('%Y-%m-%d')}\
+</%def>
+
 <%def name="time(t)">\
 ${request.user.localtime(t).strftime('%A, %d %B %Y at %H:%M %Z')}\
+</%def>
+
+<%def name="shorttime(t)">\
+${request.user.localtime(t).strftime('%Y-%m-%d %H:%M %Z')}\
 </%def>
 
 <%def name="timedelta(td)">\
@@ -122,18 +127,8 @@ ${h.tags.hidden('csrf_token', value=request.session.get_csrf_token(), id=None)}
 % endif
 </%def>
 
-<%def name="cert_serial(serial)">\
-<%
-id = ''
-i = 0
-for char in serial[:10]:
-    if i % 2 == 0:
-        id += char
-    else:
-        id += char + ':'
-    i += 1
-%>\
-<span class="monospace">${id[:-1]}</span>\
+<%def name="cert_serial(cert)">\
+<span class="monospace">${h.friendly_serial(cert.serial)}</span>\
 </%def>
 
 

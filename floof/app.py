@@ -4,24 +4,42 @@ import os
 import subprocess
 
 from pyramid_beaker import session_factory_from_settings
+from pyramid.authorization import ACLAuthorizationPolicy
 from pyramid.config import Configurator
 from pyramid.decorator import reify
-from pyramid.events import BeforeRender, NewRequest, NewResponse
+from pyramid.events import BeforeRender, ContextFound, NewRequest, NewResponse
 from pyramid.request import Request
+from pyramid.security import has_permission
 from pyramid.settings import asbool
 from sqlalchemy import engine_from_config
 import webob.request
 from zope.sqlalchemy import ZopeTransactionExtension
 
-from floof.lib.auth import Authenticizer, FloofAuthnPolicy, FloofAuthzPolicy
+from floof.lib.authn import Authenticizer, FloofAuthnPolicy
+from floof.lib.authz import auto_privilege_escalation
+from floof.lib.authz import current_view_permission
+from floof.lib.stash import manage_stashes
+from floof.model import filestore
+from floof.resource import FloofRoot
+
 import floof.lib.debugging
 import floof.lib.helpers
 import floof.model
-from floof.model import filestore
 import floof.routing
 import floof.views
 
 log = logging.getLogger(__name__)
+
+
+# Raised when the CSRF token check fails but no cookies have been sent
+class NoCookiesError(Exception): pass
+
+
+def get_shim(name):
+    def _dictlike_get_shim(self):
+        return self.__dict__.get(name)
+    return _dictlike_get_shim
+
 
 class FloofRequest(Request):
     def __init__(self, *args, **kwargs):
@@ -33,6 +51,15 @@ class FloofRequest(Request):
         auth = Authenticizer(self)
         self.session.changed()
         return auth
+
+    # floof auth assumes some properties always exist, which might not
+    context = property(get_shim('context'))
+    root = property(get_shim('root'))
+
+    @property
+    def permission(self):
+        # Not reified as this may be erroneously called before ContextFound
+        return current_view_permission(self)
 
     @property
     def user(self):
@@ -51,7 +78,7 @@ class _RichSessionFlashMixin(object):
         success='tick-circle',
     )
 
-    def flash(self, message, icon=None, level='notice', **kwargs):
+    def flash(self, message, icon=None, level='notice', html_escape=True, **kwargs):
         """Store your flash message with an optional icon and "level" (which
         really just affects the CSS class).
         """
@@ -60,7 +87,8 @@ class _RichSessionFlashMixin(object):
         if icon is None:
             icon = self._default_flash_icons[level]
 
-        to_store = dict(message=message, icon=icon, level=level)
+        to_store = dict(message=message, icon=icon, level=level,
+                        html_escape=html_escape)
         super(_RichSessionFlashMixin, self).flash(to_store, **kwargs)
 
 
@@ -131,13 +159,10 @@ def prevent_csrf(event):
 
         # Token is wrong!
         if not request.cookies:
-            # XXX need a raisable exception here
-            #redirect(url(controller='main', action='cookies_disabled'))
-            pass
+            raise NoCookiesError
 
         from pyramid.exceptions import Forbidden
         raise Forbidden('Possible cross-site request forgery detected.')
-
 
 
 def main(global_config, **settings):
@@ -179,15 +204,18 @@ def main(global_config, **settings):
 
     config = Configurator(
         settings=settings,
+        root_factory=FloofRoot,
         request_factory=FloofRequest,
         session_factory=FloofSessionFactory,
         authentication_policy=FloofAuthnPolicy(),
-        authorization_policy=FloofAuthzPolicy(),
+        authorization_policy=ACLAuthorizationPolicy(),
     )
 
     # Added manually because @subscriber only works with a
     # scan, and we don't want to scan ourselves
     config.add_subscriber(prevent_csrf, NewRequest)
+    config.add_subscriber(auto_privilege_escalation, ContextFound)
+    config.add_subscriber(manage_stashes, ContextFound)
     config.add_subscriber(start_template_timer, BeforeRender)
     config.add_subscriber(add_renderer_globals, BeforeRender)
     config.add_subscriber(flush_everything, NewResponse)

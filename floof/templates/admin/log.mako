@@ -35,8 +35,7 @@ off = "odd" %>
     % else:
     <td>—</td>
     % endif
-    <% privs = ', '.join([priv.name for priv in record.privileges]) %>
-    <td>${privs}</td>
+    <td>${record.privileges}</td>
     % if record.target_user:
     <td>${record.target_user.name}</td>
     % else:

@@ -5,15 +5,17 @@ available to Controllers. This module is available to templates as 'h'.
 """
 from __future__ import absolute_import
 import re
+import unicodedata
 
 import lxml.html
 import lxml.html.clean
 import markdown
 from webhelpers.html import escape, HTML, literal, tags, url_escape
-#from webhelpers.html.tags import *
 # XXX replace the below with tags.?
 from webhelpers.html.tags import form, end_form, hidden, submit, javascript_link
 from webhelpers.util import update_params
+
+from pyramid.security import has_permission
 
 
 def render_rich_text(raw_text, chrome=False):
@@ -80,3 +82,31 @@ def render_rich_text(raw_text, chrome=False):
         friendly_html = match.group(1)
 
     return literal(friendly_html)
+
+
+def friendly_serial(serial):
+    """Returns a more user-friendly rendering of the passed cert serial."""
+
+    result = ''
+    length = min(len(serial), 10)
+    start = len(serial) - length
+    for i, char in enumerate(serial[start:]):
+        result += char
+        if i % 2 == 1:
+            result += ':'
+
+    return result[:-1]
+
+
+def reduce_display_name(name):
+    """Return a reduced version of a display name for comparison with a
+    username.
+    """
+    # Strip out diacritics
+    name = ''.join(char for char in unicodedata.normalize('NFD', name)
+                   if not unicodedata.combining(char))
+
+    name = re.sub(r'\s+', '_', name)
+    name = name.lower()
+
+    return name

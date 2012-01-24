@@ -3,19 +3,21 @@ import logging
 import re
 
 from pyramid import security
-from pyramid.httpexceptions import HTTPSeeOther
+from pyramid.httpexceptions import HTTPBadRequest, HTTPSeeOther
 from pyramid.renderers import render_to_response
-from pyramid.response import Response
+from pyramid.security import effective_principals
 from pyramid.view import view_config
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm.exc import NoResultFound
 from webhelpers.util import update_params
 import wtforms.form, wtforms.fields, wtforms.validators
 
 from floof.forms import DisplayNameField, TimezoneField
-import floof.lib.auth
+from floof.lib.authn import DEFAULT_CONFIDENCE_EXPIRY
+from floof.lib.authn import OpenIDAuthDisabledError, OpenIDNotFoundError
+from floof.lib.stash import fetch_stash, get_stash_keys, key_from_request
 from floof.lib.openid_ import OpenIDError, openid_begin, openid_end
-from floof.model import Resource, Discussion, UserProfileRevision, IdentityURL, User, Role
+from floof.model import Discussion, IdentityURL, Resource
+from floof.model import Role, User, UserProfileRevision
 from floof import model
 
 log = logging.getLogger(__name__)
@@ -29,50 +31,63 @@ class LoginForm(wtforms.form.Form):
         validators=[wtforms.validators.Required(u'Gotta enter an OpenID to log in.')])
     return_key = wtforms.fields.HiddenField(u'Return Stash Key')
 
+
 @view_config(
     route_name='account.login',
     request_method='GET',
     renderer='account/login.mako')
 def account_login(context, request):
-    form = LoginForm()
     # XXX worth mentioning on this page how to log in with SSL, and offer a
     # crypto link if they already hit cancel and want to try again
-    # XXX why do we need this?: form.openid_identifier.data = request.auth.openid_url
-    # ^^^ that was to pre-fill the form in the (maybe) common case of re-auth
-    form.return_key.data = request.GET.get('return_key', None)
+
+    # Auto-fill OpenID on re-auth
+    return_key = key_from_request(request)
+    openid = request.auth.openid_url if return_key else None
+
+    if not request.cookies:
+        request.session.flash(
+                'It looks like you might not have cookies enabled in your '
+                'browser.  Alas, cookies are required to log in.  If you '
+                'think this message is in error, try refreshing the page.',
+                icon='cookie--exclamation', level='warning')
+
+    form = LoginForm(openid_identifier=openid, return_key=return_key)
     return {'form': form}
 
 
 @view_config(
     route_name='account.login_begin',
-    request_method='POST')
+    request_method='POST',
+    renderer='account/login.mako')
 def login_begin(context, request):
     """Step one of logging in with OpenID; redirect to the provider."""
     form = LoginForm(request.POST)
 
     if not form.validate():
-        return render_to_response(
-            'account/login.mako', {'form': form}, request=request)
+        return {'form': form}
 
     # Ensure the return key, if present and valid, will be passed
     # to openid_finish()
     return_url = request.route_url('account.login_finish')
-    if form.return_key.data in floof.lib.auth.stash_keys(request.session):
+    if form.return_key.data in get_stash_keys(request):
         return_url = update_params(return_url,
             return_key=form.return_key.data)
 
-    if 0 and c.user:
+    if request.user:
         # Logged-in user trying to update their OpenID expiry time
-        # XXX need to do this, possibly use checkid_immediate instead
-        if 'cert' in c.auth.satisfied:
-            max_auth_age = CERT_CONFIDENCE_EXPIRY_SECONDS
-        else:
-            max_auth_age = CONFIDENCE_EXPIRY_SECONDS
         sreg = False
+        settings = request.registry.settings
+        max_auth_age = settings.get('auth.openid.expiry_seconds',
+                                    DEFAULT_CONFIDENCE_EXPIRY)
     else:
         # Someone either logging in or registering
-        max_auth_age = False
+        # Problem is that we don't want sreg (as part of opeinid_begin) unless
+        # the user is registering, but we don't know whether the user is
+        # registering or just logging in until we resolve their identity URL...
+        # which we do in openid_begin.
+        # Possibly use checkid_immediate instead
         sreg = True
+        max_auth_age = False
 
     try:
         return HTTPSeeOther(location=openid_begin(
@@ -81,11 +96,28 @@ def login_begin(context, request):
                 request=request,
                 max_auth_age=max_auth_age,
                 sreg=sreg))
+
     except OpenIDError as exc:
         request.session.flash(exc.message,
             level='error', icon='key--exclamation')
-        return render_to_response(
-            'account/login.mako', {'form': form}, request=request)
+        return {'form': form}
+
+
+def safe_openid_login(request, identity_owner, identity_url):
+    """Helper function, catches any exceptions that may be raised on OpenID
+    login."""
+    try:
+        auth_headers = security.remember(
+            request, identity_owner, openid_url=identity_url)
+    except OpenIDAuthDisabledError:
+        request.session.flash("Your OpenID is no longer accepted as your "
+            "account has disabled OpenID authentication.",
+            level='error', icon='key--exclamation')
+    except OpenIDNotFoundError:
+        request.session.flash("I don't recognize your OpenID identity.",
+            level='error', icon='key--exclamation')
+    else:
+        return auth_headers
 
 
 @view_config(
@@ -93,15 +125,19 @@ def login_begin(context, request):
     request_method='GET')
 def login_finish(context, request):
     """Step two of logging in; the OpenID provider redirects back here."""
+
+    def retry():
+        """Redirect to the login page, preserving the return key (if any)."""
+        location = request.route_url('account.login')
+        if return_key:
+            location = update_params(location, return_key=return_key)
+        return HTTPSeeOther(location=location)
+
     return_url = request.route_url('account.login_finish')
 
-    return_key = request.GET.get('return_key', None)
-    if return_key is None:
-        pass
-    elif return_key in floof.lib.auth.stash_keys(request.session):
-        return_url = update_params(return_url, dict(return_key=return_key))
-    else:
-        log.warning("Unknown return_key value: {0!r}".format(return_key))
+    return_key = key_from_request(request)
+    if return_key is not None:
+        return_url = update_params(return_url, return_key=return_key)
 
     try:
         identity_url, identity_webfinger, auth_time, sreg_res = openid_end(
@@ -110,12 +146,7 @@ def login_finish(context, request):
     except OpenIDError as exc:
         request.session.flash(exc.message,
             level='error', icon='key--exclamation')
-
-        location = request.route_url('account.login')
-        if return_key:
-            location = update_params(location, dict(return_key=return_key))
-
-        return HTTPSeeOther(location=location)
+        return retry()
 
     # Find who owns this URL, if anyone
     identity_owner = model.session.query(User) \
@@ -123,10 +154,14 @@ def login_finish(context, request):
         .limit(1).first()
 
     if not identity_owner:
+        if return_key:
+            request.session.flash('Unknown OpenID URL.',
+                level='error', icon='key--exclamation')
+            return retry()
         # Someone is either registering a new account, or adding a new OpenID
         # to an existing account
         request.session['pending_identity_url'] = identity_url
-        request.session.save()
+        request.session.changed()
 
         # Try to pull a name and email address out of the SReg response
         username = re.sub(u'[^_a-z0-9]', u'',
@@ -146,32 +181,46 @@ def login_finish(context, request):
 
     elif identity_owner == request.user:
         # Someone is just freshening up their cookie
-        request.auth.login_openid(identity_owner)
-        request.session.save()
+        auth_headers = safe_openid_login(request, identity_owner, identity_url)
+        if auth_headers is None:
+            return retry()
+
         request.session.flash(u'Re-authentication successful', icon='user')
 
         if return_key:
-            # XXX implement meee
-            # Fetch a stashed POST request
-            old_url = fetch_stash_url(session, return_key)
+            # Fetch a stashed request
+            old_url = fetch_stash(request, key=return_key)['url']
             if old_url:
-                log.debug('Following Return Key \'{0}\' to URL: {1}' \
-                        .format(return_key, old_url))
-                redirect('{0}?return_key={1}'.format(old_url, return_key))
+                location = update_params(old_url, return_key=return_key)
+                log.debug('Following Return Key \'{0}\' to URL: {1}'
+                          .format(return_key, location))
+                return HTTPSeeOther(location, headers=auth_headers)
 
-        return HTTPSeeOther(location=request.route_url('root'))
+        return HTTPSeeOther(location=request.route_url('root'),
+                            headers=auth_headers)
 
     else:
-        # An existing user has logged in successfully.  Bravo!
-        log.debug("User {0!r} logged in via OpenID: {1!r}".format(identity_owner.name, identity_url))
-
-        # Log the successful authentication
-        # TODO try/except, catch all the things that can be thrown
+        # Existing user; new login
+        # Log the successful OpenID authentication, mindful of users that may
+        # have OpenID logins disabled, for instance.
+        # XXX should we deny a logged-in user to authenticate as another user?
         auth_headers = security.forget(request)
-        auth_headers += security.remember(request, identity_owner)
+        headers = safe_openid_login(request, identity_owner, identity_url)
+
+        if headers is None:
+            return retry()
+
+        auth_headers += headers
+
+        # An existing user has logged in successfully.  Bravo!
+        log.debug("User {0!r} logged in via OpenID: {1!r}"
+                  .format(identity_owner.name, identity_url))
+
         request.session.flash(
-            u"Welcome back, {0}!".format(identity_owner.display_name or identity_owner.name),
+            u"Welcome back, {0}!"
+            .format(identity_owner.display_name or identity_owner.name),
             level=u'success', icon='user')
+
         # XXX this should ALSO probably do the return_key redirect, good grief
         return HTTPSeeOther(
             location=request.route_url('root'),
@@ -184,11 +233,20 @@ def login_finish(context, request):
 def logout(context, request):
     """Logs the user out, if possible."""
 
+    cert_active = 'trusted:cert' in effective_principals(request)
+
     # XXX if you're using a client cert, this should try hard to log you out
     # with the crypto api
     # XXX redirect somewhere better than just the front page...?
     auth_headers = security.forget(request)
-    request.session.flash(u'Logged out.', icon='user-silhouette')
+    request.session.invalidate()  # Prevent the next user seeing this session
+
+    if cert_active:
+        request.session.flash(u'You must stop sending your client certificate '
+                              'to complete your log out.', level='warning')
+    else:
+        request.session.flash(u'Logged out.', icon='user-silhouette')
+
     return HTTPSeeOther(
         location=request.route_url('root'),
         headers=auth_headers,
@@ -208,7 +266,8 @@ class RegistrationForm(wtforms.form.Form):
         ])
     email = wtforms.fields.TextField(u'Email address', [
             wtforms.validators.Optional(),
-            wtforms.validators.Email(message=u'That does not appear to be an email address.'),
+            wtforms.validators.Email(
+                message=u'That does not appear to be an email address.'),
             ])
     timezone = TimezoneField(u'Timezone')
 
@@ -216,6 +275,7 @@ class RegistrationForm(wtforms.form.Form):
         if model.session.query(User).filter_by(name=field.data).count():
             raise wtforms.validators.ValidationError(
                 'Your username is already taken. Please try again.')
+
 
 @view_config(
     route_name='account.register',
@@ -229,7 +289,7 @@ def register(context, request):
 
         # Not in the session or is already registered.  Neither makes
         # sense.  Bail.
-        helpers.flash('Your session expired.  Please try logging in again.')
+        request.session.flash('Your session expired.  Please try logging in again.')
         return HTTPSeeOther(location=request.route_url('account.login'))
 
     form = RegistrationForm(request.POST)
@@ -242,7 +302,7 @@ def register(context, request):
             request=request)
 
     # XXX waiting on auth_dev2 branch to merge to factor this out of controls
-    from floof.views.controls import reduce_display_name
+    from floof.lib.helpers import reduce_display_name
     if not form.display_name.data:
         display_name = None
         has_trivial_display_name = False
@@ -252,13 +312,11 @@ def register(context, request):
             reduce_display_name(display_name))
 
     # Create db records
-    base_user = model.session.query(Role).filter_by(name=u'user').one()
     resource = Resource(type=u'users')
     discussion = Discussion(resource=resource)
     user = User(
         name=form.username.data,
         email=form.email.data,
-        role=base_user,
         resource=resource,
         timezone=form.timezone.data,
 
@@ -266,6 +324,9 @@ def register(context, request):
         has_trivial_display_name=has_trivial_display_name,
     )
     model.session.add_all((user, resource, discussion))
+
+    base_user = model.session.query(Role).filter_by(name=u'user').one()
+    user.roles.append(base_user)
 
     openid = IdentityURL(url=identity_url)
     user.identity_urls.append(openid)
@@ -277,7 +338,11 @@ def register(context, request):
     # Log 'em in
     del request.session['pending_identity_url']
     auth_headers = security.forget(request)
-    auth_headers += security.remember(request, user)
+    headers = security.remember(request, user, openid_url=identity_url)
+    if headers is None:
+        log.error("Failed to log in new registrant.")  # shouldn't happen
+    else:
+        auth_headers += headers
     print auth_headers
 
     # And off we go
@@ -288,7 +353,7 @@ def register(context, request):
 
 @view_config(
     route_name='account.add_identity',
-    permission='__authenticated__',
+    permission='auth.openid',
     request_method='POST')
 def add_identity(context, request):
     identity_url = request.session.pop('pending_identity_url', None)
@@ -316,6 +381,7 @@ def add_identity(context, request):
 class ProfileForm(wtforms.form.Form):
     profile = wtforms.fields.TextField(u'Profile')
 
+
 @view_config(
     route_name='account.profile',
     permission='__authenticated__',
@@ -325,7 +391,8 @@ def profile(context, request):
 
     if request.method == 'POST' and form.validate():
         profile = request.user.profile = form.profile.data
-        rev = UserProfileRevision(user=request.user, updated_by=request.user, content=profile)
+        rev = UserProfileRevision(user=request.user, updated_by=request.user,
+                                  content=profile)
         model.session.add(rev)
 
     return {}

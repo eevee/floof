@@ -127,7 +127,6 @@ class User(TableBase):
     display_name = Column(Unicode(24), nullable=True)
     has_trivial_display_name = Column(Boolean, nullable=False, default=False)
     timezone = Column(Timezone, nullable=True)
-    role_id = Column(Integer, ForeignKey('roles.id'), nullable=False)
     cert_auth = Column(Enum(
         u'disabled',
         u'allowed',
@@ -140,27 +139,6 @@ class User(TableBase):
         if self.timezone is None:
             return dt
         return dt.astimezone(self.timezone)
-
-    def can(self, permission, log=False):
-        """Returns True iff this user has the named privilege."""
-        if not self.role:
-            return False
-
-        can = permission in [priv.name for priv in self.role.privileges]
-
-        if can and log:
-            if not hasattr(self, '_logged_privs'):
-                self._logged_privs = []
-            if priv not in self._logged_privs:
-                self._logged_privs.append(priv)
-
-        return can
-
-    @property
-    def logged_privs(self):
-        if hasattr(self, '_logged_privs'):
-            return self._logged_privs
-        return []
 
     @property
     def invalid_certificates(self):
@@ -186,14 +164,6 @@ class User(TableBase):
         if self._profile is None:
             self._profile = UserProfile()
         self._profile.content = value
-
-    def labels_visible_to(self, viewer):
-        """Returns a list of the labels that `viewer`, another user, can see.
-        """
-        return [
-            label for label in self.labels
-            if self == viewer or label.encapsulation in ('public', 'plug')
-        ]
 
 
 class IdentityURL(TableBase):
@@ -272,14 +242,6 @@ class Artwork(TableBase):
 
         return u'.'.join(filename_parts)
 
-    def labels_visible_to(self, viewer):
-        """Returns a list of the labels that `viewer`, some user, can see.
-        """
-        return [
-            label for label in self.labels
-            if label.user == viewer or label.encapsulation in ('public', 'plug')
-        ]
-
 
 # Dynamic subclasses of the 'artwork' table for storing metadata for different
 # types of media
@@ -336,16 +298,10 @@ class Role(TableBase):
     name = Column(Unicode(127), nullable=False)
     description = Column(Unicode, nullable=True)
 
-class Privilege(TableBase):
-    __tablename__ = 'privileges'
-    id = Column(Integer, primary_key=True, nullable=False)
-    name = Column(Unicode(127), nullable=False)
-    description = Column(Unicode, nullable=True)
-
-class RolePrivilege(TableBase):
-    __tablename__ = 'role_privileges'
+class UserRole(TableBase):
+    __tablename__ = 'user_roles'
+    user_id = Column(Integer, ForeignKey('users.id'), primary_key=True, nullable=False)
     role_id = Column(Integer, ForeignKey('roles.id'), primary_key=True, nullable=False)
-    priv_id = Column(Integer, ForeignKey('privileges.id'), primary_key=True, nullable=False)
 
 
 ### COMMENTS
@@ -464,6 +420,8 @@ class Certificate(TableBase):
         """Returns True if the certificate is neither expired nor revoked."""
         return not self.expired and not self.revoked
 
+    class InvalidSPKACError(Exception): pass
+
     def __init__(self, user, ca_cert, ca_key, spkac=None, bits=2048, days=3653, digest='sha256'):
         """Creates a new certificate for ``user``, signed by the passed CA.
 
@@ -477,7 +435,10 @@ class Certificate(TableBase):
             # Strip all whitespace
             spkac = str(spkac)
             spkac = spkac.translate(None, string.whitespace)
-            cert_key = ssl.NetscapeSPKI(spkac).get_pubkey()
+            try:
+                cert_key = ssl.NetscapeSPKI(spkac).get_pubkey()
+            except ssl.Error:
+                raise Certificate.InvalidSPKACError
             bits = cert_key.bits()
         else:
             cert_key = ssl.PKey()
@@ -489,7 +450,7 @@ class Certificate(TableBase):
         # Uniqueness should be supplied by the user name and the certificate
         # number.  The rand element is mostly for ease of development, to
         # protect old CRLs from clobbering new certs, etc.
-        rand = str(random.getrandbits(40))
+        rand = str(random.getrandbits(80))
         hasher = hashlib.sha1(user.name + str(len(user.certificates)) + rand)
 
         cert = ssl.X509()
@@ -505,13 +466,14 @@ class Certificate(TableBase):
         cert.add_extensions([
                 ssl.X509Extension('authorityKeyIdentifier', False, 'keyid:always,issuer:always', cert, ca_cert),
                 ssl.X509Extension('subjectKeyIdentifier', False, 'hash', cert),
-                ssl.X509Extension('basicConstraints', False, 'CA:FALSE'),
+                ssl.X509Extension('basicConstraints', True, 'CA:FALSE'),
                 ssl.X509Extension('keyUsage', True, 'digitalSignature'),
                 ssl.X509Extension('extendedKeyUsage', True, 'clientAuth'),
                 ])
         cert.sign(ca_key, digest)
 
-        self.serial = u'{0:x}'.format(cert.get_serial_number())
+        # The serial must be 40 chars long
+        self.serial = u'{0:0>40x}'.format(cert.get_serial_number())
         self.created_time = now
         self.expiry_time = expire
         self.bits = bits
@@ -530,12 +492,14 @@ class Certificate(TableBase):
             raise NameError('Certificate private data and hence PKCS12 '
             'files are only available on freshly created Certificate '
             'objects as private keys are not retained in the database.')
+
         cert = ssl.load_certificate(ssl.FILETYPE_PEM, self.public_data)
         pkcs12 = ssl.PKCS12()
         pkcs12.set_certificate(cert)
         pkcs12.set_privatekey(self._key)
         pkcs12.set_ca_certificates([ca_cert])
         pkcs12.set_friendlyname(str(name))
+
         return pkcs12.export(passphrase)
 
     def revoke(self):
@@ -600,6 +564,7 @@ class Log(TableBase):
     logger = Column(String, nullable=False)
     level = Column(Integer, nullable=False, index=True)
     user_id = Column(Integer, ForeignKey('users.id'))
+    privileges = Column(Unicode)
     url = Column(Unicode)
     ipaddr = Column(IPAddr)
     target_user_id = Column(Integer, ForeignKey('users.id'))
@@ -607,11 +572,6 @@ class Log(TableBase):
     reason = Column(Unicode)
 
     __mapper_args__ = {'order_by': timestamp.desc()}
-
-log_privileges = Table('log_privileges', TableBase.metadata,
-    Column('log_id', Integer, ForeignKey('logs.id'), primary_key=True, nullable=False),
-    Column('priv_id', Integer, ForeignKey('privileges.id'), primary_key=True, nullable=False),
-)
 
 
 ### RELATIONS
@@ -659,8 +619,7 @@ User.user_artwork = relation(UserArtwork, backref=backref('user', innerjoin=True
 User.ratings_given = relation(ArtworkRating, backref=backref('user', innerjoin=True))
 
 # Permissions
-User.role = relation(Role, innerjoin=True, backref='users')
-Role.privileges = relation(Privilege, secondary=RolePrivilege.__table__, lazy='joined')
+User.roles = relation(Role, UserRole.__table__, lazy='joined')
 
 # Comments
 Resource.discussion = relation(Discussion, uselist=False,
@@ -686,4 +645,3 @@ Log.user = relation(User, backref='logs',
 Log.target_user = relation(User,
         primaryjoin=User.id==Log.target_user_id,
         )
-Log.privileges = relation(Privilege, secondary=log_privileges)

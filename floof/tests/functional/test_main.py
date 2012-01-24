@@ -1,5 +1,3 @@
-from pyramid import testing
-
 from floof.tests import FunctionalTests
 
 class TestMain(FunctionalTests):
@@ -13,8 +11,3 @@ class TestMain(FunctionalTests):
         """Test display of the public admin log page."""
         response = self.app.get(self.url('log'))
         assert 'Public Admin Log' in response
-
-    def test_cookies_disabled(self):
-        """Test display of the "cookies disabled" error page."""
-        response = self.app.get(self.url('cookies_disabled'))
-        assert 'Cookies Disabled' in response

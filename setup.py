@@ -65,6 +65,7 @@ setup(
         'pyramid_beaker',
         'repoze.tm2>=1.0b1',  # default_commit_veto
         'WebError',
+        'WebTest',
         'zope.sqlalchemy',
         'pytest',
         'lxml>=2.3.1',  # strip data: urls

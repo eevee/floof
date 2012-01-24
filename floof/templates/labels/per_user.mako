@@ -7,7 +7,7 @@
     <h1>${title()}</h1>
 
     <ul class="standard-list">
-        % for label in target_user.labels_visible_to(request.user):
+        % for label in request.user.permitted('label.view', target_user.labels):
         <li>${artlib.label(label)}</li>
         % endfor
     </ul>

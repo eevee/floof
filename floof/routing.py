@@ -6,6 +6,7 @@ Some useful helpers are at the bottom.  Be familiar with them!
 import re
 
 import floof.model as model
+from floof.resource import contextualize
 from pyramid.exceptions import NotFound
 from sqlalchemy.orm.exc import NoResultFound
 
@@ -28,7 +29,6 @@ def configure_routing(config):
     r('root', '/')
     r('filestore', '/filestore/{class_}/{key}', pregenerator=filestore_pregenerator)
     r('reproxy', '/reproxy')
-    r('cookies_disabled', '/cookies_disabled')
     r('log', '/log')
 
     # Registration and auth
@@ -54,10 +54,15 @@ def configure_routing(config):
     r('controls.info', '/account/controls/user_info')
 
     r('controls.certs', '/account/controls/certificates')
-    r('controls.certs.generate_server', '/account/controls/certificates/gen/cert-{name}.p12')
-    r('controls.certs.details', '/account/controls/certificates/details/{id}')
-    r('controls.certs.download', '/account/controls/certificates/download/cert-{name}-{id}.pem')
-    r('controls.certs.revoke', '/account/controls/certificates/revoke/{id}')
+    r('controls.certs.add', '/account/controls/certificates/add')
+    r('controls.certs.generate_server',
+            '/account/controls/certificates/gen/cert-{name}.p12')
+    r('controls.certs.details',
+            '/account/controls/certificates/details/{serial:[0-9a-f]+}')
+    r('controls.certs.download',
+            '/account/controls/certificates/download/cert-{name}-{serial:[0-9a-f]+}.pem')
+    r('controls.certs.revoke',
+            '/account/controls/certificates/revoke/{serial:[0-9a-f]+}')
 
     # User pages
     kw = sqla_route_options('user', 'name', model.User.name)
@@ -131,11 +136,15 @@ def configure_routing(config):
             raise NotFound()
 
         if 'comment_id' not in request.matchdict:
-            return entity.discussion
+            return contextualize(entity.discussion)
 
         # URLs to specific comments should have those comments as the context
         try:
-            return model.session.query(model.Comment).with_parent(entity.discussion).filter(model.Comment.id == request.matchdict['comment_id']).one()
+            return contextualize(
+                model.session .query(model.Comment)
+                .with_parent(entity.discussion)
+                .filter(model.Comment.id == request.matchdict['comment_id'])
+                .one())
         except NoResultFound:
             raise NotFound()
 
@@ -162,6 +171,7 @@ def configure_routing(config):
     r('comments.list', '/{type}/{identifier}/comments', factory=comments_factory)
     r('comments.write', '/{type}/{identifier}/comments/write', factory=comments_factory, pregenerator=comments_pregenerator)
     r('comments.view', '/{type}/{identifier}/comments/{comment_id}', factory=comments_factory, pregenerator=comments_pregenerator)
+    r('comments.edit', '/{type}/{identifier}/comments/{comment_id}/edit', factory=comments_factory, pregenerator=comments_pregenerator)
     r('comments.reply', '/{type}/{identifier}/comments/{comment_id}/write', factory=comments_factory, pregenerator=comments_pregenerator)
 
 class SugarRouter(object):
@@ -298,7 +308,10 @@ def sqla_route_options(url_key, match_key, sqla_column):
     def factory(request):
         # This yields the "context", which should be the row object
         try:
-            return model.session.query(sqla_column.parententity).filter(sqla_column == request.matchdict[match_key]).one()
+            return contextualize(
+                model.session.query(sqla_column.parententity)
+                .filter(sqla_column == request.matchdict[match_key])
+                .one())
         except NoResultFound:
             # 404!
             raise NotFound()

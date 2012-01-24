@@ -1,9 +1,12 @@
-from __future__ import unicode_literals
-
+import pytz
 import random
 import string
+import time
+
+from datetime import datetime, timedelta
 
 from floof import model
+from floof.lib.setup import gen_ca_certs
 
 # XXX The idea here is that we generate random junk data to use (and print the
 # seed at the start of a test run), ensuring over time that the actual format
@@ -11,15 +14,87 @@ from floof import model
 # But, for now, the constant values below were determined to be sufficiently
 # random.
 
-def sim_user(role='user'):
-    role_id = model.session.query(model.Role).filter_by(name=role).one().id
+def sim_user(credentials=None, roles=None):
+    """Create a user suitable for use in testing.
+
+    Parameters:
+
+        `credentials` is a sequence of (auth_mechanism, credential) tuples,
+        where auth_mechanism is one of 'openid' or 'cert' and credential is the
+        OpenID URL when paired with 'openid' and ignored when paired with
+        'cert'.  If not specified, will default to:
+        ``[('cert', None), ('openid', 'https://example.com/')]``
+
+        `roles` is a sequence of user role names to which to add the user.
+        Defaults to u'user'.
+
+    """
+    if credentials is None:
+        credentials = [('cert', None), ('openid', 'https://example.com/')]
+    if roles is None:
+        roles = [u'user']
+
     user = model.User(
-        name = 'sim_' + ''.join(random.choice(string.letters) for n in range(10)),
-        role_id = role_id,
-        resource = model.Resource(type=u'users'),
+        name='sim_' + ''.join(random.choice(string.letters) for n in range(10)),
+        resource=model.Resource(type=u'users'),
     )
     model.session.add(user)
+
+    for role in roles:
+        r = model.session.query(model.Role).filter_by(name=role).one()
+        user.roles.append(r)
+
+    for mech, credential in credentials:
+        if mech == 'cert':
+            title = 'Test'
+            now = datetime.now(pytz.utc)
+            expire = now + timedelta(days=3)
+
+            cert = model.Certificate(user, *gen_ca_certs(title, now, expire))
+            user.certificates.append(cert)
+            user.cert_auth = 'allowed'
+
+        elif mech == 'openid':
+            openid = model.IdentityURL(url=credential)
+            user.identity_urls.append(openid)
+
+        else:
+            print ("Unknown mech '{0}' specified in credentials on sim user "
+                   "creation.".format(mech))
+
+    model.session.flush()
+
     return user
+
+
+def sim_user_env(user, *trust_flags):
+    """
+    Generates a set of environment variables to authenticate as the given user.
+
+    This function uses "real" authentication credentials, so the specified user
+    must have valid credentials of all the requested types, or else IndexError
+    will be raised.
+
+    To gain authentication flags without needing real backing credentials, add
+    the desired cert_flags directly to the tests.auth_trust environment
+    variable.  Note that this alternate method will not test large parts of
+    floof's authn code.
+
+    """
+    env = {'paste.testing': True}
+
+    if 'cert' in trust_flags:
+        env['tests.auth.cert_serial'] = user.certificates[0].serial
+
+    if 'openid' in trust_flags:
+        env['tests.auth.openid_url'] = user.identity_urls[0].url
+        env['tests.auth.openid_timestamp'] = 1
+
+    if 'openid_recent' in trust_flags:
+        env['tests.auth.openid_timestamp'] = time.time()
+
+    return env
+
 
 def sim_artwork(user):
     artwork = model.MediaImage(

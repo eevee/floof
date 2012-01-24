@@ -1,14 +1,36 @@
+from copy import deepcopy
 from datetime import datetime
 import random
 import re
 import unicodedata
 
-from wtforms import fields, widgets, ValidationError
+from webob.multidict import MultiDict
+from wtforms import fields, form, widgets, ValidationError
 from wtforms.widgets import HTMLString, html_params
 from wtforms.ext.sqlalchemy.fields import QuerySelectMultipleField
 import pytz
 
 from floof import model
+
+
+class FloofForm(form.Form):
+    """Extends form.Form by attaching a request attribute to itself on
+    instantiation and by automatically updating the supplied formdata with any
+    post parameters in request.stash"""
+
+    def __init__(self, request, formdata=None, obj=None, prefix='', **kwargs):
+        self.request = request
+
+        if request.stash:
+            if formdata is None:
+                formdata = MultiDict()
+            else:
+                formdata = deepcopy(formdata)
+            formdata.update(request.stash['post'])
+
+        super(FloofForm, self).__init__(formdata=formdata, obj=obj,
+                                        prefix=prefix, **kwargs)
+
 
 class KeygenWidget(widgets.Input):
     def __call__(self, field, **kwargs):
@@ -33,6 +55,7 @@ class PassthroughListWidget(widgets.ListWidget):
         return HTMLString(u''.join(html))
 
 class IDNAField(fields.TextField):
+    """Field for internationalised domain names."""
     def process_formdata(self, valuelist):
         if valuelist:
             self.data = valuelist[0].encode('idna')

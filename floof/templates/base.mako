@@ -74,7 +74,12 @@
     <ul id="flash">
         % for flash in flash_queue:
         <li class="flash-level-${flash['level']}">
-            ${lib.icon(flash['icon'])} ${flash['message']}
+            ${lib.icon(flash['icon'])}
+            % if flash['html_escape']:
+                ${flash['message']}
+            % else:
+                ${flash['message'] | n}
+            % endif
         </li>
         % endfor
     </ul>
