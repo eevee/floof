@@ -85,6 +85,7 @@ def configure_routing(config):
     r('art.add_tags', r'/art/{id:\d+}/add_tags', **kw)
     r('art.remove_tags', r'/art/{id:\d+}/remove_tags', **kw)
     r('art.rate', r'/art/{id:\d+}/rate', **kw)
+    r('art.crop', r'/art/{id:\d+}/crop', **kw)
 
     # Tags
     # XXX what should the tag name regex be, if anything?

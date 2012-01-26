@@ -8,7 +8,7 @@ information, and authorization is the focus of this module.
 from pyramid.security import Allow, Deny
 from pyramid.security import Authenticated, Everyone
 
-from floof.model import Comment, Label
+from floof.model import MediaImage, Comment, Label
 
 ROOT_ACL = (
     (Deny, 'banned:interact_with_others', (
@@ -49,8 +49,8 @@ def label_acl(label):
 
 
 ORM_ACLS = {
-    Comment: lambda ormobj: (
-        (Allow, 'user:{0}'.format(ormobj.author_user_id), (
+    Comment: lambda comment: (
+        (Allow, 'user:{0}'.format(comment.author_user_id), (
             'comment.delete',
             'comment.edit',
         )),
@@ -60,6 +60,9 @@ ORM_ACLS = {
         )),
     ),
     Label: label_acl,
+    MediaImage: lambda image: (
+        (Allow, Authenticated, ('art.derive')),
+    ),
 }
 """A mapping from a subset of ORM classes to factory functions that, called
 with an ORM object of that class, will return a Pyramid ACL appropriate for

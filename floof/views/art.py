@@ -1,17 +1,18 @@
 # encoding: utf8
 from __future__ import division
-from cStringIO import StringIO
-import hashlib
 import logging
 
 import magic
 from pyramid.httpexceptions import HTTPBadRequest, HTTPSeeOther
 from pyramid.view import view_config
 import wtforms.form, wtforms.fields, wtforms.validators
-from wtforms.ext.sqlalchemy.fields import QuerySelectMultipleField
 
 from floof import model
-from floof.forms import MultiCheckboxField, MultiTagField, QueryMultiCheckboxField
+from floof.forms import FloofForm, MultiCheckboxField, MultiTagField
+from floof.forms import QueryMultiCheckboxField, RequiredValidator
+from floof.lib.image import SUPPORTED_MIMETYPES
+from floof.lib.image import dump_image_to_buffer, get_number_of_colors
+from floof.lib.image import image_hash, scaled_dimensions, thumbnailify
 from floof.lib.gallery import GallerySieve
 
 # XXX import from somewhere
@@ -29,36 +30,6 @@ log = logging.getLogger(__name__)
 HASH_BUFFER_SIZE = 524288  # .5 MiB
 MAX_ASPECT_RATIO = 2
 
-def get_number_of_colors(image):
-    """Does what it says on the tin.
-
-    This attempts to return the number of POSSIBLE colors in the image, not the
-    number of colors actually used.  In the case of a paletted image, PIL is
-    often limited to only returning the actual number of colors.  But that's
-    usually what we mean for palettes, so eh.
-
-    But full-color images will always return 16777216.  Alpha doesn't count, so
-    RGBA is still 24-bit color.
-    """
-    # See http://www.pythonware.com/library/pil/handbook/concepts.htm for list
-    # of all possible PIL modes
-    mode = image.mode
-    if mode == '1':
-        return 2
-    elif mode == 'L':
-        return 256
-    elif mode == 'P':
-        # This is sort of (a) questionable and (b) undocumented, BUT:
-        # palette.getdata() returns a tuple of mode and raw bytes.  The raw
-        # bytes are rgb encoded as three bytes each, so its length is three
-        # times the number of palette entries.
-        palmode, paldata = image.palette.getdata()
-        return len(paldata) / 3
-    elif mode in ('RGB', 'RGBA', 'CMYK', 'YCbCr', 'I', 'F',
-        'LA', 'RGBX', 'RGBa'):
-        return 2 ** 24
-    else:
-        raise ValueError("Unknown palette mode, argh!")
 
 class UploadArtworkForm(wtforms.form.Form):
     # XXX need some kinda field lengths or something on these
@@ -76,6 +47,7 @@ class UploadArtworkForm(wtforms.form.Form):
     labels = None  # I am populated dynamically based on user
 
     remark = wtforms.fields.TextAreaField(u'Remark')
+
 
 @view_config(
     route_name='art.upload',
@@ -112,22 +84,13 @@ def upload(context, request):
     # Figure out mimetype (and if we even support it)
     mimetype = magic.Magic(mime=True).from_buffer(fileobj.read(1024)) \
         .decode('ascii')
-    if mimetype not in (u'image/png', u'image/gif', u'image/jpeg'):
+    if mimetype not in SUPPORTED_MIMETYPES:
         form.file.errors.append("Only PNG, GIF, and JPEG are supported at the moment.")
         return ret
 
     # Hash the thing
-    hasher = hashlib.sha256()
-    file_size = 0
     fileobj.seek(0)
-    while True:
-        buffer = fileobj.read(HASH_BUFFER_SIZE)
-        if not buffer:
-            break
-
-        file_size += len(buffer)
-        hasher.update(buffer)
-    hash = hasher.hexdigest().decode('ascii')
+    hash, file_size = image_hash(fileobj)
 
     # Assert that the thing is unique
     existing_artwork = model.session.query(model.Artwork) \
@@ -154,33 +117,10 @@ def upload(context, request):
     thumbnail_size = int(request.registry.settings['thumbnail_size'])
     # To avoid super-skinny thumbnails, don't let the aspect ratio go
     # beyond 2
-    height = min(height, width * MAX_ASPECT_RATIO)
-    width = min(width, height * MAX_ASPECT_RATIO)
-    # crop() takes left, top, right, bottom
-    cropped_image = image.crop((0, 0, width, height))
-    # And resize...  if necessary
-    if width > thumbnail_size or height > thumbnail_size:
-        if width > height:
-            new_size = (thumbnail_size, height * thumbnail_size // width)
-        else:
-            new_size = (width * thumbnail_size // height, thumbnail_size)
-
-        thumbnail_image = cropped_image.resize(
-            new_size, Image.ANTIALIAS)
-
-    else:
-        thumbnail_image = cropped_image
+    thumbnail_image = thumbnailify(image, thumbnail_size, max_aspect_ratio=2)
 
     # Dump the thumbnail in a buffer and save it, too
-    buf = StringIO()
-    if mimetype == u'image/png':
-        thumbnail_format = 'PNG'
-    elif mimetype == u'image/gif':
-        thumbnail_format = 'GIF'
-    elif mimetype == u'image/jpeg':
-        thumbnail_format = 'JPEG'
-    thumbnail_image.save(buf, thumbnail_format)
-    buf.seek(0)
+    buf = dump_image_to_buffer(thumbnail_image, mimetype)
     storage.put(u'thumbnail', hash, buf)
 
     # Deal with user-supplied metadata
@@ -390,3 +330,106 @@ def remove_tags(artwork, request):
         request.session.flash(u"Tags have been removed")
 
     return HTTPSeeOther(location=request.route_url('art.view', artwork=artwork))
+
+
+CROPPED_SIZE = 250
+ORIG_MAX_SIZE = 512
+
+
+class CropImageForm(FloofForm):
+    left = wtforms.fields.IntegerField(u'Left', [
+        RequiredValidator(),
+        wtforms.validators.NumberRange(min=0, max=None),
+        ])
+    top = wtforms.fields.IntegerField(u'Top', [
+        RequiredValidator(),
+        wtforms.validators.NumberRange(min=0, max=None),
+        ])
+    size = wtforms.fields.IntegerField(u'Size', [
+        RequiredValidator(),
+        wtforms.validators.NumberRange(min=1, max=None),
+        ])
+
+    def _check_position(form, field):
+        artwork = form.request.context
+        width, height = scaled_dimensions(artwork, max_size=ORIG_MAX_SIZE)
+        max_value = width if field.short_name == 'left' else height
+        extremity = 'right' if field.short_name == 'left' else 'bottom'
+
+        if field.data >= max_value:
+            raise wtforms.validators.ValidationError(
+                    'Number must be less than the {0} edge of the image ({1}px).'
+                    .format(extremity, max_value))
+
+    def validate_left(form, field):
+        form._check_position(field)
+
+    def validate_top(form, field):
+        form._check_position(field)
+
+    def validate_size(form, field):
+        artwork = form.request.context
+        width, height = scaled_dimensions(artwork, max_size=ORIG_MAX_SIZE)
+        max_size = min(width - form.left.data, height - form.top.data)
+        if max_size > 0 and field.data > max_size:
+            raise wtforms.validators.ValidationError(
+                    'The cropped image must not exceed the edges of the '
+                    'original (for the current Left & Top, max size is '
+                    '({0}px).'.format(max_size))
+
+
+@view_config(
+    route_name='art.crop',
+    permission='art.derive',
+    request_method='GET',
+    renderer='art/crop.mako')
+def crop(artwork, request):
+    width, height = scaled_dimensions(artwork, max_size=ORIG_MAX_SIZE)
+    return dict(
+        artwork=artwork,
+        dimension=CROPPED_SIZE,
+        form=CropImageForm(request, prefix='jcrop-'),
+        width=width,
+        height=height,
+    )
+
+
+@view_config(
+    route_name='art.crop',
+    permission='art.derive',
+    request_method='POST',
+    renderer='art/crop.mako')
+def crop_do(artwork, request):
+    form = CropImageForm(request, request.POST, prefix='jcrop-')
+
+    width, height = scaled_dimensions(artwork, max_size=ORIG_MAX_SIZE)
+
+    if not form.validate():
+        return dict(
+            artwork=artwork,
+            dimension=CROPPED_SIZE,
+            form=form,
+            width=width,
+            height=height,
+        )
+
+    from pyramid.response import Response
+    from floof.lib.image import unscaled_coords
+    from urllib2 import urlopen
+    from cStringIO import StringIO
+    left, top, size = form.left.data, form.top.data, form.size.data
+    # (left, top, right, bottom)
+    coords = (left, top, left + size, top + size)
+    coords = unscaled_coords(artwork, ORIG_MAX_SIZE, coords)
+    storage = request.registry.settings['filestore']
+    url = storage.url(u'artwork', artwork.hash)
+    buf = urlopen(url, timeout=10)
+    buf = StringIO(buf.read())
+    image = Image.open(buf)
+    cropped_image = thumbnailify(
+            image, CROPPED_SIZE, crop_coords=coords, max_aspect_ratio=1,
+            enlarge=True)
+    return Response(
+        body=dump_image_to_buffer(cropped_image, 'image/png').read(),
+        headerlist=[('Content-type', 'image/png')],
+    )

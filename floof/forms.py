@@ -6,6 +6,7 @@ import unicodedata
 
 from webob.multidict import MultiDict
 from wtforms import fields, form, widgets, ValidationError
+from wtforms.validators import Required, StopValidation
 from wtforms.widgets import HTMLString, html_params
 from wtforms.ext.sqlalchemy.fields import QuerySelectMultipleField
 import pytz
@@ -30,6 +31,18 @@ class FloofForm(form.Form):
 
         super(FloofForm, self).__init__(formdata=formdata, obj=obj,
                                         prefix=prefix, **kwargs)
+
+
+# The Required validator in WTForms checks the bool value of field.data, rather
+# than checking if it is None, so it will fail on the integer 0.  Yay WTForms.
+class RequiredValidator(Required):
+    def __call__(self, form, field):
+        if field.data is None or isinstance(field.data, basestring) and not field.data.strip():
+            if self.message is None:
+                self.message = field.gettext(u'This field is required.')
+
+            field.errors[:] = []
+            raise StopValidation(self.message)
 
 
 class KeygenWidget(widgets.Input):

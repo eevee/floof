@@ -149,3 +149,35 @@ table.detailed-artwork-table {
         margin-top: 0;
     }
 }
+
+
+.crop-control-container {
+    float: left;
+    margin-right: 2em;
+
+    form [readonly] {
+        background: #ccc;
+    }
+
+    dl.standard-form {
+        // Looks better with a 250x250 pixel crop preview
+        dt {width: 6em;}
+        dd {margin-left: 7em;}
+    }
+
+}
+
+.crop-preview-box {
+    float: right;
+    margin-bottom: 2em;
+    border: 2px solid #000;
+    background: #aaa;
+    overflow: hidden;
+
+    img {display: none;}  // Initially hidden; Jcrop will override as needed.
+}
+
+.crop-selection-container {
+    float: left;
+    overflow: visible;
+}
