@@ -12,6 +12,7 @@ from pyramid.request import Request
 from pyramid.security import has_permission
 from pyramid.settings import asbool
 from sqlalchemy import engine_from_config
+import transaction
 import webob.request
 from zope.sqlalchemy import ZopeTransactionExtension
 
@@ -60,6 +61,12 @@ class FloofRequest(Request):
     def permission(self):
         # Not reified as this may be erroneously called before ContextFound
         return current_view_permission(self)
+
+    @reify
+    def storage(self):
+        storage = self.registry.settings['filestore_factory']()
+        transaction.get().join(storage)
+        return storage
 
     @property
     def user(self):
@@ -192,7 +199,7 @@ def main(global_config, **settings):
 
     # Misc other crap
     settings['rating_radius'] = int(settings['rating_radius'])
-    settings['filestore'] = filestore.get_storage(settings)
+    settings['filestore_factory'] = filestore.get_storage_factory(settings)
 
     ### Configuratify
     # Session factory needs to subclass our mixin above.  Beaker's

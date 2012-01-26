@@ -5,43 +5,49 @@ except ImportError:
     use_setuptools()
     from setuptools import setup, find_packages
 
-def which(program):
-    """Emulates UNIX which, sort of.
+import os.path
 
-    Ripped straight from StackOverflow #377017
+HERE = os.path.abspath(os.path.dirname(__file__))
 
-    """
-    import os
-    def is_exe(fpath):
-        return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
-
-    fpath, fname = os.path.split(program)
-    if fpath:
-        if is_exe(program):
-            return program
-    else:
-        for path in os.environ["PATH"].split(os.pathsep):
-            exe_file = os.path.join(path, program)
-            if is_exe(exe_file):
-                return exe_file
-
-    return None
 
 class PyTest(Command):
-    user_options = []
+    user_options = [('config=', 'c', 'floof paster configuration ini-spec')]
+
     def initialize_options(self):
-        pass
+        self.config = ''
+
     def finalize_options(self):
-        pass
+        if self.config:
+            self.config = os.path.abspath(self.config)
+
     def run(self):
-        import os.path, sys, subprocess
-        if which('py.test') is None:
-            raise EnvironmentError("Unable to find executable 'py.test'; have "
-                                   "you run python setup.py <develop|install> ?")
-        path = os.path.abspath(os.path.dirname(__file__))
-        errno = subprocess.call(['py.test', 'floof/tests'] + sys.argv[2:],
-                                cwd=path)
-        raise SystemExit(errno)
+        import sys
+        from subprocess import call
+
+        testdir = os.path.join(HERE, 'floof', 'tests')
+        cmd = ['py.test', testdir]
+        if self.config:
+            cmd.append('--config={0}'.format(self.config))
+
+        try:
+            ret_val = call(cmd, cwd=HERE)
+        except OSError as exc:
+            from traceback import print_exc
+            from errno import ENOENT
+
+            print_exc(exc)
+            errno, strerror = exc
+            if errno == ENOENT:
+                print "Probably could not find py.test in path; have you run " \
+                      "'python setup.py <develop|install>' ?"
+            else:
+                print ("Unexpected error calling py.test: errno {0}: {1}"
+                       .format(errno, strerror))
+
+            ret_val = errno or 1
+
+        raise SystemExit(ret_val)
+
 
 setup(
     name='floof',
@@ -74,7 +80,7 @@ setup(
     setup_requires=["PasteScript>=1.6.3"],
     packages=find_packages(exclude=['ez_setup']),
     include_package_data=True,
-    cmdclass = {'test': PyTest},
+    cmdclass={'test': PyTest},
     package_data={'floof': ['i18n/*/LC_MESSAGES/*.mo']},
     #message_extractors={'floof': [
     #        ('**.py', 'python', None),
