@@ -65,7 +65,7 @@
             <script type="text/javascript">
             $("div.art-rater").rater({
                 rate_url: "${request.route_url('art.rate', artwork=artwork)}",
-                value: ${current_rating or '0'},  // XXX ugghghuguhg
+                value: ${current_rating or 'null'},
                 num_ratings: ${artwork.rating_count},
                 rating_sum: ${rating_score or 'null'},
                 auth_token: "${request.session.get_csrf_token()}", auth_token_field: "csrf_token"})

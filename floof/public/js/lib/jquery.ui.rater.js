@@ -54,7 +54,7 @@
         {
             var self = this, post_data = {};
 
-            if (self.options.value == rating) return;
+            if (self.options.value === rating) return;
 
             self.options.value = rating;
 
@@ -83,7 +83,7 @@
         _update_classes: function() {
             var self = this;
             self.options.rate_span.children().each(function () {
-                if ($(this).data('value') == self.options.value)
+                if ($(this).data('value') === self.options.value)
                     $(this).addClass('ui-rater-button-active');
                 else
                     $(this).removeClass('ui-rater-button-active');
