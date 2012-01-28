@@ -8,7 +8,7 @@ information, and authorization is the focus of this module.
 from pyramid.security import Allow, Deny
 from pyramid.security import Authenticated, Everyone
 
-from floof.model import MediaImage, Comment, Label
+from floof.model import Avatar, Comment, Label, MediaImage
 
 ROOT_ACL = (
     (Deny, 'banned:interact_with_others', (
@@ -49,6 +49,15 @@ def label_acl(label):
 
 
 ORM_ACLS = {
+    Avatar: lambda avatar: (
+        (Allow, 'user:{0}'.format(avatar.user.id), (
+            'avatar.delete',
+            'avatar.use',
+        )),
+        (Allow, 'trusted_for:admin', (
+            'avatar.delete',
+        )),
+    ),
     Comment: lambda comment: (
         (Allow, 'user:{0}'.format(comment.author_user_id), (
             'comment.delete',

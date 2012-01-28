@@ -12,7 +12,8 @@
 </%def>
 
 <section>
-<h1>Crop: ${artwork.title or 'Untitled'}</h1>
+<h1>Crop to ${request.matchdict['action'].capitalize()}:
+${artwork.title or 'Untitled'}</h1>
 
 <p>At present, the cropped image must be square.</p>
 
@@ -22,14 +23,14 @@
     width = int(artwork.width * scaling)
     height = int(artwork.height * scaling)
 %>\
-<section class="crop-control-container" style="width: ${dimension + 20}px;">
+<section class="crop-control-container">
     <h1>Preview</h1>
 
     <div class="crop-preview-box clearfix" style="width:${dimension}px; height:${dimension}px;">
-        <img id="jcrop-preview"  width="${width}" height="${height}"src="${request.route_url('filestore', class_=u'artwork', key=artwork.hash)}" alt="">
+        <img id="jcrop-preview" width="${width}" height="${height}"src="${request.route_url('filestore', class_=u'artwork', key=artwork.hash)}" alt="">
     </div>
 
-    <div>
+    <div class="crop-controls">
         ${lib.secure_form(request.path_url)}
         <dl class="standard-form">
             ${lib.field(form.left)}

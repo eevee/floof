@@ -381,9 +381,8 @@ textarea {
     }
 }
 
-button {
-    font-size: inherit;
-
+// XXX: Maybe this mixin belongs in a different section
+@mixin fancy-button {
     background: hsl(0, 0%, 95%);
     border: 1px solid hsl(0, 0%, 70%);
     padding: 0.25em 0.5em;
@@ -414,6 +413,11 @@ button {
             inset 0 -2em 2em -2em hsl(216, 60%, 70%)
         ));
     }
+}
+
+button {
+    @include fancy-button;
+    font-size: inherit;
 }
 
 ::-moz-focus-inner {
@@ -472,6 +476,23 @@ dl.standard-form {
 
 ////////////////////////////////////////////////////////////////////////////////
 // Globally useful div/span classes
+
+ul.button-list {
+    li {
+        list-style: none;
+    }
+
+    a {
+        @include fancy-button;
+        color: #000;
+        text-decoration: none;
+        display: block;
+        padding: 0.75em;
+        margin: 0.25em;
+        float: left;
+        clear: left;
+    }
+}
 
 .clearfix:after {
     content: ".";

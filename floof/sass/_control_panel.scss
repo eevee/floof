@@ -28,6 +28,46 @@ nav.side-navigation{
     }
 }
 
+
+div.avatar-info-box {
+    margin: 2em;
+    padding: 1em;
+    border: 1px solid hsl(0, 0%, 80%);
+    @include border-radius(1em);
+    background: hsl(0, 0%, 99%);
+    @include transition-property((border-color, background-color));
+    @include transition-duration(0.2s);
+
+    img {
+        float: left;
+    }
+
+    .info-box {
+        float: left;
+    }
+
+    span.aside {
+        color: #999;
+    }
+
+    button {
+        margin: 1em 0 1em 12em;
+        display: block;
+
+        img {
+            margin-right: 0.5em;
+            vertical-align: middle;
+        }
+    }
+
+    &:hover {
+        background-color: hsl(216, 60%, 99%);
+        border-color: hsl(216, 60%, 80%);
+    }
+
+}
+
+
 table.certificate {
     tr.invalid {
         color: #666;

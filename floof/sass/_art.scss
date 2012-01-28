@@ -151,30 +151,39 @@ table.detailed-artwork-table {
 }
 
 
+// Cropping page
 .crop-control-container {
     float: left;
     margin-right: 2em;
 
-    form [readonly] {
-        background: #ccc;
+    .crop-preview-box {
+        float: right;
+        margin-bottom: 2em;
+        border: 2px solid #000;
+        background: #aaa;
+        overflow: hidden;
+
+        img {display: none;}  // Initially hidden; Jcrop will override as needed.
+    }
+
+    div.crop-controls {
+        clear: right;
+        float: right;
+        width: 20em;
+
+        form [readonly] {
+            background: #ccc;
+        }
     }
 
     dl.standard-form {
-        // Looks better with a 250x250 pixel crop preview
-        dt {width: 6em;}
-        dd {margin-left: 7em;}
+        dt {width: 5em;}
+        dd {
+            margin-left: 6em;
+            width: 13em;
+            input {width: 13em;}
+        }
     }
-
-}
-
-.crop-preview-box {
-    float: right;
-    margin-bottom: 2em;
-    border: 2px solid #000;
-    background: #aaa;
-    overflow: hidden;
-
-    img {display: none;}  // Initially hidden; Jcrop will override as needed.
 }
 
 .crop-selection-container {

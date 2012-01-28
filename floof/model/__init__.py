@@ -127,6 +127,11 @@ class User(TableBase):
     display_name = Column(Unicode(24), nullable=True)
     has_trivial_display_name = Column(Boolean, nullable=False, default=False)
     timezone = Column(Timezone, nullable=True)
+    # XXX: Ew, mutually dependent tables
+    avatar_id = Column(
+        Integer,
+        ForeignKey('avatars.id', use_alter=True, name='fk_user_avatar_id'),
+        nullable=True)
     cert_auth = Column(Enum(
         u'disabled',
         u'allowed',
@@ -296,6 +301,21 @@ class ArtworkRating(TableBase):
     def validate_rating(self, key, rating):
         """Ensures the rating is within the proper rating radius."""
         return -1.0 <= rating <= 1.0
+
+
+### AVATARS
+
+class Avatar(TableBase):
+    __tablename__ = 'avatars'
+    id = Column(Integer, primary_key=True, nullable=False)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    # NB: it is valid to have multiple avatars with the same key
+    hash = Column(Unicode(256), nullable=False, index=True, unique=False)
+    mime_type = Column(Unicode(255), nullable=False)
+    file_size = Column(Integer, nullable=False)
+    height = Column(Integer, nullable=False)
+    width = Column(Integer, nullable=False)
+    derived_image_id = Column(Integer, ForeignKey('media_images.id'), nullable=True)
 
 
 ### PERMISSIONS
@@ -629,6 +649,16 @@ Artwork.ratings = relation(ArtworkRating,
 #User.discussion = relation(Discussion, backref='user')
 User.user_artwork = relation(UserArtwork, backref=backref('user', innerjoin=True))
 User.ratings_given = relation(ArtworkRating, backref=backref('user', innerjoin=True))
+
+# Avatars
+User.avatars = relation(
+    Avatar, backref='user', primaryjoin='Avatar.user_id==User.id',
+    cascade='all, delete-orphan')
+# XXX is this the best way to denote the active avatar?
+User.avatar = relation(
+    Avatar, uselist=False, primaryjoin='User.avatar_id==Avatar.id',
+    single_parent=True)
+Avatar.derived_image = relation(MediaImage)
 
 # Permissions
 User.roles = relation(Role, UserRole.__table__, lazy='joined')

@@ -131,6 +131,7 @@
     <div class="content rich-text">${h.render_rich_text(artwork.remark)}</div>
     % endif
 </section>
+
 <section class="column">
     <h1>Stats</h1>
     <dl class="standard-deflist">
@@ -145,6 +146,17 @@
         <dd>${artwork.width} × ${artwork.height}</dd>
     </dl>
 </section>
+
+<section class="column">
+    <h1>Actions</h1>
+    <ul class="button-list">
+        <li><a href="${request.route_url('art.crop', artwork=artwork, action='avatar')}">
+            ${lib.icon('user--arrow')}
+            Make this my avatar...
+        </a></li>
+    </ul>
+</section>
+
 </section>
 </div>
 

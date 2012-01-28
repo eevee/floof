@@ -3,7 +3,7 @@
 ## Render a single comment object
 <%def name="single_comment(comment)">
 <div class="comment" id="comment-${comment.id}">
-    <div class="avatar">${lib.avatar(comment.author)}</div>
+    <div class="avatar">${lib.avatar(request, comment.author)}</div>
     <div class="header">
         <ul class="links">
             % if request.user.can('comment.edit', comment):

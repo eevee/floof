@@ -5,7 +5,7 @@
 <%def name="title()">${target_user.display_name}</%def>
 
 <nav class="user-nav">
-    <div class="-avatar">${lib.avatar(target_user, size=50)}</div>
+    <div class="-avatar">${lib.avatar(request, target_user, size=50)}</div>
     <div class="-name">${target_user.name}</div>
 
     ## this is kinda grody until there are enough bits to flesh it out

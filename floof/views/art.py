@@ -2,6 +2,9 @@
 from __future__ import division
 import logging
 
+from urllib2 import urlopen
+from cStringIO import StringIO
+
 import magic
 from pyramid.httpexceptions import HTTPBadRequest, HTTPSeeOther
 from pyramid.view import view_config
@@ -13,6 +16,7 @@ from floof.forms import QueryMultiCheckboxField, RequiredValidator
 from floof.lib.image import SUPPORTED_MIMETYPES
 from floof.lib.image import dump_image_to_buffer, get_number_of_colors
 from floof.lib.image import image_hash, scaled_dimensions, thumbnailify
+from floof.lib.image import unscaled_coords
 from floof.lib.gallery import GallerySieve
 
 # XXX import from somewhere
@@ -332,7 +336,7 @@ def remove_tags(artwork, request):
     return HTTPSeeOther(location=request.route_url('art.view', artwork=artwork))
 
 
-CROPPED_SIZE = 250
+CROPPED_SIZE = 120
 ORIG_MAX_SIZE = 512
 
 
@@ -370,7 +374,10 @@ class CropImageForm(FloofForm):
     def validate_size(form, field):
         artwork = form.request.context
         width, height = scaled_dimensions(artwork, max_size=ORIG_MAX_SIZE)
-        max_size = min(width - form.left.data, height - form.top.data)
+        try:
+            max_size = min(width - form.left.data, height - form.top.data)
+        except TypeError:
+            raise wtforms.validators.ValidationError("Left or Top not a number")
         if max_size > 0 and field.data > max_size:
             raise wtforms.validators.ValidationError(
                     'The cropped image must not exceed the edges of the '
@@ -413,22 +420,57 @@ def crop_do(artwork, request):
             height=height,
         )
 
-    from pyramid.response import Response
-    from floof.lib.image import unscaled_coords
-    from urllib2 import urlopen
-    from cStringIO import StringIO
+    # Perform the cropping & scaling
+
     left, top, size = form.left.data, form.top.data, form.size.data
     # (left, top, right, bottom)
     coords = (left, top, left + size, top + size)
     coords = unscaled_coords(artwork, ORIG_MAX_SIZE, coords)
-    storage = request.registry.settings['filestore']
-    url = storage.url(u'artwork', artwork.hash)
+
+    url = request.storage.url(u'artwork', artwork.hash)
     buf = urlopen(url, timeout=10)
-    buf = StringIO(buf.read())
+    buf = StringIO(buf.read())  # buf needs to have .seek() and .tell()
+
     image = Image.open(buf)
     cropped_image = thumbnailify(
             image, CROPPED_SIZE, crop_coords=coords, max_aspect_ratio=1,
             enlarge=True)
+
+
+    # Perform the appropriate action with the cropped image
+
+    action = request.matchdict['action']
+
+    if action == 'avatar':
+        mimetype = artwork.mime_type
+
+        avatar = StringIO()
+        avatar.write(dump_image_to_buffer(cropped_image, mimetype).read())
+
+        avatar.seek(0)
+        hash, file_size = image_hash(avatar)
+        avatar.seek(0)
+        request.storage.put(u'avatar', hash, avatar)
+
+        width, height = image.size
+        avatar = model.Avatar(
+            hash=hash,
+            mime_type=mimetype,
+            file_size=file_size,
+            width=width,
+            height=height,
+            derived_image=artwork,
+        )
+        request.user.avatars.append(avatar)
+
+        request.session.flash('Added new avatar.', level=u'success',
+                              icon=u'image-import')
+
+        return HTTPSeeOther(location=request.route_url('controls.avatar'))
+
+    # If there is no valid action, fall back to just providing the cropped
+    # image.
+    from pyramid.response import Response
     return Response(
         body=dump_image_to_buffer(cropped_image, 'image/png').read(),
         headerlist=[('Content-type', 'image/png')],

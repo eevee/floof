@@ -55,9 +55,15 @@ def filestore(context, request):
     # Get the MIME type and a filename
     # TODO this is surely not the most reliable way of doing this.
     headerlist = []
-    if class_ in (u'thumbnail', u'artwork'):
+
+    CLASS_TABLE = {
+        'artwork': model.Artwork,
+        'avatar': model.Avatar,
+        'thumbnail': model.Artwork,
+    }
+    if class_ in CLASS_TABLE.keys():
         try:
-            artwork = model.session.query(model.Artwork) \
+            artwork = model.session.query(CLASS_TABLE[class_]) \
                 .filter_by(hash=key) \
                 .one()
         except NoResultFound:

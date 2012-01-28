@@ -35,7 +35,7 @@
             % if request.user:
                 <li>
                     <a href="${request.route_url('users.view', user=request.user)}">
-                        ${request.user.name} ${lib.avatar(request.user)}
+                        ${request.user.name} ${lib.avatar(request, request.user)}
                     </a>
                     <menu>
                         <li>

@@ -57,6 +57,12 @@ def configure_routing(config):
     r('controls.rels.unwatch', '/account/controls/relationships/unwatch')
     r('controls.info', '/account/controls/user_info')
 
+    kw = sqla_route_options('avatar', 'id', model.Avatar.id)
+    r('controls.avatar', '/account/controls/avatar')
+    r('controls.avatar.delete', '/account/controls/avatar/{id:\d+}/delete', **kw)
+    r('controls.avatar.use', '/account/controls/avatar/{id:\d+}/use', **kw)
+    r('controls.avatar.use_gravatar', '/account/controls/avatar/gravatar/use')
+
     r('controls.certs', '/account/controls/certificates')
     r('controls.certs.add', '/account/controls/certificates/add')
     r('controls.certs.generate_server',
@@ -85,7 +91,7 @@ def configure_routing(config):
     r('art.add_tags', r'/art/{id:\d+}/add_tags', **kw)
     r('art.remove_tags', r'/art/{id:\d+}/remove_tags', **kw)
     r('art.rate', r'/art/{id:\d+}/rate', **kw)
-    r('art.crop', r'/art/{id:\d+}/crop', **kw)
+    r('art.crop', r'/art/{id:\d+}/crop/{action:\w+}', **kw)
 
     # Tags
     # XXX what should the tag name regex be, if anything?

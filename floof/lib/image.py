@@ -141,11 +141,11 @@ def thumbnailify(image, size, crop_coords=None, max_aspect_ratio=2.0,
           The PIL Image on which to operate; a modified copy of this image will
           be returned.
 
-       `max_size`
-          The maximum size of the image in either width or height.  That is,
-          either the either the width nor height of the image exceeds this, it
-          will be resized so that the largest dimension is equal to `max_size`.
-          If both dimensions are equal or smaller, the image will not be resized.
+       `size`
+          The desired size of the image in either width or height.  That is,
+          the image will be resized so that the largest dimension is equal to
+          `size`.  If both dimensions are equal or smaller, the image will only
+          be resized if `enlage` is ``True``.
           Will crop automatically to maintain the `max_aspect_ratio`.
 
        `crop_coords`
@@ -160,6 +160,10 @@ def thumbnailify(image, size, crop_coords=None, max_aspect_ratio=2.0,
           ``None``, then it will be enforced by cropping the lower or right
           portions of the image.
 
+       `enlarge`
+          Defaults to ``False``.  If false, then an image that has neither its
+          width nor height exceeding `size` will not be rescaled.
+
     """
     max_aspect_ratio *= 1.0  # coerce into float
 
@@ -167,7 +171,6 @@ def thumbnailify(image, size, crop_coords=None, max_aspect_ratio=2.0,
         raise ValueError('max_aspect_ratio must be greater than 0')
 
     if crop_coords:
-        print "Orig Coords:", crop_coords
         left, top, right, bottom = crop_coords
         width = right - left
         height = bottom - top
@@ -194,7 +197,6 @@ def thumbnailify(image, size, crop_coords=None, max_aspect_ratio=2.0,
         height = min(height, int(width * max_aspect_ratio))
         width = min(width, int(height * max_aspect_ratio))
 
-    print "Final Coords: ({0}, {1}, {2}, {3})".format(left, top, left + width, top + height)
     cropped_image = image.crop((left, top, left + width, top + height))
 
     if not enlarge and width <= size and height <= size:

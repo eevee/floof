@@ -4,12 +4,17 @@
 <%! import wtforms.widgets %>
 <%! from datetime import datetime %>
 
-<%def name="avatar(user, size=100)">\
+<%def name="avatar(request, user, size=120)">\
 <%
-    email = user.email or ''
-    hash = hashlib.md5(email.lower()).hexdigest()
+    GRAVATAR_URL = "https://secure.gravatar.com/avatar/{hash}?r=r&s={size}&d=mm"
+    if user.avatar:
+        src=request.route_url('filestore', class_=u'avatar', key=user.avatar.hash)
+    else:
+        email = user.email or ''
+        hash = hashlib.md5(email.lower()).hexdigest()
+        src = GRAVATAR_URL.format(hash=hash, size=size)
 %>\
-<img src="https://secure.gravatar.com/avatar/${hash}?r=r&s=${size}&d=mm" />\
+<img class="avatar" width="${size}" height="${size}" alt="${user_name(user)}" src="${src}" />\
 </%def>
 
 <%def name="icon(which, alt='')">\
@@ -73,12 +78,20 @@ secs -= mins * 60
 ${"{0} days, {1} hours, {2} mins".format(td.days, hours, mins)}\
 </%def>
 
+<%def name="user_name(user, show_trivial_username=False)">
+% if user.display_name is None:
+${user.name}\
+% elif user.has_trivial_display_name and not show_trivial_username:
+${user.display_name}\
+% else:
+${user.display_name} (${user.name})\
+% endif
+</%def>
+
 <%def name="user_link(user, show_trivial_username=False)">
 <a href="${request.route_url('users.view', user=user)}">\
-% if user.display_name is None:
-${user.name}</a>\
-% elif user.has_trivial_display_name and not show_trivial_username:
-${user.display_name}</a>\
+% if user.display_name is None or (user.has_trivial_display_name and not show_trivial_username):
+${user_name(user, show_trivial_username)}</a>\
 % else:
 ${user.display_name}</a> (${user.name})\
 % endif
