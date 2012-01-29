@@ -17,7 +17,7 @@ ${lib.secure_form(request.path_url)}
 
 <p>There are important things to be aware of when choosing any non-default
 option.  Some of them are listed below.</p>
-<ol>
+<ol class="standard-list">
     <li>If you choose one of these Authentication Options and log in with
     just a certificate, it will not be possible to log out using the site's
     web interface.  You will have to know how to get your web browser to

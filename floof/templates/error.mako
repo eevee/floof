@@ -20,7 +20,7 @@
             % if len(outstanding_principals) > 1:
                 <h2>Alternative ${i + 1}</h2>
             % endif
-            <ol>
+            <ol class="standard-list">
             % for principal in principal_group:
                 <li>${auth_actions[principal](request)}</li>
             % endfor

@@ -225,19 +225,6 @@ body > section {
         // For significant thematic sub-headings
         font-size: 1.5em;
     }
-
-    ul, ol {
-        margin-left: 4em;
-    }
-    ol {
-        list-style-type: decimal;
-    }
-    ul {
-        list-style-type: disc;
-    }
-    li {
-        padding: 0.25em 0;
-    }
 }
 
 // Generic content styling
@@ -522,6 +509,7 @@ dl.standard-deflist {
 }
 
 
+ol.standard-list,
 ul.standard-list {
     margin: 0.5em 1em;
     padding-left: 1em;
@@ -529,14 +517,18 @@ ul.standard-list {
     > li {
         line-height: 1.5;
         margin: 0.33em 0;
-
-        &:before {
-            content: '‣';
-            display: block;
-            margin-left: -1em;
-            float: left;
-        }
     }
+}
+
+ul.standard-list > li:before {
+    content: '‣';
+    display: block;
+    margin-left: -1em;
+    float: left;
+}
+
+ol.standard-list {
+    list-style-type: decimal;
 }
 
 // Three-column containers
