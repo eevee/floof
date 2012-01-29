@@ -295,7 +295,8 @@ def login_finish(context, request):
             dict(
                 form=form,
                 identity_url=identity_url,
-                identity_webfinger=identity_webfinger),
+                identity_webfinger=identity_webfinger,
+                identity_email=None),
             request=request)
 
     elif identity_owner == request.user:
