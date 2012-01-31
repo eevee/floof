@@ -36,7 +36,12 @@ class FileStorage(BaseFileStorage):
 
         self.tempdir = os.path.join(self.directory, '__temp__')
         if not os.path.isdir(self.tempdir):
-            os.makedirs(self.tempdir)
+            try:
+                os.makedirs(self.tempdir)
+            except OSError:
+                if not os.path.isdir(self.tempdir):
+                    raise IOError("Unable to make temporary directory '{0}'"
+                                  .format(self.tempdir))
 
         self.tempfiles = {}
 
