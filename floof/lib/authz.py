@@ -101,8 +101,8 @@ def attempt_privilege_escalation(permission, context, request):
                                   "BrowserID to complete this action",
                                   level='notice')
 
-            raise HTTPSeeOther(location=request.route_url(
-                    'account.login', _query=[('return_key', key)]))
+            location = request.route_url('account.login', _query=[('return_key', key)])
+            raise HTTPSeeOther(location=location)
 
 
 def outstanding_principals(permission, context, request):

@@ -2,8 +2,6 @@
 import logging
 import re
 
-from ssl import SSLError
-
 from pyramid import security
 from pyramid.httpexceptions import HTTPBadRequest, HTTPSeeOther
 from pyramid.renderers import render_to_response
@@ -12,14 +10,14 @@ from pyramid.view import view_config
 from sqlalchemy.exc import IntegrityError
 from webhelpers.util import update_params
 
-import vep.errors
 import wtforms.form, wtforms.fields, wtforms.validators
 
 from floof.forms import DisplayNameField, TimezoneField
 from floof.lib.authn import DEFAULT_CONFIDENCE_EXPIRY
-from floof.lib.authn import BrowserIDRemoteVerifier
 from floof.lib.authn import BrowserIDAuthDisabledError, BrowserIDNotFoundError
 from floof.lib.authn import OpenIDAuthDisabledError, OpenIDNotFoundError
+from floof.lib.browserid import BrowserIDError
+from floof.lib.browserid import flash_browserid_error, verify_browserid
 from floof.lib.stash import fetch_stash, get_stash_keys, key_from_request
 from floof.lib.openid_ import OpenIDError, openid_begin, openid_end
 from floof.model import Discussion, IdentityURL, IdentityEmail, Resource
@@ -41,6 +39,7 @@ class LoginForm(wtforms.form.Form):
 @view_config(
     route_name='account.login',
     request_method='GET',
+    xhr=False,
     renderer='account/login.mako')
 def account_login(context, request):
     # XXX worth mentioning on this page how to log in with SSL, and offer a
@@ -64,6 +63,24 @@ def account_login(context, request):
     return {'form': form}
 
 
+# Catch & handle AJAX requests that have spawned a stash & authentication
+# upgrade attempt.  Obviously, any such request must be able to handle next_url
+# and redirect the user from the current page.  This limits what AJAX-y things
+# can permit auth upgrade; currently the only use case is adding a BrowserID
+# address.
+@view_config(
+    route_name='account.login',
+    request_method='GET',
+    xhr=True,
+    renderer='json')
+def account_login_xhr(context, request):
+    return_key = key_from_request(request)
+    next_url = request.route_url('account.login')
+    if return_key is not None:
+        next_url = update_params(next_url, return_key=return_key)
+    return {'next_url': next_url}
+
+
 @view_config(
     route_name='account.browserid.login',
     request_method='POST',
@@ -71,50 +88,25 @@ def account_login(context, request):
 def account_login_browserid(context, request):
     return_key = key_from_request(request)
 
-    def fail(msg):
-        request.session.flash(msg, level=u'error', icon='key--exclamation')
+    def fail(msg=None):
+        if msg:
+            request.session.flash(msg, level=u'error', icon='key--exclamation')
         # XXX setting the status to 403 triggers Pyramid's exception view
-        #request.response.status = '403 Forbidden'
         next_url = request.route_url('account.login')
         if return_key is not None:
             next_url = update_params(next_url, return_key=return_key)
         return {'next_url': next_url}
 
-    # Verify the identity assertion
+    ## Verify the identity assertion
 
-    verifier = BrowserIDRemoteVerifier()
-    audience = request.registry.settings.get('auth.browserid.audience')
-
-    if not audience:
-        log.warning("Config key 'auth.browserid.audience' is missing or "
-                    "blank; BrowserID authentication will fail.")
-
-    if 'paste.testing' in request.environ:
-        alternative = request.environ.get('tests.auth.browserid.verifier')
-        verifier = alternative or verifier
-
+    assertion = request.POST.get('assertion')
     try:
-        data = verifier.verify(request.POST.get('assertion'), audience)
+        data = verify_browserid(assertion, request)
+    except BrowserIDError as e:
+        flash_browserid_error(e, request)
+        return fail()
 
-    except SSLError:
-        return fail('Connection to authentication server failed or timed out.')
-
-    except vep.errors.ConnectionError:
-        return fail('Unable to connect to verifying server to verify your '
-                    'BrowserID assertion.')
-
-    except vep.errors.TrustError:
-        return fail('Your BrowserID assertion was not valid.')
-
-    except (vep.errors.Error, ValueError) as e:
-        msg = e.args[0] if e.args else 'No error message'
-        log.warning('Unspecified BrowserID failure: {0}'.format(msg))
-        return fail('Encountered an unspecified error while attempting to '
-                    'verify your BrowserID assertion.')
-
-    print "BrowserID response:", data
-
-    # Attempt to resolve the identity to a local user
+    ## Attempt to resolve the identity to a local user
 
     email = data.get('email')
     if data.get('status') != 'okay' or not email:
@@ -130,7 +122,7 @@ def account_login_browserid(context, request):
         return {'next_url': request.route_url('account.register'),
                 'post_id': 'postform'}
 
-    # Attempt to log in
+    ## Attempt to log in
 
     try:
         auth_headers = security.remember(
@@ -151,7 +143,7 @@ def account_login_browserid(context, request):
     log.debug("User {0} logged in via BrowserID: {1}"
               .format(identity_email.user.name, identity_email))
 
-    # Handle redirection
+    ## Handle redirection
 
     if identity_email.user == request.user:
         # Someone is just freshening up their cookie

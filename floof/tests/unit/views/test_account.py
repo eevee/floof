@@ -1,9 +1,3 @@
-"""
-This file doesn't perform any worthwhile tests ("yep, it exists" tests make
-more sense in a functional test suite) it's just an example of how one might
-construct a unit test.  Unit tests will likely be most useful run against libs.
-"""
-
 from pyramid import testing
 from vep import DummyVerifier
 from webob.multidict import MultiDict
@@ -96,7 +90,7 @@ class TestAccountViews(UnitTests):
             request.POST = MultiDict({'assertion': a})
             verify(request,
                    next_url=request.route_url('account.login'),
-                   flash_msg='assertion was not valid')
+                   flash_msg='signature was invalid')
             request.session.clear()
 
         email = self._randstr() + '@example.com'
