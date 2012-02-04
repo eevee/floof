@@ -6,7 +6,7 @@
 <%def name="panel_icon()">${lib.icon('user')}</%def>
 
 <%def name="script_dependencies()">
-    ${h.javascript_link('/js/browserid.js')}
+    ${h.javascript_link(request.static_url('floof:public/js/browserid.js'))}
 </%def>
 
 <noscript>
