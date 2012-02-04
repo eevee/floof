@@ -17,8 +17,6 @@ from pyramid.security import Authenticated, Everyone
 from pyramid.settings import asbool
 from sqlalchemy.orm import joinedload_all
 from sqlalchemy.orm.exc import NoResultFound
-from vep import RemoteVerifier
-from vep.utils import secure_urlopen
 from zope.interface import implements
 
 from floof import model
@@ -230,7 +228,7 @@ class Authenticizer(object):
             error("Your BrowserID is no longer accepted as your account has disabled BrowserID authentication.")
         except AuthConflictError:
             error("Your BrowserID conflicted with either your certificate or "
-                  "your OpenID has been cleared.")
+                  "your OpenID and has been cleared.")
 
         if 'paste.testing' in request.environ:
             self._setup_testing_late(request)
@@ -480,14 +478,6 @@ class Authenticizer(object):
         ret += 'Trust Flags: {0} )>'.format(repr(self.trust))
 
         return ret
-
-
-class BrowserIDRemoteVerifier(RemoteVerifier):
-    """Add a timeout to :class:`vep.RemoteVerifier`"""
-    def __init__(self, *args, **kwargs):
-        urlopen = partial(secure_urlopen, timeout=5)
-        RemoteVerifier.__init__(self, *args, urlopen=urlopen, **kwargs)
-
 
 def get_certificate_serial(request):
     """Return a verified certificate serial from `request`, if any, else None.

@@ -1,6 +1,5 @@
 # encoding: utf8
 import logging
-from ssl import SSLError
 
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.security import effective_principals
@@ -10,7 +9,8 @@ from wtforms.ext.sqlalchemy.fields import QuerySelectMultipleField
 
 from floof import model
 from floof.forms import FloofForm
-from floof.lib.authn import BrowserIDRemoteVerifier
+from floof.lib.browserid import BrowserIDError
+from floof.lib.browserid import flash_browserid_error, verify_browserid
 from floof.lib.openid_ import OpenIDError, openid_begin, openid_end
 
 log = logging.getLogger(__name__)
@@ -107,29 +107,25 @@ def browserid(context, request):
     return {'form': form}
 
 
-@view_config(
-    route_name='controls.browserid.add',
-    permission='auth.browserid',
-    request_method='POST',
-    renderer='json')
 def browserid_add(context, request):
-    # XXX These first handful of lines duplicate view account.browserid.login
-    def fail(msg):
-        request.session.flash(msg, level=u'error', icon='key--exclamation')
-        # XXX setting the status to 403 triggers Pyramid's exception view
-        #request.response.status = '403 Forbidden'
-        return {'next_url': request.route_url('controls.browserid')}
+    next_url = request.route_url('controls.browserid')
 
-    verifier = BrowserIDRemoteVerifier()
+    def fail(msg=None):
+        if msg:
+            request.session.flash(msg, level=u'error', icon='key--exclamation')
+        return next_url
+
+    post = request.stash['post'] if request.stash else request.POST
+    assertion = post.get('assertion')
+
     try:
-        data = verifier.verify(request.POST.get('assertion'), 'https://localhost')
-    except SSLError:
-        return fail('Connection to authentication server failed or timed out.')
-
-    print "BrowserID response:", data
+        data = verify_browserid(assertion, request)
+    except BrowserIDError as e:
+        flash_browserid_error(e, request)
+        return fail()
 
     email = data.get('email')
-    if data.get('status') != 'okay' or not email:
+    if not email:
         return fail("BrowserID authentication failed.")
 
     extant_email = model.session.query(model.IdentityEmail) \
@@ -149,7 +145,27 @@ def browserid_add(context, request):
     request.session.flash("Added BrowserID email address '{0}'".format(email),
                           level=u'success', icon='user')
 
-    return {'next_url': request.route_url('controls.browserid')}
+    return  next_url
+
+
+@view_config(
+    route_name='controls.browserid.add',
+    permission='auth.browserid',
+    request_method='POST',
+    xhr=True,
+    renderer='json')
+def browserid_add_xhr(context, request):
+    return {'next_url': browserid_add(context, request)}
+
+
+# For catching & handling stashed addition requests.
+@view_config(
+    route_name='controls.browserid.add',
+    permission='auth.browserid',
+    request_method='POST',
+    xhr=False)
+def browserid_add_noxhr(context, request):
+    return HTTPSeeOther(location=browserid_add(context, request))
 
 
 @view_config(

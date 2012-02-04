@@ -221,8 +221,8 @@ def main(global_config, **settings):
     # Added manually because @subscriber only works with a
     # scan, and we don't want to scan ourselves
     config.add_subscriber(prevent_csrf, NewRequest)
+    config.add_subscriber(manage_stashes, NewRequest)
     config.add_subscriber(auto_privilege_escalation, ContextFound)
-    config.add_subscriber(manage_stashes, ContextFound)
     config.add_subscriber(start_template_timer, BeforeRender)
     config.add_subscriber(add_renderer_globals, BeforeRender)
     config.add_subscriber(flush_everything, NewResponse)
