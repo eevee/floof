@@ -15,10 +15,13 @@ function gotVerifiedEmailFactory(path) {
                         form.action = res.next_url;
                         form.submit();
                     }
-                    else location.href = res.next_url;
+                    else if (res.next_url !== undefined)
+                        location.href = res.next_url;
                 },
                 error: function(res, status, xhr) {
-                    location.href = res.next_url;
+                    if (res.next_url !== undefined) {
+                        location.href = res.next_url;
+                    }
                 }
             });
         }
