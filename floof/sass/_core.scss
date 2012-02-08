@@ -669,3 +669,37 @@ table {
         }
     }
 }
+
+
+// Drag and drop stuff
+
+.js-dropzone-shield {
+    display: none;
+    z-index: 10000;
+    pointer-events: none;
+
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+
+    background: hsl(0, 0%, 93%);
+    background: hsla(0, 0%, 100%, 0.8);
+    color: hsl(0, 0%, 20%);
+
+    font-size: 72px;
+    font-weight: bold;
+    text-align: center;
+
+    p {
+        position: absolute;
+        top: 50%;
+        left: 0;
+        right: 0;
+        line-height: 0;
+    }
+}
+.js-dropzone .js-dropzone-shield {
+    display: block;
+}

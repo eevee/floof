@@ -79,3 +79,27 @@ class TestArt(FunctionalTests):
     def test_sadday_upload_junk(self):
         """Test that junk files are rejected."""
         pass
+
+    def test_happyday_upload_ajax(self):
+        """Test that uploading works correctly via ajax."""
+        png = self.file_contents('pk.engiveer.png')
+        response = self.app.post(
+            self.url('art.upload'),
+            params=[
+                ('title', u"test title"),
+                ('relationship', u'by'),
+                ('relationship', u'of'),
+            ],
+            upload_files=(
+                ('file', 'pk.engiveer.png', png),
+            ),
+            headers=[
+                ('X-Requested-With', 'XMLHttpRequest'),
+            ],
+            extra_environ={'tests.user_id': self.user.id},
+        )
+
+        assert response.json
+        assert response.json['status'] == 'redirect'
+        assert response.json['redirect-to'].endswith('-test-title')
+

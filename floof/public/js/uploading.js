@@ -1,67 +1,239 @@
-$(function() {
+"use strict";
+
+var UploadController = function() {
+    if (! (window.FileReader && window.File && window.FormData && window.FileReader)) {
+        // Old browser; none of this will work
+        return null;
+    }
+
+    var this_controller = this;
+
     var $form = $('#upload-form');
+    this.$form = $form;
+
+    this.files = [];
+
+    this.$upload_block = $form.find('.upload-block');
 
     // Play with the upload button.
-    // 1. Replace it with a more friendly button.  Upload control is ugly.
-    // XXX DON'T DO THIS ON OLD BROWSERS; IT WON'T WORK
-    var $file_ctl = $form.find('input[type="file"]');
-    var $file_container = $file_ctl.closest('p');
-    var $thumbnail_container = $('<div class="-upload-thumbnail"/>');
-    var $file_button = $('<button type="button">Choose a file</button>');
-    var $dnd_protip = $('<p>or drag and drop from your computer</p>');
-    var $upload_button = $form.find('button[type="submit"]').closest('p');
-    $file_container.after(
-        $('<p/>').append($file_button),
-        $dnd_protip,
-        $thumbnail_container);
-    $file_container.hide();
-    $thumbnail_container.hide();
-    $upload_button.hide();
+
+    // XXX this is pretty specific and impl-specific stuff, break me out
+    this.$thumbnail_container = this.$upload_block.find('.-part-thumbnail');
+    this.$file_button = this.$upload_block.find('.-part-file-button button');
+    this.$file_control = this.$upload_block.find('input[type="file"]');
+    this.$upload_button = this.$upload_block.find('button[type="submit"]');
+
+    this.set_state('init');
+
+    this.attach_body_drag_handlers();
 
     // TODO indicate that these will each become separate artworks...
-    $file_button.click(function() { $file_ctl.click(); });
+    // Turn a button click into a file upload click
+    this.$file_button.click(function() {
+        this_controller.$file_control.click();
+    });
 
     // 2. Handle getting some files.
-    $file_ctl.change(function(evt) {
-        $.each(this.files, function(idx, file) {
-            // TODO needs webkit prefix
-            var data_url = window.URL.createObjectURL(file);
+    // XXX do we need to clear this, or otherwise sync the collection of images to this control?
+    // XXX i think actually we have to send the form manually and replace this upload control.  ugh
+    this.$file_control.change(function(evt) {
+        this_controller.accept_files(this.files);
+    });
+
+    // Intercept the actual upload
+    // TODO put all these in a separate function come on
+    this.$upload_button.click(function(evt) {
+        evt.preventDefault();
+        this_controller.ajax_submit();
+    });
+};
+$.extend(UploadController.prototype, {
+    set_state: function(state) {
+        this.$upload_block.each(function() {
+            this.className = this.className.replace(/\bstate-\S+/, '');
+        });
+        this.$upload_block.addClass('state-' + state);
+    },
+
+    // Make the whole page a drop zone for uploading.
+    attach_body_drag_handlers: function() {
+        var this_controller = this;
+
+        // XXX split this stuff up between the actual form and the drag/drop bits,
+        // so it can go on every page someday
+
+        var $drop_target = $(document.body);
+        var within_enter = false;
+
+        $drop_target.bind('dragenter', function(evt) {
+            // Default behavior is to deny a drop, so this will allow it
+            evt.preventDefault();
+
+            within_enter = true;
+            setTimeout(function() { within_enter = false; }, 0);
+
+            $(this).addClass('js-dropzone');
+
+            // TODO only allow dropping images
+            console.log(evt.originalEvent.dataTransfer);  // .types
+        });
+        $drop_target.bind('dragover', function(evt) {
+            // Same as above
+            evt.preventDefault();
+
+            // Show a cool 'copy' cursor
+            evt.originalEvent.dataTransfer.dropEffect = 'copy';
+        });
+        $drop_target.bind('dragleave', function(evt) {
+            console.log('leaving');
+            // same as above?  necessary??
+            // evt.preventDefault();
+
+            if (! within_enter) {
+                $(this).removeClass('js-dropzone');
+            }
+            within_enter = false;
+        });
+
+        // Handle the actual drop effect
+        $drop_target.bind('drop', function(evt) {
+            $(this).removeClass('js-dropzone');
+            within_enter = false;
+
+            evt.preventDefault();
+
+            this_controller.accept_files(evt.originalEvent.dataTransfer.files);
+        });
+    },
+
+    // Accept some files from either the upload control or drag/drop.
+    // `files` is a FileList, not a regular Array
+    accept_files: function(files) {
+        var this_controller = this;
+        console.log('got files', files);
+
+        var SIZE = 160;
+
+        $.each(files, function(idx, file) {
+            // Skip non-images.
+            // TODO this needs some kinda feedback message, and it will need to
+            // be better when multi-image works
+            if (! file.type.match(/^image/)) {
+                return;
+            }
+
+            // Create an anon Image object; this will decode the image, then
+            // copy itself to a canvas
+            // TODO what if it's not a /valid/ image?
             var img = new Image();
-            img.onload = function() {
+            img.addEventListener('load', function(evt) {
+                var img = evt.target;  // avoid circular ref
+
                 // XXX comment all this about replicating logic from elsewhere
-                // XXX unhardcode the 160
                 // XXX show a loading throbber while the image resizes
-                window.URL.revokeObjectURL(data_url);
 
                 var $canvas = $('<canvas/>').attr({
-                    width: '160', height: '160'
+                    width: String(SIZE),
+                    height: String(SIZE)
                 });
                 var ctx = $canvas[0].getContext('2d');
 
                 var height = img.height;
                 var width = img.width;
-                var ratio = Math.max(height, width) / 160;
+                var ratio = Math.max(height, width) / SIZE;
                 if (ratio > 1) {
                     height = Math.floor(height / ratio);
                     width = Math.floor(width / ratio);
                 }
 
-                // TODO this looks like 
                 ctx.drawImage(img,
-                    Math.floor((160 - width) / 2),
-                    Math.floor((160 - height) / 2),
+                    Math.floor((SIZE - width) / 2),
+                    Math.floor((SIZE - height) / 2),
                     width, height);
 
-                $thumbnail_container.empty();
-                $thumbnail_container.append($canvas);
-            };
-            img.src = data_url;
+                // Success goes here!  All needs to sit together to avoid race
+                // conditions and make bogus file handling work right
+                // TODO multi-image concerns; this stuff should append, not
+                // clobber
+                this_controller.files = [];
+                this_controller.files.push(file);
+
+                this_controller.$thumbnail_container.empty();
+                this_controller.$thumbnail_container.append($canvas);
+
+                this_controller.set_state('ready');
+            });
+
+            // Read the file as a data: URL and attach it to the Image
+            var reader = new FileReader();
+            reader.addEventListener('load', function(evt) {
+                img.src = evt.target.result;
+            });
+
+            reader.readAsDataURL(file);
+
+            // Bail after the first valid image for now
+            // TODO multi-image concerns
+            return false;
+        });
+    },
+
+    ajax_submit: function() {
+        // Construct a FormData from the form's, er, data.
+        // Disable the file upload control first, so its contents don't get
+        // sent along
+        this.$file_control.attr('disabled', true);
+        var formdata = new FormData(this.$form[0]);
+        this.$file_control.attr('disabled', false);
+
+        // Then add in our collected files
+        var field_name = this.$file_control.attr('name');
+        $.each(this.files, function(idx, file) {
+            formdata.append(field_name, file);
         });
 
-        // TODO only do this on success
-        $file_button.text("I changed my mind...");
-        $dnd_protip.hide();
-        $thumbnail_container.show();
-        $upload_button.show();
-    });
+        // And send it!
+        /*
+        xhr.upload.addEventListener('progress', function(evt) {
+            if (! evt.lengthComputable) return;
+            console.log(evt.loaded, evt.total);
+            var ctx = canvas.getContext('2d');
+            ctx.drawImage(source_canvas, 0, 0, evt.loaded / evt.total * 100, 100, 0, 0, evt.loaded / evt.total * 100, 100);
+        }, false);
+        xhr.upload.addEventListener('load', function(evt) {
+            var ctx = canvas.getContext('2d');
+            ctx.drawImage(source_canvas, 0, 0, 100, 100);
+            canvas.style.outline = '1px solid green';
+        }, false);
+        */
+
+        // TODO fake browser load behavior via iframe.contentDocument.open()
+        $.ajax({
+            url: this.$form.attr('action'),
+            type: 'POST',
+            data: formdata,
+            dataType: 'json',  // that is, the response type
+
+            // Ask jQuery not to fuck with the formdata
+            processData: false,
+            contentType: false,
+
+            success: function(data, status, xhr) {
+                // XXX this is kinda generic ajax response handling
+                if (data['status'] == 'redirect') {
+                    window.location = data['redirect-to'];
+                }
+                else {
+                    // TODO handle errors in some useful manner
+                }
+            }
+        });
+        // TODO error handling, where does a progress indicator go...
+    },
+
+    qqqqqqqqqqqqqqqqqqqqqqqqq:null
+});
+
+$(function() {
+    new UploadController();
 });

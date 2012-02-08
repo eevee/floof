@@ -5,18 +5,14 @@ import hashlib
 import logging
 
 import magic
-from pyramid.httpexceptions import HTTPBadRequest, HTTPSeeOther
-from pyramid.view import view_config
+from pyramid.httpexceptions import HTTPBadRequest, HTTPSeeOther, WSGIHTTPException
+from pyramid.view import view_config, view_defaults
 import wtforms.form, wtforms.fields, wtforms.validators
-from wtforms.ext.sqlalchemy.fields import QuerySelectMultipleField
 
 from floof import model
 from floof.forms import MultiCheckboxField, MultiTagField, QueryMultiCheckboxField
 from floof.lib.gallery import GallerySieve
-
-# XXX import from somewhere
-class CommentForm(wtforms.form.Form):
-    message = wtforms.fields.TextAreaField(label=u'')
+from floof.views._workflow import FormWorkflow
 
 # PIL is an unholy fucking abomination that can't even be imported right
 try:
@@ -28,6 +24,12 @@ log = logging.getLogger(__name__)
 
 HASH_BUFFER_SIZE = 524288  # .5 MiB
 MAX_ASPECT_RATIO = 2
+
+
+# XXX import from somewhere
+class CommentForm(wtforms.form.Form):
+    message = wtforms.fields.TextAreaField(label=u'')
+
 
 def get_number_of_colors(image):
     """Does what it says on the tin.
@@ -60,177 +62,203 @@ def get_number_of_colors(image):
     else:
         raise ValueError("Unknown palette mode, argh!")
 
-class UploadArtworkForm(wtforms.form.Form):
-    # XXX need some kinda field lengths or something on these
-    file = wtforms.fields.FileField(u'')
-    title = wtforms.fields.TextField(u'Title')
-    relationship = MultiCheckboxField(u'',
-        choices=[
-            (u'by',  u"by me: I'm the artist; I created this!"),
-            (u'for', u"for me: I commissioned this, or it was a gift specifically for me"),
-            (u'of',  u"of me: I'm depicted in this artwork"),
-        ],
-    )
-    tags = MultiTagField(u'Tags')
 
-    labels = None  # I am populated dynamically based on user
-
-    remark = wtforms.fields.TextAreaField(u'Remark')
-
-@view_config(
+@view_defaults(
     route_name='art.upload',
     permission='art.upload',
-    # XXX request_method='GET',
     renderer='art/upload.mako')
-def upload(context, request):
+class UploadPage(FormWorkflow):
     """Uploads something.  Sort of important, you know."""
-    # Tack label fields onto the form
-    class DerivedForm(UploadArtworkForm):
-        labels = QueryMultiCheckboxField(u'Labels',
-            query_factory=lambda: model.session.query(model.Label).with_parent(request.user),
-            get_label=lambda label: label.name,
+
+    class form_class(wtforms.form.Form):
+        # XXX need some kinda field lengths or something on these
+        file = wtforms.fields.FileField(u'')
+        title = wtforms.fields.TextField(u'Title')
+        relationship = MultiCheckboxField(u'',
+            choices=[
+                (u'by',  u"by me: I'm the artist; I created this!"),
+                (u'for', u"for me: I commissioned this, or it was a gift specifically for me"),
+                (u'of',  u"of me: I'm depicted in this artwork"),
+            ],
         )
+        tags = MultiTagField(u'Tags')
 
-    form = DerivedForm(request.POST)
-    ret = dict(form=form)
+        labels = None  # I am populated dynamically based on user
 
-    # XXX this overloading is dummmmmb
-    if request.method != 'POST' or not form.validate():
-        # Initial request, or bogus form submission
-        return ret
+        remark = wtforms.fields.TextAreaField(u'Remark')
 
-    # Grab the file
-    storage = request.storage
-    uploaded_file = request.POST.get('file')
-
-    try:
-        fileobj = uploaded_file.file
-    except AttributeError:
-        form.file.errors.append("Please select a file to upload!")
-        return ret
-
-    # Figure out mimetype (and if we even support it)
-    mimetype = magic.Magic(mime=True).from_buffer(fileobj.read(1024)) \
-        .decode('ascii')
-    if mimetype not in (u'image/png', u'image/gif', u'image/jpeg'):
-        form.file.errors.append("Only PNG, GIF, and JPEG are supported at the moment.")
-        return ret
-
-    # Hash the thing
-    hasher = hashlib.sha256()
-    file_size = 0
-    fileobj.seek(0)
-    while True:
-        buffer = fileobj.read(HASH_BUFFER_SIZE)
-        if not buffer:
-            break
-
-        file_size += len(buffer)
-        hasher.update(buffer)
-    hash = hasher.hexdigest().decode('ascii')
-
-    # Assert that the thing is unique
-    existing_artwork = model.session.query(model.Artwork) \
-        .filter_by(hash = hash) \
-        .all()
-    if existing_artwork:
-        request.session.flash(
-            u'This artwork has already been uploaded.',
-            level=u'warning', icon=u'image-import')
-        return HTTPSeeOther(location=request.route_url('art.view', artwork=existing_artwork[0]))
-
-    ### By now, all error-checking should be done.
-
-    # OK, store the file.  Reset the file object first!
-    fileobj.seek(0)
-    storage.put(u'artwork', hash, fileobj)
-
-    # Open the image, determine its size, and generate a thumbnail
-    fileobj.seek(0)
-    image = Image.open(fileobj)
-    width, height = image.size
-
-    # Thumbnailin'
-    thumbnail_size = int(request.registry.settings['thumbnail_size'])
-    # To avoid super-skinny thumbnails, don't let the aspect ratio go
-    # beyond 2
-    height = min(height, width * MAX_ASPECT_RATIO)
-    width = min(width, height * MAX_ASPECT_RATIO)
-    # crop() takes left, top, right, bottom
-    cropped_image = image.crop((0, 0, width, height))
-    # And resize...  if necessary
-    if width > thumbnail_size or height > thumbnail_size:
-        if width > height:
-            new_size = (thumbnail_size, height * thumbnail_size // width)
-        else:
-            new_size = (width * thumbnail_size // height, thumbnail_size)
-
-        thumbnail_image = cropped_image.resize(
-            new_size, Image.ANTIALIAS)
-
-    else:
-        thumbnail_image = cropped_image
-
-    # Dump the thumbnail in a buffer and save it, too
-    buf = StringIO()
-    if mimetype == u'image/png':
-        thumbnail_format = 'PNG'
-    elif mimetype == u'image/gif':
-        thumbnail_format = 'GIF'
-    elif mimetype == u'image/jpeg':
-        thumbnail_format = 'JPEG'
-    thumbnail_image.save(buf, thumbnail_format)
-    buf.seek(0)
-    storage.put(u'thumbnail', hash, buf)
-
-    # Deal with user-supplied metadata
-    # nb: it's perfectly valid to have no title or remark
-    title = form.title.data.strip()
-    remark = form.remark.data.strip()
-
-    # Stuff it all in the db
-    resource = model.Resource(type=u'artwork')
-    discussion = model.Discussion(resource=resource)
-    general_data = dict(
-        title = title,
-        hash = hash,
-        uploader = request.user,
-        original_filename = uploaded_file.filename,
-        mime_type = mimetype,
-        file_size = file_size,
-        resource = resource,
-        remark = remark,
-    )
-    artwork = model.MediaImage(
-        height = height,
-        width = width,
-        number_of_colors = get_number_of_colors(image),
-        **general_data
-    )
-
-    # Associate the uploader as artist or recipient
-    # Also as a participant if appropriate
-    for relationship in form.relationship.data:
-        artwork.user_artwork.append(
-            model.UserArtwork(
-                user_id = request.user.id,
-                relationship_type = relationship,
+    def make_form(self):
+        # Tack label fields onto the form
+        class DerivedForm(self.form_class):
+            labels = QueryMultiCheckboxField(u'Labels',
+                query_factory=lambda: model.session.query(model.Label).with_parent(self.request.user),
+                get_label=lambda label: label.name,
             )
+        return DerivedForm(self.request.POST)
+
+
+    @view_config(
+        request_method='POST')
+    def handle_post(self):
+        request = self.request
+        form = self.form
+
+        if not form.validate():
+            return self.respond_form_error()
+
+        # Grab the file
+        storage = request.storage
+        uploaded_file = request.POST.get('file')
+
+        # TODO can this be part of the form validation?
+        try:
+            fileobj = uploaded_file.file
+        except AttributeError:
+            self.request.session.flash(
+                u'Please select a file to upload!',
+                level=u'error')
+            return self.respond_general_error()
+
+        # Figure out mimetype (and if we even support it)
+        mimetype = magic.Magic(mime=True).from_buffer(fileobj.read(1024)) \
+            .decode('ascii')
+        if mimetype not in (u'image/png', u'image/gif', u'image/jpeg'):
+            # XXX this seems suboptimal, but...
+            form.file.errors.append("Only PNG, GIF, and JPEG are supported at the moment.")
+            return self.respond_form_invalid()
+
+        # Hash the thing
+        hasher = hashlib.sha256()
+        file_size = 0
+        fileobj.seek(0)
+        while True:
+            buffer = fileobj.read(HASH_BUFFER_SIZE)
+            if not buffer:
+                break
+
+            file_size += len(buffer)
+            hasher.update(buffer)
+        hash = hasher.hexdigest().decode('ascii')
+
+        # Assert that the thing is unique
+        existing_artwork = model.session.query(model.Artwork) \
+            .filter_by(hash = hash) \
+            .limit(1) \
+            .all()
+        if existing_artwork:
+            self.request.session.flash(
+                u'This artwork has already been uploaded.',
+                level=u'warning',
+                icon=u'image-import')
+            return self.respond_redirect(
+                request.route_url('art.view', artwork=existing_artwork[0]))
+
+        ### By now, all error-checking should be done.
+
+        # OK, store the file.  Reset the file object first!
+        fileobj.seek(0)
+        storage.put(u'artwork', hash, fileobj)
+
+        # Open the image, determine its size, and generate a thumbnail
+        fileobj.seek(0)
+        image = Image.open(fileobj)
+        width, height = image.size
+
+        # Thumbnailin'
+        thumbnail_size = int(request.registry.settings['thumbnail_size'])
+        # To avoid super-skinny thumbnails, don't let the aspect ratio go
+        # beyond 2
+        height = min(height, width * MAX_ASPECT_RATIO)
+        width = min(width, height * MAX_ASPECT_RATIO)
+        # crop() takes left, top, right, bottom
+        cropped_image = image.crop((0, 0, width, height))
+        # And resize...  if necessary
+        if width > thumbnail_size or height > thumbnail_size:
+            if width > height:
+                new_size = (thumbnail_size, height * thumbnail_size // width)
+            else:
+                new_size = (width * thumbnail_size // height, thumbnail_size)
+
+            thumbnail_image = cropped_image.resize(
+                new_size, Image.ANTIALIAS)
+
+        else:
+            thumbnail_image = cropped_image
+
+        # Dump the thumbnail in a buffer and save it, too
+        buf = StringIO()
+        if mimetype == u'image/png':
+            thumbnail_format = 'PNG'
+        elif mimetype == u'image/gif':
+            thumbnail_format = 'GIF'
+        elif mimetype == u'image/jpeg':
+            thumbnail_format = 'JPEG'
+        thumbnail_image.save(buf, thumbnail_format)
+        buf.seek(0)
+        storage.put(u'thumbnail', hash, buf)
+
+        # Deal with user-supplied metadata
+        # nb: it's perfectly valid to have no title or remark
+        title = form.title.data.strip()
+        remark = form.remark.data.strip()
+
+        # Stuff it all in the db
+        resource = model.Resource(type=u'artwork')
+        discussion = model.Discussion(resource=resource)
+        general_data = dict(
+            title = title,
+            hash = hash,
+            uploader = request.user,
+            original_filename = uploaded_file.filename,
+            mime_type = mimetype,
+            file_size = file_size,
+            resource = resource,
+            remark = remark,
+        )
+        artwork = model.MediaImage(
+            height = height,
+            width = width,
+            number_of_colors = get_number_of_colors(image),
+            **general_data
         )
 
-    # Attach tags and labels
-    for tag in form.tags.data:
-        artwork.tags.append(tag)
+        # Associate the uploader as artist or recipient
+        # Also as a participant if appropriate
+        for relationship in form.relationship.data:
+            artwork.user_artwork.append(
+                model.UserArtwork(
+                    user_id = request.user.id,
+                    relationship_type = relationship,
+                )
+            )
 
-    for label in form.labels.data:
-        artwork.labels.append(label)
+        # Attach tags and labels
+        for tag in form.tags.data:
+            artwork.tags.append(tag)
+
+        for label in form.labels.data:
+            artwork.labels.append(label)
 
 
-    model.session.add_all([artwork, discussion, resource])
-    model.session.flush()  # for primary keys
+        model.session.add_all([artwork, discussion, resource])
+        model.session.flush()  # for primary keys
 
-    request.session.flash(u'Uploaded!', level=u'success', icon=u'image--plus')
-    return HTTPSeeOther(location=request.route_url('art.view', artwork=artwork))
+        self.request.session.flash(
+            u'Uploaded!',
+            level=u'success',
+            icon=u'image--plus')
+
+        # Success
+        return self.respond_redirect(
+            request.route_url('art.view', artwork=artwork))
+
+    @view_config(
+        request_method='GET',
+        xhr=False)
+    def handle_get(self):
+        return self.show_form()
+
+
 
 
 @view_config(
