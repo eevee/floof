@@ -76,6 +76,7 @@ setup(
         'pytest',
         'lxml>=2.3.1',  # strip data: urls
         'markdown',
+        'PyVEP>=0.2',
     ],
     setup_requires=["PasteScript>=1.6.3"],
     packages=find_packages(exclude=['ez_setup']),

@@ -158,11 +158,12 @@ class TimezoneField(fields.SelectField):
     """
     def __init__(self, label=None, validators=None, **kwargs):
         super(TimezoneField, self).__init__(label, validators,
-                coerce=coerce_timezone, choices=timezone_choices(), **kwargs)
+                coerce=coerce_timezone, choices=timezone_choices(),
+                default='UTC', **kwargs)
 
     def pre_validate(self, form):
         for v, _ in self.choices:
-            if self.data.zone == v:
+            if self.data and self.data.zone == v:
                 break
         else:
             raise ValueError(self.gettext(u'Not a valid choice'))

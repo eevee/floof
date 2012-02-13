@@ -22,12 +22,14 @@ option.  Some of them are listed below.</p>
     just a certificate, it will not be possible to log out using the site's
     web interface.  You will have to know how to get your web browser to
     stop authenticating with the certificate.</li>
+
     <li>If you choose to require certificates for login or for sensitive
     operations and subsequently all certificates registered against your
     account expire or are revoked, you will automatically be able to log
-    in and perform sensitive operations with just your OpenID.  That is,
-    your Certificate Authentication Option will be automatically changed to
-    &quot;Allow for login&quot;.</li>
+    in and perform sensitive operations with just your OpenID or BrowserID.
+    That is, your Certificate Authentication Option will be automatically
+    changed to &quot;Allow for login&quot;.</li>
+
     <li>Options that require certificates will be hidden until you select
     &quot;Allow for login&quot; and authenticate with a certificate.</l1>
 </ol>

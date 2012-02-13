@@ -27,6 +27,7 @@ UPGRADABLE_PRINCIPALS = ('auth:', 'trusted:')
 
 TRUST_MAP = dict([
     ('trusted_for:auth', [
+        ('role:user', 'auth:insecure', 'trusted:browserid_recent'),
         ('role:user', 'auth:insecure', 'trusted:openid_recent'),
         ('role:user', 'auth:insecure', 'trusted:cert'),
         ('role:user', 'auth:secure', 'trusted:cert'),
@@ -51,6 +52,7 @@ The point is to allow for principals that arise from holding a combination of:
 
 - ``trusted:*`` principals, which reflect the valid authentication mechanisms
   in the context of the current request.
+
 """
 
 
@@ -88,19 +90,19 @@ def attempt_privilege_escalation(permission, context, request):
 
         principal = altset.pop()
 
-        if principal in ('trusted:openid', 'trusted:openid_recent'):
+        if principal.startswith('trusted:') and principal != 'trusted:cert':
             # Can elevate by performing an OpenID authentication; so set a
             # return_key and redirect to the login screen
             from floof.lib.stash import stash_post
             from pyramid.httpexceptions import HTTPSeeOther
 
             key = stash_post(request)
-            request.session.flash("You need to re-authenticate with an OpenID "
-                                  "identity to complete this action",
+            request.session.flash("You need to re-authenticate with OpenID or "
+                                  "BrowserID to complete this action",
                                   level='notice')
 
-            raise HTTPSeeOther(location=request.route_url(
-                    'account.login', _query=[('return_key', key)]))
+            location = request.route_url('account.login', _query=[('return_key', key)])
+            raise HTTPSeeOther(location=location)
 
 
 def outstanding_principals(permission, context, request):
@@ -261,14 +263,14 @@ MSG_AUTH_SEC = (
 
 def help_auth_secure(request):
     msg = ''
-    if len(request.user.certificates) < 1:
+    if len(request.user.valid_certificates) < 1:
         msg += MSG_GEN_CERT
     msg += MSG_AUTH_SEC
     return msg
 
 def help_trusted_cert(request):
     msg = ''
-    if len(request.user.certificates) < 1:
+    if len(request.user.valid_certificates) < 1:
         msg += MSG_GEN_CERT
     msg += MSG_PRESENT_CERT
     return msg

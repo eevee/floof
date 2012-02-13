@@ -13,6 +13,7 @@
 
     ## Allow templates to define their script dependencies to include in head
     ${self.script_dependencies()}
+    <script type="text/javascript">var csrf_token="${request.session.get_csrf_token()}";</script>
 </head>
 <body>
     <header>

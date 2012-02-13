@@ -10,6 +10,8 @@ Designed to be run with py.test
 
 """
 import os.path
+import random
+import string
 import transaction
 import unittest
 import webtest
@@ -72,6 +74,9 @@ class UnitTests(unittest.TestCase):
         testing.tearDown()
         transaction.abort()
 
+    def _randstr(self, length=10):
+        return ''.join(random.choice(string.letters) for n in xrange(length))
+
 
 class FunctionalTests(UnitTests):
     """Brings up the full Pyramid app."""
@@ -90,7 +95,6 @@ class FunctionalTests(UnitTests):
         self.url = self._fake_request.route_path
 
     def __init__(self, *args, **kwargs):
-        # FIXME: Hardcoded!
         ini_spec = getattr(pytest.config.option, 'config', None)
         if ini_spec:
             filename, appname = ini_spec.rsplit('#', 1)

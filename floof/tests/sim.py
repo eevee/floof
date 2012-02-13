@@ -23,19 +23,26 @@ def sim_user(credentials=None, roles=None):
         where auth_mechanism is one of 'openid' or 'cert' and credential is the
         OpenID URL when paired with 'openid' and ignored when paired with
         'cert'.  If not specified, will default to:
-        ``[('cert', None), ('openid', 'https://example.com/')]``
+        ``[('cert', None), ('openid', 'https://example.com/'), ('browserid',
+        '<username>@example.org')]``
 
         `roles` is a sequence of user role names to which to add the user.
         Defaults to u'user'.
 
     """
+    username = 'sim_' + ''.join(random.choice(string.letters) for n in range(10))
+
     if credentials is None:
-        credentials = [('cert', None), ('openid', 'https://example.com/')]
+        credentials = [
+                ('cert', None),
+                ('openid', 'https://example.com/'),
+                ('browserid', '{0}@example.com'.format(username))
+                ]
     if roles is None:
         roles = [u'user']
 
     user = model.User(
-        name='sim_' + ''.join(random.choice(string.letters) for n in range(10)),
+        name=username,
         resource=model.Resource(type=u'users'),
     )
     model.session.add(user)
@@ -57,6 +64,10 @@ def sim_user(credentials=None, roles=None):
         elif mech == 'openid':
             openid = model.IdentityURL(url=credential)
             user.identity_urls.append(openid)
+
+        elif mech == 'browserid':
+            browserid = model.IdentityEmail(email=credential)
+            user.identity_emails.append(browserid)
 
         else:
             print ("Unknown mech '{0}' specified in credentials on sim user "
@@ -92,6 +103,13 @@ def sim_user_env(user, *trust_flags):
 
     if 'openid_recent' in trust_flags:
         env['tests.auth.openid_timestamp'] = time.time()
+
+    if 'browserid' in trust_flags:
+        env['tests.auth.browserid_email'] = user.identity_emails[0].email
+        env['tests.auth.browserid_timestamp'] = 1
+
+    if 'browserid_recent' in trust_flags:
+        env['tests.auth.browserid_timestamp'] = time.time()
 
     return env
 

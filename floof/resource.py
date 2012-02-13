@@ -26,7 +26,7 @@ ROOT_ACL = (
     )),
 
     (Allow, 'trusted_for:auth', (
-        'auth.method', 'auth.certificates', 'auth.openid')),
+        'auth.method', 'auth.certificates', 'auth.openid', 'auth.browserid')),
 
     (Allow, 'trusted_for:admin', ('admin.view')),
 )

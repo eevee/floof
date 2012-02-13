@@ -9,12 +9,13 @@
 <nav class="side-navigation">
 <ul>
     % for action, icon, title in [ \
-        ('index',   'fruit',        u'Index??'), \
-        ('info',    'user--pencil', u'User Info'), \
-        ('rels',    'users',        u'Watches'), \
-        ('openid',  'openid',       u'OpenID Identities'), \
-        ('certs',   'certificate',  u'SSL Certificates'), \
-        ('auth',    'key',          u'Authentication Options'), \
+        ('index',    'fruit',        u'Index??'), \
+        ('info',     'user--pencil', u'User Info'), \
+        ('rels',     'users',        u'Watches'), \
+        ('browserid','user',         u'BrowserID Identities'), \
+        ('openid',   'openid',       u'OpenID Identities'), \
+        ('certs',    'certificate',  u'SSL Certificates'), \
+        ('auth',     'key',          u'Authentication Options'), \
     ]:
     % if action == request.matched_route.name.split('.')[1]:
     <li class="selected">${lib.icon(icon)} ${title}</li>

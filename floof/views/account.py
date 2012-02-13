@@ -9,14 +9,18 @@ from pyramid.security import effective_principals
 from pyramid.view import view_config
 from sqlalchemy.exc import IntegrityError
 from webhelpers.util import update_params
+
 import wtforms.form, wtforms.fields, wtforms.validators
 
 from floof.forms import DisplayNameField, TimezoneField
 from floof.lib.authn import DEFAULT_CONFIDENCE_EXPIRY
+from floof.lib.authn import BrowserIDAuthDisabledError, BrowserIDNotFoundError
 from floof.lib.authn import OpenIDAuthDisabledError, OpenIDNotFoundError
+from floof.lib.browserid import BrowserIDError
+from floof.lib.browserid import flash_browserid_error, verify_browserid
 from floof.lib.stash import fetch_stash, get_stash_keys, key_from_request
 from floof.lib.openid_ import OpenIDError, openid_begin, openid_end
-from floof.model import Discussion, IdentityURL, Resource
+from floof.model import Discussion, IdentityURL, IdentityEmail, Resource
 from floof.model import Role, User, UserProfileRevision
 from floof import model
 
@@ -35,6 +39,7 @@ class LoginForm(wtforms.form.Form):
 @view_config(
     route_name='account.login',
     request_method='GET',
+    xhr=False,
     renderer='account/login.mako')
 def account_login(context, request):
     # XXX worth mentioning on this page how to log in with SSL, and offer a
@@ -44,7 +49,10 @@ def account_login(context, request):
     return_key = key_from_request(request)
     openid = request.auth.openid_url if return_key else None
 
-    if not request.cookies:
+    # just_landed is imprecise, but should serve to reduce false positives
+    just_landed = request.referrer is None
+    just_landed = just_landed or (request.host not in request.referrer)
+    if not request.cookies and not just_landed:
         request.session.flash(
                 'It looks like you might not have cookies enabled in your '
                 'browser.  Alas, cookies are required to log in.  If you '
@@ -53,6 +61,109 @@ def account_login(context, request):
 
     form = LoginForm(openid_identifier=openid, return_key=return_key)
     return {'form': form}
+
+
+# Catch & handle AJAX requests that have spawned a stash & authentication
+# upgrade attempt.  Obviously, any such request must be able to handle next_url
+# and redirect the user from the current page.  This limits what AJAX-y things
+# can permit auth upgrade; currently the only use case is adding a BrowserID
+# address.
+@view_config(
+    route_name='account.login',
+    request_method='GET',
+    xhr=True,
+    renderer='json')
+def account_login_xhr(context, request):
+    return_key = key_from_request(request)
+    next_url = request.route_url('account.login')
+    if return_key is not None:
+        next_url = update_params(next_url, return_key=return_key)
+    return {'next_url': next_url}
+
+
+@view_config(
+    route_name='account.browserid.login',
+    request_method='POST',
+    renderer='json')
+def account_login_browserid(context, request):
+    return_key = key_from_request(request)
+
+    def fail(msg=None):
+        if msg:
+            request.session.flash(msg, level=u'error', icon='key--exclamation')
+        # XXX setting the status to 403 triggers Pyramid's exception view
+        next_url = request.route_url('account.login')
+        if return_key is not None:
+            next_url = update_params(next_url, return_key=return_key)
+        return {'next_url': next_url}
+
+    ## Verify the identity assertion
+
+    assertion = request.POST.get('assertion')
+    try:
+        data = verify_browserid(assertion, request)
+    except BrowserIDError as e:
+        flash_browserid_error(e, request)
+        return fail()
+
+    ## Attempt to resolve the identity to a local user
+
+    email = data.get('email')
+    if data.get('status') != 'okay' or not email:
+        return fail("BrowserID authentication failed.")
+
+    identity_email = model.session.query(IdentityEmail) \
+        .filter_by(email=email) \
+        .limit(1).first()
+
+    if not identity_email:
+        # New user or new ID
+        request.session['pending_identity_email'] = email
+        return {'next_url': request.route_url('account.register'),
+                'post_id': 'postform'}
+
+    ## Attempt to log in
+
+    try:
+        auth_headers = security.remember(
+            request, identity_email.user, browserid_email=email)
+        request.session.changed()
+
+    except BrowserIDNotFoundError:
+        return fail("The email address '{0}' is registered against the account "
+                    "'{1}'.  To log in as '{1}', log out then back in."
+                    .format(email, identity_email.user.name))
+
+    except BrowserIDAuthDisabledError:
+        return fail("Your BrowserID is no longer accepted as your account has "
+                    "disabled BrowserID authentication.")
+
+    # An existing user has logged in successfully.  Bravo!
+    request.response.headerlist.extend(auth_headers)
+    log.debug("User {0} logged in via BrowserID: {1}"
+              .format(identity_email.user.name, identity_email))
+
+    ## Handle redirection
+
+    if identity_email.user == request.user:
+        # Someone is just freshening up their cookie
+        request.session.flash(u'Re-authentication successful', icon='user')
+
+        if return_key is not None:
+            old_url = fetch_stash(request, key=return_key)['url']
+            if old_url:
+                next_url = update_params(old_url, return_key=return_key)
+                log.debug('Following Return Key \'{0}\' to URL: {1}'
+                          .format(return_key, next_url))
+                return {'next_url': next_url}
+
+        return {'next_url': request.route_url('root')}
+
+    # Existing user; new login
+    request.session.flash(
+            'Logged in with BrowserID', level=u'success', icon='user')
+
+    return {'next_url': request.route_url('root')}
 
 
 @view_config(
@@ -176,7 +287,8 @@ def login_finish(context, request):
             dict(
                 form=form,
                 identity_url=identity_url,
-                identity_webfinger=identity_webfinger),
+                identity_webfinger=identity_webfinger,
+                identity_email=None),
             request=request)
 
     elif identity_owner == request.user:
@@ -195,9 +307,7 @@ def login_finish(context, request):
                 log.debug('Following Return Key \'{0}\' to URL: {1}'
                           .format(return_key, location))
                 return HTTPSeeOther(location, headers=auth_headers)
-
-        return HTTPSeeOther(location=request.route_url('root'),
-                            headers=auth_headers)
+        return HTTPSeeOther(request.route_url('root'), headers=auth_headers)
 
     else:
         # Existing user; new login
@@ -281,21 +391,48 @@ class RegistrationForm(wtforms.form.Form):
     route_name='account.register',
     request_method='POST')
 def register(context, request):
-    # Check identity URL
-    identity_url = request.session.get('pending_identity_url')
-    if not identity_url or \
-       model.session.query(IdentityURL) \
-            .filter_by(url=identity_url).count():
+    def clear_pending():
+        request.session.pop('pending_identity_email', None)
+        request.session.pop('pending_identity_url', None)
+        request.session.pop('pending_identity_webfinger', None)
 
-        # Not in the session or is already registered.  Neither makes
-        # sense.  Bail.
+    def bail():
+        # Abort registration; typically if the request is nonsensical
+        clear_pending()
         request.session.flash('Your session expired.  Please try logging in again.')
         return HTTPSeeOther(location=request.route_url('account.login'))
 
-    form = RegistrationForm(request.POST)
-    if not form.validate():
+    # Check identity URL
+
+    identity_url = request.session.get('pending_identity_url')
+    identity_email = request.session.get('pending_identity_email')
+    openid_q = model.session.query(IdentityURL).filter_by(url=identity_url)
+    browserid_q = model.session.query(IdentityEmail).filter_by(email=identity_email)
+
+    # Must register against (or add) exactly one ID
+    if not identity_url and not identity_email:
+        return bail()
+    if identity_url and identity_email:
+        return bail()
+
+    # Cannot re-register an ID
+    if identity_url and openid_q.count():
+        return bail()
+    if identity_email and browserid_q.count():
+        return bail()
+
+    # display_only for use with BrowserID since it can only redirect or POST,
+    # not display a page directly (because it's all AJAX).
+    display_only = request.params.get('display_only')
+    if display_only:
+        form = RegistrationForm(email=identity_email)
+    else:
+        form = RegistrationForm(request.POST)
+
+    if display_only or not form.validate():
         return render_to_response('account/register.mako', {
                 'form': form,
+                'identity_email': identity_email,
                 'identity_url': identity_url,
                 'identity_webfinger': request.session.get('pending_identity_webfinger'),
             },
@@ -328,27 +465,30 @@ def register(context, request):
     base_user = model.session.query(Role).filter_by(name=u'user').one()
     user.roles.append(base_user)
 
-    openid = IdentityURL(url=identity_url)
-    user.identity_urls.append(openid)
+    if identity_url:
+        openid = IdentityURL(url=identity_url)
+        user.identity_urls.append(openid)
+    else:
+        browserid = IdentityEmail(email=identity_email)
+        user.identity_emails.append(browserid)
 
     model.session.flush()
 
     log.info('User #{0} registered: {1}'.format(user.id, user.name))
 
     # Log 'em in
-    del request.session['pending_identity_url']
+    clear_pending()
     auth_headers = security.forget(request)
-    headers = security.remember(request, user, openid_url=identity_url)
+    headers = security.remember(
+            request, user, openid_url=identity_url,
+            browserid_email=identity_email)
     if headers is None:
         log.error("Failed to log in new registrant.")  # shouldn't happen
     else:
         auth_headers += headers
-    print auth_headers
 
     # And off we go
-    return HTTPSeeOther(
-        location=request.route_url('root'),
-        headers=auth_headers)
+    return HTTPSeeOther(request.route_url('root'), headers=auth_headers)
 
 
 @view_config(
@@ -357,25 +497,34 @@ def register(context, request):
     request_method='POST')
 def add_identity(context, request):
     identity_url = request.session.pop('pending_identity_url', None)
+    identity_email = request.session.pop('pending_identity_email', None)
     request.session.save()
 
-    if not identity_url:
-        # You shouldn't be here
+    # Sanity checks; neither case should happen
+    if not identity_url and not identity_email:
+        return HTTPBadRequest()
+    if identity_url and identity_email:
         return HTTPBadRequest()
 
-    model.session.add(IdentityURL(user=request.user, url=identity_url))
+    if identity_url:
+        model.session.add(
+            IdentityURL(user=request.user, url=identity_url))
+    else:
+        model.session.add(
+            IdentityEmail(user=request.user, email=identity_email))
 
     try:
         model.session.flush()
     except IntegrityError:
-        # Somehow you're trying to add an already-claimed URL.  This shouldn't
-        # happen either
+        # Somehow you're trying to add an already-claimed identity.  This
+        # shouldn't happen either
         return HTTPBadRequest()
 
     request.session.flash(
-        u"Added a new identity: {0}".format(identity_url),
+        u"Added a new identity: {0}".format(identity_url or identity_email),
         level=u'success', icon=u'user--plus')
-    return HTTPSeeOther(location=request.route_url('controls.openid'))
+    dest = 'controls.openid' if identity_url else 'controls.browserid'
+    return HTTPSeeOther(location=request.route_url(dest))
 
 
 class ProfileForm(wtforms.form.Form):
