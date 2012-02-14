@@ -8,7 +8,6 @@
     ${h.javascript_link(request.static_url('floof:public/js/lib/jquery.ui-1.8.7.js'))}
     ${h.javascript_link(request.static_url('floof:public/js/lib/jquery.Jcrop.js'))}
     ${h.javascript_link(request.static_url('floof:public/js/jcrop.js'))}
-    ${h.stylesheet_link(request.static_url('floof:public/css/jquery.Jcrop.css'))}
 </%def>
 
 <section>
