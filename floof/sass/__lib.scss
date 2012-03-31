@@ -65,3 +65,22 @@
     -ms-transition-duration: $raw-def;
     transition-duration: $raw-def;
 }
+
+@mixin animation($def) {
+    $raw-def: $def;
+    -moz-animation: $raw-def;
+    -webkit-animation: $raw-def;
+    -o-animation: $raw-def;
+    -ms-animation: $raw-def;
+    animation: $raw-def;
+}
+
+// Animation keyframes
+// TODO this requires Sass 3.2, not yet released  :(
+/*
+@mixin keyframes($name) {
+    @-moz-keyframes #{$name} { @content }
+    @-webkit-keyframes #{$name} { @content }
+    @keyframes #{$name} { @content }
+}
+*/

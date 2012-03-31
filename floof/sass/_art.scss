@@ -149,3 +149,45 @@ table.detailed-artwork-table {
         margin-top: 0;
     }
 }
+
+
+/*** Upload page ***/
+.upload-block {
+    text-align: center;
+    background: #f9ffff;
+}
+.upload-block .-part-thumbnail {
+    position: relative;
+    height: 160px;
+    width: 160px;
+    margin: 0 auto 1em;
+    line-height: 160px;
+    border: 0.25em solid #eee;
+    background: #f4f4f4;
+}
+.upload-block .-part-thumbnail canvas {
+    text-align: center;
+    vertical-align: middle;
+}
+.upload-block button[type='submit'] {
+    font-size: 1.33em;
+}
+
+.upload-block .-part-file-button {
+    // XXX this is eyeballed, could use a better fix
+    padding-top: 40px;
+}
+// I love me some state classes
+.upload-block.state-oldmode .-part-file-button,
+.upload-block.state-oldmode .-part-thumbnail,
+.upload-block.state-oldmode .-part-metadata,
+.upload-block.state-init .-part-file-field,
+.upload-block.state-ready .-part-file-field {
+    display: none;
+}
+// These parts are just hidden, so the page doesn't reflow when they become
+// visible
+.upload-block.state-init .-part-upload,
+.upload-block.state-init .-part-metadata {
+    visibility: hidden;
+}

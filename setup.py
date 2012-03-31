@@ -61,7 +61,7 @@ setup(
         "SQLAlchemy>=0.7",
         'python-openid',
         'wtforms',
-        'python-magic',
+        'python-magic>=0.4.1',
         'PIL',
         'sqlalchemy-migrate>=0.6',
         'pytz',

@@ -5,8 +5,9 @@
     <title>${self.title()} - ${request.registry.settings['site_title']}</title>
     <meta charset="utf-8" />
     <link rel="stylesheet" type="text/css" href="${request.static_url('floof:public/css/all.css')}">
-    ${h.javascript_link(request.static_url('floof:public/js/lib/jquery-1.4.4.min.js'))}
+    ${h.javascript_link('https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js')}
     ${h.javascript_link(request.static_url('floof:public/js/lib/jquery.cookie.js'))}
+
     % if request.registry.settings['super_debug']:
         ${h.javascript_link(request.static_url('floof:public/js/debugging.js'))}
     % endif
