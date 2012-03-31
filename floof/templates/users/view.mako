@@ -10,7 +10,7 @@
 
     ## this is kinda grody until there are enough bits to flesh it out
     ## XXX check for perm here
-    % if request.user != target_user:
+    % if request.user and request.user != target_user:
     <div>
         <a href="${h.update_params(request.route_url('controls.rels.watch'), target_user=target_user.name)}">
             % if any(watch.other_user == target_user for watch in request.user.watches):
