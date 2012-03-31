@@ -165,6 +165,7 @@ class UploadPage(FormWorkflow):
         width, height = image.size
 
         # Thumbnailin'
+        # NOTE: this logic is replicated in the upload JS; please keep in sync
         thumbnail_size = int(request.registry.settings['thumbnail_size'])
         # To avoid super-skinny thumbnails, don't let the aspect ratio go
         # beyond 2

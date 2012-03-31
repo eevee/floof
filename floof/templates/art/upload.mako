@@ -7,46 +7,6 @@
     ${h.javascript_link(request.static_url('floof:public/js/uploading.js'))}
 </%def>
 
-<style type="text/css">
-body#js-enabled .no-js {
-    display: none;
-}
-body#js-disabled .js {
-    display: none;
-}
-.upload-block {
-    text-align: center;
-    background: #f9ffff;
-}
-.upload-block .-part-thumbnail {
-    height: 160px;
-    width: 160px;
-    margin: 0 auto 1em;
-    line-height: 160px;
-    border: 0.25em solid #eee;
-    background: #f4f4f4;
-}
-.upload-block .-part-thumbnail canvas {
-    text-align: center;
-    vertical-align: middle;
-}
-.upload-block button[type='submit'] {
-    font-size: 1.33em;
-}
-
-.upload-block .-part-file-button {
-padding-top: 40px;
-}
-.upload-block.state-oldmode .-part-file-button,
-.upload-block.state-oldmode .-part-thumbnail,
-.upload-block.state-init .-part-file-field,
-.upload-block.state-init .-part-upload,
-.upload-block.state-ready .-part-file-field {
-    display: none;
-}
-</style>
-
-
 
 <section>
     <h1>
@@ -67,14 +27,14 @@ padding-top: 40px;
                         <br> from your computer
                     </p>
                 </div>
+                <p class="-part-metadata"><br><br><!-- populated by JS --></p>
                 <p class="-part-upload"><button type="submit">Upload!</button></p>
             </div>
         </section>
         <section class="column-2x">
-            ##<h1>Describe it</h1>
             <dl class="standard-form">
                 ${lib.field(form.title, size=64, maxlength=133)}
-                ${lib.field(form.remark, rows=8, cols=80)}
+                ${lib.field(form.remark, rows=10, cols=80)}
             </dl>
 
         </section>

@@ -27,15 +27,12 @@ var UploadController = function() {
 
     this.attach_body_drag_handlers();
 
-    // TODO indicate that these will each become separate artworks...
     // Turn a button click into a file upload click
     this.$file_button.click(function() {
         this_controller.$file_control.click();
     });
 
     // 2. Handle getting some files.
-    // XXX do we need to clear this, or otherwise sync the collection of images to this control?
-    // XXX i think actually we have to send the form manually and replace this upload control.  ugh
     this.$file_control.change(function(evt) {
         this_controller.accept_files(this.files);
     });
@@ -74,7 +71,6 @@ $.extend(UploadController.prototype, {
 
             $(this).addClass('js-dropzone');
 
-            // TODO only allow dropping images
             console.log(evt.originalEvent.dataTransfer);  // .types
         });
         $drop_target.bind('dragover', function(evt) {
@@ -122,6 +118,11 @@ $.extend(UploadController.prototype, {
                 return;
             }
 
+            // Show a loading thing in the thumbnail box
+            // TODO multi-image concern here
+            this_controller.$thumbnail_container.empty();
+            this_controller.$thumbnail_container.append($('<div class="throbber"/>'));
+
             // Create an anon Image object; this will decode the image, then
             // copy itself to a canvas
             // TODO what if it's not a /valid/ image?
@@ -129,9 +130,8 @@ $.extend(UploadController.prototype, {
             img.addEventListener('load', function(evt) {
                 var img = evt.target;  // avoid circular ref
 
-                // XXX comment all this about replicating logic from elsewhere
-                // XXX show a loading throbber while the image resizes
-
+                // NOTE: this replicates the thumbnailing logic in the upload
+                // controller; please keep in sync
                 var $canvas = $('<canvas/>').attr({
                     width: String(SIZE),
                     height: String(SIZE)
@@ -150,6 +150,35 @@ $.extend(UploadController.prototype, {
                     Math.floor((SIZE - width) / 2),
                     Math.floor((SIZE - height) / 2),
                     width, height);
+
+                // Indicate image properties
+                var metadata_parts = [
+                    String(img.width) + " × " + String(img.height)
+                ];
+
+                // TODO split me out too
+                var filetype_parts = file.type.split('/');
+                metadata_parts.push(filetype_parts[1].toUpperCase());
+                metadata_parts.push(filetype_parts[0] + ",");
+
+                // TODO and me...
+                // TODO 900 bytes should be shown as kb
+                if (file.size < 1024) {
+                    metadata_parts.push(String(file.size));
+                    metadata_parts.push("B");
+                }
+                else if (file.size < 1024 * 1024) {
+                    metadata_parts.push(String(Math.round(file.size / 1024 * 10) / 10));
+                    metadata_parts.push("KiB");
+                }
+                else {
+                    metadata_parts.push(String(Math.round(file.size / 1024 / 1024 * 10) / 10));
+                    metadata_parts.push("MiB");
+                }
+
+                // XXX this selector chain is stupid
+                this_controller.$thumbnail_container.parent().find('.-part-metadata').html(file.name + "<br>" + metadata_parts.join(' '));
+
 
                 // Success goes here!  All needs to sit together to avoid race
                 // conditions and make bogus file handling work right
@@ -193,21 +222,11 @@ $.extend(UploadController.prototype, {
         });
 
         // And send it!
-        /*
-        xhr.upload.addEventListener('progress', function(evt) {
-            if (! evt.lengthComputable) return;
-            console.log(evt.loaded, evt.total);
-            var ctx = canvas.getContext('2d');
-            ctx.drawImage(source_canvas, 0, 0, evt.loaded / evt.total * 100, 100, 0, 0, evt.loaded / evt.total * 100, 100);
-        }, false);
-        xhr.upload.addEventListener('load', function(evt) {
-            var ctx = canvas.getContext('2d');
-            ctx.drawImage(source_canvas, 0, 0, 100, 100);
-            canvas.style.outline = '1px solid green';
-        }, false);
-        */
 
-        // TODO fake browser load behavior via iframe.contentDocument.open()
+        // TODO this iframe should maybe be a global shared thing; this is pretty adhoc
+        var $iframe = $('<iframe>').appendTo(document.body);
+        $iframe[0].contentDocument.open();
+
         $.ajax({
             url: this.$form.attr('action'),
             type: 'POST',
@@ -224,16 +243,21 @@ $.extend(UploadController.prototype, {
                     window.location = data['redirect-to'];
                 }
                 else {
-                    // TODO handle errors in some useful manner
+                    // TODO handle errors in some more useful manner
+                    alert("Whoops, something fucked up.  And this error sucks, too!");
                 }
+            },
+            complete: function() {
+                $iframe.remove();
             }
         });
         // TODO error handling, where does a progress indicator go...
     },
 
-    qqqqqqqqqqqqqqqqqqqqqqqqq:null
+    null:null
 });
 
+// XXX yeah uh this makes me hard to include anywhere but the upload page
 $(function() {
     new UploadController();
 });

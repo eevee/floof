@@ -703,3 +703,47 @@ table {
 .js-dropzone .js-dropzone-shield {
     display: block;
 }
+
+
+// General JS stuff
+body#js-enabled .no-js {
+    display: none;
+}
+body#js-disabled .js {
+    display: none;
+}
+
+.throbber {
+    position: absolute;
+    height: 32px;
+    width: 32px;
+    top: 50%;
+    margin-top: -16px;
+    left: 50%;
+    margin-left: -16px;
+    background: url(/images/gear.png);
+
+    @include animation(spin 2s linear infinite);
+}
+
+// TODO there's a keyframes() mixin but it needs sass 3.2, which isn't yet out
+@-moz-keyframes spin {
+    from { -moz-transform: rotate(0deg); }
+    to   { -moz-transform: rotate(360deg); }
+}
+@-webkit-keyframes spin {
+    from { -webkit-transform: rotate(0deg); }
+    to   { -webkit-transform: rotate(360deg); }
+}
+@-o-keyframes spin {
+    from { -o-transform: rotate(0deg); }
+    to   { -o-transform: rotate(360deg); }
+}
+@-ms-keyframes spin {
+    from { -ms-transform: rotate(0deg); }
+    to   { -ms-transform: rotate(360deg); }
+}
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
