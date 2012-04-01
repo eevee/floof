@@ -348,7 +348,7 @@ class Authenticizer(object):
             'auth.openid.expiry_seconds',
             DEFAULT_CONFIDENCE_EXPIRY))
 
-        age = datetime.now() - datetime.fromtimestamp(timestamp)
+        age = datetime.utcnow() - datetime.utcfromtimestamp(timestamp)
         if age <= timedelta(seconds=confidence_expiry_secs):
             self.trust.append('openid_recent')
 
@@ -394,7 +394,7 @@ class Authenticizer(object):
             'auth.browserid.expiry_seconds',
             DEFAULT_CONFIDENCE_EXPIRY))
 
-        age = datetime.now() - datetime.fromtimestamp(timestamp)
+        age = datetime.utcnow() - datetime.utcfromtimestamp(timestamp)
         if age <= timedelta(seconds=confidence_expiry_secs):
             self.trust.append('browserid_recent')
 
@@ -419,7 +419,7 @@ class Authenticizer(object):
             raise OpenIDAuthDisabledError
 
         self.state['openid_url'] = url
-        self.state['openid_timestamp'] = calendar.timegm(datetime.now().timetuple())
+        self.state['openid_timestamp'] = calendar.timegm(datetime.utcnow().timetuple())
 
     def login_browserid(self, request, user, email):
         """Log in via BrowserID, adding appropriate authentication state.
@@ -439,7 +439,7 @@ class Authenticizer(object):
             raise BrowserIDAuthDisabledError
 
         self.state['browserid_email'] = email
-        self.state['browserid_timestamp'] = calendar.timegm(datetime.now().timetuple())
+        self.state['browserid_timestamp'] = calendar.timegm(datetime.utcnow().timetuple())
 
     def clear(self):
         """Clears all auth state, logging out unless certs are in use."""
@@ -459,7 +459,7 @@ class Authenticizer(object):
         for mech in ('openid', 'browserid'):
             idx = mech + '_timestamp'
             if idx in self.state:
-                age = datetime.now() - datetime.fromtimestamp(self.state[idx])
+                age = datetime.utcnow() - datetime.utcfromtimestamp(self.state[idx])
                 ages[mech] = age
 
         get = self.state.get
