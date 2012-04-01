@@ -69,6 +69,7 @@ setup(
         'pyOpenSSL>=0.11',
         'pyramid>=1.2',
         'pyramid_beaker',
+        'pyramid_debugtoolbar',
         'repoze.tm2>=1.0b1',  # default_commit_veto
         'WebError',
         'WebTest',

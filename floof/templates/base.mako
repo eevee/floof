@@ -8,10 +8,6 @@
     ${h.javascript_link(request.static_url('floof:public/js/lib/jquery-1.7.2.min.js'))}
     ${h.javascript_link(request.static_url('floof:public/js/lib/jquery.cookie.js'))}
 
-    % if request.registry.settings['super_debug']:
-        ${h.javascript_link(request.static_url('floof:public/js/debugging.js'))}
-    % endif
-
     ## Allow templates to define their script dependencies to include in head
     ${self.script_dependencies()}
     <script type="text/javascript">var csrf_token="${request.session.get_csrf_token()}";</script>
@@ -90,20 +86,9 @@
     ${next.body()}
 
     <footer>
-        % if request.registry.settings.get('super_debug', False):
-        <p id="footer-stats">
-            built in ${lib.timedelta(request.timer.total_time)} <br>
-            ${request.timer.sql_query_count} quer${ 'y' if request.timer.sql_query_count == 1 else 'ies' }
-                in ${lib.timedelta(request.timer.timers['sql'])}
-        </p>
-        % endif
         <p>Icons from the <a href="http://p.yusukekamiyamane.com/">Fugue set</a></p>
         <p><a href="${request.route_url('log')}">Admin log</a></p>
     </footer>
-
-    % if request.registry.settings['super_debug']:
-    <%include file="/debugging.mako" />
-    % endif
 </body>
 </html>
 

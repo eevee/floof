@@ -1,0 +1,40 @@
+<%! import pprint %>
+<%! from pyramid.security import effective_principals %>
+
+<h4>Beaker</h4>
+<code>${pprint.pformat(request.session)}</code>
+
+<h4>Auth</h4>
+<code>${pprint.pformat(request.auth)}</code>
+
+<h4>Principals</h4>
+<code>${pprint.pformat(effective_principals(request))}</code>
+
+<h4>ACLs</h4>
+<table>
+<% from floof.lib.authz import permissions_in_context %>\
+    <thead>
+        <tr>
+            <th>Context</th>
+            <th>Permission</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+    <tbody>
+        <% ctx = request.context or request.root %>
+        % while ctx is not None:
+            <% perms = permissions_in_context(ctx, request) %>\
+            % for perm, allowed, upgradeable in perms:
+            <tr>
+                <td>${getattr(ctx, '__name__', 'Unnamed Context') or 'Root'}</td>
+                <td>${perm}</td>
+                <td>
+                    <% status = 'Upgradeable' if upgradeable else 'Denied' %>\
+                    ${'Allowed' if allowed else status}
+                </td>
+            </tr>
+            % endfor
+            <% ctx = getattr(ctx, '__parent__', None) %>
+        % endwhile
+    </tbody>
+</table>

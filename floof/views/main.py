@@ -96,7 +96,7 @@ def filestore(context, request):
 
 
     # Otherwise, we need to stream the whole file ourselves.  Ick.
-    if not request.registry.settings['super_debug']:
+    if not request.registry.settings['debug']:
         log.warn("Manually serving a file from storage; "
             "this is not what you want in production!")
     return Response(

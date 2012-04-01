@@ -23,7 +23,6 @@ from floof.lib.stash import manage_stashes
 from floof.model import filestore
 from floof.resource import FloofRoot
 
-import floof.lib.debugging
 import floof.lib.helpers
 import floof.model
 import floof.routing
@@ -43,10 +42,6 @@ def get_shim(name):
 
 
 class FloofRequest(Request):
-    def __init__(self, *args, **kwargs):
-        self.timer = floof.lib.debugging.RequestTimer()
-        super(FloofRequest, self).__init__(*args, **kwargs)
-
     @reify
     def auth(self):
         auth = Authenticizer(self)
@@ -122,37 +117,6 @@ def add_renderer_globals(event):
     """Add any globals that should be available to Mako."""
     event['h'] = floof.lib.helpers
 
-def start_template_timer(event):
-    """Inform the request's timer object to switch to recording rendering time.
-    """
-    event['request'].timer.switch_timer('mako')
-
-def flush_everything(event):
-    # XXX this is a hack to make the timer stuff not explode.  repoze.tm
-    # commits after the request has already gone away, which breaks it.  try
-    # flushing first so the commit doesn't trigger the sqla listeners.  :/
-    floof.model.session.flush()
-
-def log_timers(event):
-    """Log the state of the timers; for production when super_debug is off.
-    """
-    if not event.request.registry.settings.get('super_debug', False):
-        total_time = event.request.timer.total_time  # NB: this stops all timing
-
-        # Don't log if Mako doesn't appear to have been invoked, thus avoiding
-        # the logging of requests for static content
-        # TODO: Work out if this is too hackish as a criterion
-        if event.request.timer.timers.get('mako', timedelta(0)) <= timedelta(0):
-            return
-
-        t = []
-        for name, delta in event.request.timer.timers.iteritems():
-            t.append('{0}: {1}.{2:0>6}s'.format(
-                    name, delta.seconds, delta.microseconds))
-
-        log.debug('Request process times: TOTAL: {0}.{1:0>6}s, {2}'.format(
-            total_time.seconds, total_time.microseconds, ', '.join(t)))
-
 def prevent_csrf(event):
     """Require a CSRF token on all POST requests.
 
@@ -161,6 +125,7 @@ def prevent_csrf(event):
     request = event.request
     if (request.method == 'POST' and
         'paste.testing' not in request.environ and
+        not request.path.startswith('/_debug_toolbar/') and
         request.POST.get('csrf_token', None)
             != request.session.get_csrf_token()):
 
@@ -190,12 +155,7 @@ def main(global_config, **settings):
         engine, extension=ZopeTransactionExtension())
 
     # floof debug panel
-    settings['super_debug'] = asbool(settings.get('super_debug', False))
-    # Listeners to record query time, et al.
-    # XXX disable this normally; nobody cares about these stats but devs.  just
-    # show the stats to devs and make the debug thing optional.  (can these
-    # listeners even be enabled per-request?  if not, should we log the stats?)
-    floof.lib.debugging.attach_sqlalchemy_listeners(engine, settings['super_debug'])
+    settings['debug'] = asbool(settings.get('floof.debug', False))
 
     # Misc other crap
     settings['rating_radius'] = int(settings['rating_radius'])
@@ -223,10 +183,7 @@ def main(global_config, **settings):
     config.add_subscriber(prevent_csrf, NewRequest)
     config.add_subscriber(manage_stashes, NewRequest)
     config.add_subscriber(auto_privilege_escalation, ContextFound)
-    config.add_subscriber(start_template_timer, BeforeRender)
     config.add_subscriber(add_renderer_globals, BeforeRender)
-    config.add_subscriber(flush_everything, NewResponse)
-    config.add_subscriber(log_timers, NewResponse)
 
     floof.routing.configure_routing(config)
     config.scan(floof.views)
