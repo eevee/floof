@@ -125,16 +125,16 @@ def timezone_choices():
     The timezones are represented as tuple pairs of timezone name and a
     string representation of the current UTC offset.
     """
-    #TODO: Perfect for caching; the list is unlikely to change more than hourly.
+    # TODO: Perfect for caching; the list is unlikely to change more than hourly.
     tzs = []
-    now = datetime.utcnow()
+    now = datetime.utcnow().replace(tzinfo=pytz.utc)
     for tz_name in pytz.common_timezones:
-        offset = pytz.timezone(tz_name).utcoffset(now)
+        localnow = now.astimezone(pytz.timezone(tz_name))
+        offset = localnow.utcoffset()
         offset_real_secs = offset.seconds + offset.days * 24 * 60**2
         offset_hours, remainder = divmod(offset_real_secs, 3600)
         offset_minutes, _ = divmod(remainder, 60)
-        curr_time = now + offset
-        curr_time = curr_time.strftime('%a %H:%M')
+        curr_time = localnow.strftime('%a %H:%M')
         offset_txt = '(UTC {0:0=+3d}:{1:0>2d}) [{2}] {3}'.format(
                 offset_hours, offset_minutes, curr_time, tz_name)
         tzs.append((offset_real_secs, tz_name, offset_txt))
