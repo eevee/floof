@@ -58,19 +58,19 @@
 </%def>
 
 <%def name="write_form(form, resource, parent_comment=None)">
-${lib.secure_form(request.route_url('comments.reply' if parent_comment else 'comments.write', resource=resource, comment=parent_comment), method='POST')}
+<%lib:secure_form url="${request.route_url('comments.reply' if parent_comment else 'comments.write', resource=resource, comment=parent_comment)}">
 <p>${form.message(rows=25, cols=80)}</p>
 <p>
     <button type="submit">POST TO INTERNET</button>
 </p>
-${h.end_form()}
+</%lib:secure_form>
 </%def>
 
 <%def name="edit_form(form, resource, comment)">
-${lib.secure_form(request.route_url('comments.edit', resource=resource, comment=comment), method='POST')}
+<%lib:secure_form url="${request.route_url('comments.edit', resource=resource, comment=comment)}">
 <p>${form.message(rows=25, cols=80)}</p>
 <p>
     <button type="submit">Save Changes</button>
 </p>
-${h.end_form()}
+</%lib:secure_form>
 </%def>

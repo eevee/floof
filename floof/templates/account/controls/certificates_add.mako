@@ -19,7 +19,7 @@ $(document).ready(function() {
 
 <div class="clearfix">
 <div class="halfsplit left">
-    ${lib.secure_form(request.path_url)}
+    <%lib:secure_form>
     <h1 class="top-heading">Generate Certificate in Browser</h1>
     <dl class="standard-form">
         ${lib.field(browser_form.days)}
@@ -28,7 +28,7 @@ $(document).ready(function() {
             <button id="browser-gen-commit">Generate in Browser</button>
         </dd>
     </dl>
-    ${h.end_form()}
+    </%lib:secure_form>
 </div>
 <div class="halfsplit right">
     <p>This will cause your browser to generate and install a certificate
@@ -52,7 +52,7 @@ $(document).ready(function() {
 <div class="clearfix">
 <div class="halfsplit left">
     <h1>Generate Certificate on Server</h1>
-    ${lib.secure_form(request.route_url('controls.certs.generate_server', name=request.user.name))}
+    <%lib:secure_form url="${request.route_url('controls.certs.generate_server', name=request.user.name)}">
     <dl class="standard-form">
         ${lib.field(server_form.days)}
         ${lib.field(server_form.name)}
@@ -61,7 +61,7 @@ $(document).ready(function() {
             <button>Generate on Server</button>
         </dd>
     </dl>
-    ${h.end_form()}
+    </%lib:secure_form>
 </div>
 <div class="halfsplit right">
     <p>This will return a PKCS12 (.p12) certificate file for download and

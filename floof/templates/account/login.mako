@@ -34,9 +34,9 @@
     $(browseridOnClick('#browserid', '${path}'));
 </script>
 
-${lib.secure_form(request.route_url('account.register'), id='postform')}
+<%lib:secure_form url="${request.route_url('account.register')}" id="postform">
     ${h.tags.hidden('display_only', value='true')}
-${h.end_form()}
+</%lib:secure_form>
 
 <aside class="sidebar">
     <h1>How will this work?</h1>
@@ -61,7 +61,7 @@ ${h.end_form()}
 
 
 <h1>Alternative: Log in with OpenID</h1>
-${lib.secure_form(request.route_url('account.login_begin'))}
+<%lib:secure_form url="${request.route_url('account.login_begin')}">
     <div id="big-ol-openid-box">
         ${form.return_key() | n}
         <span class="text-plus-button">
@@ -69,7 +69,7 @@ ${lib.secure_form(request.route_url('account.login_begin'))}
             --><button>Log in</button>
         </span>
     </div>
-${h.end_form()}
+</%lib:secure_form>
 
 
 <%

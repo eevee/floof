@@ -16,9 +16,9 @@
     <p>You're already logged in as ${lib.user_link(request.user)}, and you're trying to identify as <code>${identity}</code>.</p>
     <p>You can link this to your account as a secondary identity.  That way, if you lose access to your main identity, you can still log in.</p>
 
-    ${lib.secure_form(request.route_url('account.add_identity'))}
+    <%lib:secure_form url="${request.route_url('account.add_identity')}">
     <p><button>Sounds good!  Link me up</button></p>
-    ${h.end_form()}
+    </%lib:secure_form>
 
     <p>Or did you want to create an entirely new account?</p>
 </section>
@@ -37,7 +37,7 @@
     <p>Confused?  Just leave "display name" blank, and you can worry about it later.</p>
 </aside>
 
-${lib.secure_form(request.route_url('account.register'), style="overflow: hidden;")}
+<%lib:secure_form url="${request.route_url('account.register')}" style="overflow: hidden;">
 <dl class="standard-form">
     <dt>Registering from</dt>
     <dd>
@@ -55,5 +55,5 @@ ${lib.secure_form(request.route_url('account.register'), style="overflow: hidden
 
     <dd><button type="submit">OK, register!</button></dd>
 </dl>
-${h.end_form()}
+</%lib:secure_form>
 </section>

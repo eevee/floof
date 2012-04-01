@@ -14,7 +14,7 @@
         Upload
     </h1>
 
-    ${lib.secure_form(request.path_url, multipart=True, id="upload-form")}
+    <%lib:secure_form multipart="${True}" id="upload-form">
     <div class="column-container">
         <section class="column">
             <div class="upload-block state-oldmode">
@@ -66,7 +66,7 @@
                 ## TODO thing to add a new label
             </dl>
         </section>
-    ${h.end_form()}
+    </%lib:secure_form>
 </section>
 
 ## TODO i probably want to go in the base template when upload works on every

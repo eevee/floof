@@ -26,11 +26,11 @@
     $(browseridOnClick('#browserid', '${request.route_path("controls.browserid.add")}'));
 </script>
 
-${lib.secure_form(request.route_url('controls.browserid.remove'))}
+<%lib:secure_form url="${request.route_url('controls.browserid.remove')}">
 <dl class="standard-form">
     ${lib.field(form.browserids)}
     <dd class="standard-form-footer">
         <button>Remove</button>
     </dd>
 </dl>
-${h.end_form()}
+</%lib:secure_form>

@@ -7,7 +7,7 @@
 <p>${lib.icon('exclamation', 'Warning!')}
 This control is intended for use by <strong>advanced users</strong> only.</p>
 
-${lib.secure_form(request.path_url)}
+<%lib:secure_form>
 <dl class="standard-form">
     ${lib.field(form.cert_auth)}
     <dd class="standard-form-footer">
@@ -33,4 +33,4 @@ option.  Some of them are listed below.</p>
     <li>Options that require certificates will be hidden until you select
     &quot;Allow for login&quot; and authenticate with a certificate.</l1>
 </ol>
-${h.end_form()}
+</%lib:secure_form>

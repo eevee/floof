@@ -74,14 +74,14 @@
                 <div class="rater-info"><span class="rater-num-ratings">${artwork.rating_count}</span> (<span class="rater-rating-sum">${rating_score or u'—'}</span>)</div>
                 <% rating_chars = [u'\u2b06', u'\u2022', u'\u2b07'] %>
                 % for r in range(len(rating_chars)):
-                    ${lib.secure_form(request.route_url('art.rate', artwork=artwork), class_="rater-form")}
+                    <%lib:secure_form url="${request.route_url('art.rate', artwork=artwork)}" class_="rater-form">
                         ${h.hidden(name="rating", value=(len(rating_chars) / 2 - r))}
                     % if current_rating == (len(rating_chars) / 2 - r):
                         ${h.submit(value=rating_chars[r], name="commit", disabled="disabled")}
                     % else:
                         ${h.submit(value=rating_chars[r], name="commit")}
                     % endif
-                    ${h.end_form()}
+                    </%lib:secure_form>
                 % endfor
             </noscript>
         % elif request.user:
@@ -107,13 +107,13 @@
         ('tags.remove', 'remove_tags', remove_tag_form), \
     ]:
     % if request.user.can(perm, request.context):
-    ${lib.secure_form(request.route_url('art.' + action, artwork=artwork))}
+    <%lib:secure_form url="${request.route_url('art.' + action, artwork=artwork)}">
     <p>
         ${form.tags.label()}:
         ${form.tags()}
         <button type="submit">Go</button>
     </p>
-    ${h.end_form()}
+    </%lib:secure_form>
     ${lib.field_errors(form.tags)}
     % endif
     % endfor

@@ -40,9 +40,9 @@
                     </a>
                     <menu>
                         <li>
-                            ${lib.secure_form(request.route_url('account.logout'))}
+                            <%lib:secure_form url="${request.route_url('account.logout')}">
                                 <div><button>Log out</button></div>
-                            ${h.end_form()}
+                            </%lib:secure_form>
                         </li>
                     </menu>
                 </li>

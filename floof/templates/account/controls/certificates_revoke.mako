@@ -5,7 +5,7 @@
 ${h.friendly_serial(cert.serial)}</%def>
 <%def name="panel_icon()">${lib.icon('key--minus')}</%def>
 
-${lib.secure_form(request.path_url)}
+<%lib:secure_form>
 <p>Are you absolutely sure that you wish to <strong>permanently revoke</strong>
 the certificate below?  You will no longer be able to log in with this
 certificate.<p>
@@ -44,4 +44,4 @@ ${form.cancel()}
     <dd><pre>${cert.details}</pre></dd>
 </dl>
 
-${h.end_form()}
+</%lib:secure_form>

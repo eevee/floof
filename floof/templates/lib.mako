@@ -91,10 +91,18 @@ ${user.display_name}</a> (${user.name})\
 </%def>
 
 
-## Standard form rendering
-<%def name="secure_form(*args, **kwargs)">
-${h.tags.form(*args, **kwargs)}
+#### Standard form rendering
+## This is a *wrapper* def; wrap your form with a <%lib:secure_form> block.
+## Default is to submit to the current page (explicitly, not via action="").
+<%def name="secure_form(url=None, **kwargs)">
+<%
+    if url is None:
+        url = request.path_url
+%>
+${h.tags.form(url=url, **kwargs)}
 ${h.tags.hidden('csrf_token', value=request.session.get_csrf_token(), id=None)}
+${caller.body()}
+${h.end_form()}
 </%def>
 
 <%def name="field(form_field, hint_text=None, **kwargs)">\

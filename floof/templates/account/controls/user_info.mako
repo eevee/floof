@@ -12,7 +12,7 @@ fields = [
         ]
 %>
 
-${lib.secure_form(request.path_url)}
+<%lib:secure_form>
 <dl class="standard-form">
     % for f in fields:
         <% field = form[f] %>\
@@ -27,4 +27,4 @@ ${lib.secure_form(request.path_url)}
         <button>Update</button>
     </dd>
 </dl>
-${h.end_form()}
+</%lib:secure_form>

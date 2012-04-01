@@ -5,7 +5,7 @@
 <%def name="panel_title()">Watch ${lib.user_link(target_user)}</%def>
 <%def name="panel_icon()">${lib.icon(u'user--plus')}</%def>
 
-${lib.secure_form(request.path_url)}
+<%lib:secure_form>
 ${h.tags.hidden(name=u'target_user', value=target_user.name)}
 <ul>
     <li><label>
@@ -31,17 +31,17 @@ ${h.tags.hidden(name=u'target_user', value=target_user.name)}
 </ul>
 
 <p><button type="submit" class="stylish-button confirm">Save</button></p>
-${h.end_form()}
+</%lib:secure_form>
 
 
 % if watch:
 <h2>Or...</h2>
-${lib.secure_form(request.route_url('controls.rels.unwatch'))}
+<%lib:secure_form url="${request.route_url('controls.rels.unwatch')}">
 ${h.tags.hidden(name=u'target_user', value=target_user.name)}
 <p>
     <label><input type="checkbox" name="confirm"> Unwatch entirely</label>
     <br>
     <button type="submit" class="stylish-button destroy">Yes, I'm sure!</button>
 </p>
-${h.end_form()}
+</%lib:secure_form>
 % endif
