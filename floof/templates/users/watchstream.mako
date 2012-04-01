@@ -4,5 +4,7 @@
 
 <%def name="title()">${target_user.display_name}'s watchstream</%def>
 
-<h1>${lib.user_link(target_user)} » Watchstream</h1>
-${artlib.render_gallery_sieve(artwork)}
+<section>
+    <h1>${lib.user_link(target_user)} » Watchstream</h1>
+    ${artlib.render_gallery_sieve(artwork)}
+</section>
