@@ -130,14 +130,15 @@ def timezone_choices():
     now = datetime.utcnow().replace(tzinfo=pytz.utc)
     for tz_name in pytz.common_timezones:
         localnow = now.astimezone(pytz.timezone(tz_name))
+
+        # The real seconds help us sort the TZ list
         offset = localnow.utcoffset()
         offset_real_secs = offset.seconds + offset.days * 24 * 60**2
-        offset_hours, remainder = divmod(offset_real_secs, 3600)
-        offset_minutes, _ = divmod(remainder, 60)
-        curr_time = localnow.strftime('%a %H:%M')
-        offset_txt = '(UTC {0:0=+3d}:{1:0>2d}) [{2}] {3}'.format(
-                offset_hours, offset_minutes, curr_time, tz_name)
+
+        offset_txt = localnow.strftime(
+                '(UTC %z) [%a %H:%M] {0}').format(tz_name)
         tzs.append((offset_real_secs, tz_name, offset_txt))
+
     tzs.sort()
     return [tz[1:] for tz in tzs]
 
