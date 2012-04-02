@@ -113,6 +113,9 @@ def configure_routing(config):
     r('debug.status.403', '/debug/403')
     r('debug.status.404', '/debug/404')
 
+    # Just some basic fuckery to find my way around Pyramid's routing
+    r('api.test', '/api')
+
     # Comments; made complex because they can attach to different parent URLs.
     # Rather than hack around how Pyramid's routes works, we can just use our
     # own class that does what we want!
