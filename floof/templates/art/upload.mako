@@ -47,7 +47,13 @@
                 ## Relationship stuff
                 % for field in form.relationship:
                 <dd>
-                    ${field() | n}
+                    % if field.data == u'by':
+                    ## for now, require that the uploader is the artist
+                    ${field(checked=True, disabled=True)}
+                    % else:
+                    ${field()}
+                    % endif
+
                     % if field.data == u'by':
                     ${lib.icon('paint-brush')}
                     % elif field.data == u'for':
@@ -55,7 +61,7 @@
                     % elif field.data == b'of':
                     ${lib.icon('camera')}
                     % endif
-                    ${field.label() | n}
+                    ${field.label()}
                 </dd>
                 % endfor
                 % if form.relationship.errors:

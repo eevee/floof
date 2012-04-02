@@ -77,7 +77,7 @@ class UploadPage(FormWorkflow):
         relationship = MultiCheckboxField(u'',
             choices=[
                 (u'by',  u"by me: I'm the artist; I created this!"),
-                (u'for', u"for me: I commissioned this, or it was a gift specifically for me"),
+                #(u'for', u"for me: I commissioned this, or it was a gift specifically for me"),
                 (u'of',  u"of me: I'm depicted in this artwork"),
             ],
         )
@@ -225,7 +225,8 @@ class UploadPage(FormWorkflow):
 
         # Associate the uploader as artist or recipient
         # Also as a participant if appropriate
-        for relationship in form.relationship.data:
+        # TODO remove this nuttery when commission uploading is a thing
+        for relationship in [u'by'] + form.relationship.data:
             artwork.user_artwork.append(
                 model.UserArtwork(
                     user_id = request.user.id,
