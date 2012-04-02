@@ -5,7 +5,7 @@ class TestMain(FunctionalTests):
     def test_index(self):
         """Test display of the front page."""
         response = self.app.get(self.url('root', my_thing='is_this'))
-        assert 'floof' in response.body
+        assert 'squiggle' in response.body
 
     def test_log(self):
         """Test display of the public admin log page."""

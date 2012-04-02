@@ -31,7 +31,7 @@ class TestArt(FunctionalTests):
             self.url('art.upload'),
             params=[
                 ('title', u"test title"),
-                ('relationship', u'by'),
+                #('relationship', u'by'),
                 ('relationship', u'of'),
             ],
             upload_files=(
@@ -87,7 +87,7 @@ class TestArt(FunctionalTests):
             self.url('art.upload'),
             params=[
                 ('title', u"test title"),
-                ('relationship', u'by'),
+                #('relationship', u'by'),
                 ('relationship', u'of'),
             ],
             upload_files=(
