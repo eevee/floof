@@ -107,6 +107,7 @@ def configure_routing(config):
     # Debugging
     r('debug.blank', '/debug/blank')
     r('debug.crash', '/debug/crash')
+    r('debug.mako-crash', '/debug/mako-crash')
     r('debug.status.303', '/debug/303')
     r('debug.status.400', '/debug/400')
     r('debug.status.403', '/debug/403')

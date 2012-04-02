@@ -32,3 +32,7 @@ def raise_404(context, request):
 @view_config(route_name='debug.crash')
 def crash(context, request):
     raise Exception()
+
+@view_config(route_name='debug.mako-crash', renderer='crash.mako')
+def mako_crash(context, request):
+    return {}
