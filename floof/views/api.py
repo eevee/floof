@@ -14,4 +14,18 @@ log = logging.getLogger(__name__)
         request_method='GET',
         renderer='api.test.mako')
 def apiview(request):
-    return dict(testout="Success.")
+    apiobj = APIResponse(request, return_type="xml")
+    if apiobj.is_valid():
+        return dict(testout="Success!")
+    else:
+        return dict(testout="Failure!")
+
+class APIResponse(object):
+    def __init__(self, request, return_type=''):
+        self.content_type = request.content_type
+        self.return_type = return_type
+    def is_valid(self):
+        if not '/xml' in self.content_type or not '/json' in self.content_type and return_type in self.content_type:
+            return False
+        else:
+            return True
