@@ -3,29 +3,29 @@ import logging
 
 from pyramid.view import view_config
 
+from pyramid import httpexceptions 
+
 from floof import model
 
 log = logging.getLogger(__name__)
 
-# TODO Now, the fun: return format determined by file extension or accepted headers
-# Methods executed by extraneous URIs "/api/delete/:id" or by request method GET, DELETE, etc.
+# A rule of three
+# The three most basic operations
+#
+#   1. Insert
+#   2. Modify
+#   3. Delete
+
 @view_config(
         route_name='api.test',
         request_method='GET',
-        renderer='api.test.mako')
-def apiview(request):
-    apiobj = APIResponse(request, return_type="xml")
-    if apiobj.is_valid():
-        return dict(testout="Success!")
-    else:
-        return dict(testout="Failure!")
+        renderer='json')
+def apiview(artwork, request):
+    return dict(testout=request.matchdict)
 
-class APIResponse(object):
-    def __init__(self, request, return_type=''):
-        self.content_type = request.content_type
-        self.return_type = return_type
-    def is_valid(self):
-        if not '/xml' in self.content_type or not '/json' in self.content_type and return_type in self.content_type:
-            return False
-        else:
-            return True
+@view_config(
+        route_name='api.test',
+        context=httpexceptions.HTTPNotFound,
+        renderer='json')
+def apierror(context, request):
+    return dict(testout='This should fucking work.')
