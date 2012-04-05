@@ -1,3 +1,5 @@
+@import "_lib";
+
 // Thumbnail grid, used basically everywhere art appears
 ul.thumbnail-grid {
     position: relative;
@@ -174,18 +176,27 @@ table.detailed-artwork-table {
 }
 
 .upload-block .-part-file-button {
+    position: absolute;
+    z-index: 1;  // stay above actual thumbnail etc
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin: 0;
     // XXX this is eyeballed, could use a better fix
     padding-top: 40px;
 }
 // I love me some state classes
 .upload-block.state-oldmode .-part-file-button,
 .upload-block.state-oldmode .-part-thumbnail,
-.upload-block.state-oldmode .-part-metadata {
+.upload-block.state-oldmode .-part-metadata,
+.upload-block.state-loading .-part-file-button {
     display: none;
 }
 // Do NOT display-none the file upload control; webkit won't allow JS to
 // trigger it.
 .upload-block.state-init .-part-file-field,
+.upload-block.state-loading .-part-file-field,
 .upload-block.state-ready .-part-file-field {
     height: 0;
     width: 0;
@@ -194,6 +205,20 @@ table.detailed-artwork-table {
 // These parts are just hidden, so the page doesn't reflow when they become
 // visible
 .upload-block.state-init .-part-upload,
-.upload-block.state-init .-part-metadata {
+.upload-block.state-init .-part-metadata,
+.upload-block.state-loading .-part-upload,
+.upload-block.state-loading .-part-metadata {
     visibility: hidden;
+}
+// While a thumbnail is showing, hide the button, BUT show it again on hover to
+// allow picking a new image
+.upload-block.state-ready .-part-file-button {
+    opacity: 0;
+    @include transition(opacity 0.2s linear);
+    // same as -part-thumbnail background
+    background: #f4f4f4;
+    background: rgba(#f4f4f4, 0.5);
+}
+.upload-block.state-ready .-part-thumbnail:hover .-part-file-button {
+    opacity: 1;
 }

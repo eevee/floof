@@ -110,6 +110,10 @@ $.extend(UploadController.prototype, {
 
         var SIZE = 160;
 
+        // Remove any existing thumbnail first.
+        // TODO multi-image concerns
+        this_controller.$thumbnail_container.find('canvas').remove();
+
         $.each(files, function(idx, file) {
             // Skip non-images.
             // TODO this needs some kinda feedback message, and it will need to
@@ -120,7 +124,7 @@ $.extend(UploadController.prototype, {
 
             // Show a loading thing in the thumbnail box
             // TODO multi-image concern here
-            this_controller.$thumbnail_container.empty();
+            this_controller.set_state('loading');
             this_controller.$thumbnail_container.append($('<div class="throbber"/>'));
 
             // Create an anon Image object; this will decode the image, then
@@ -187,7 +191,7 @@ $.extend(UploadController.prototype, {
                 this_controller.files = [];
                 this_controller.files.push(file);
 
-                this_controller.$thumbnail_container.empty();
+                this_controller.$thumbnail_container.find('.throbber').remove();
                 this_controller.$thumbnail_container.append($canvas);
 
                 this_controller.set_state('ready');

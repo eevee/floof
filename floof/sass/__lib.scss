@@ -49,6 +49,14 @@
     transform: $raw-def;
 }
 
+@mixin transition($def) {
+    $raw-def: $def;
+    -moz-transition: $raw-def;
+    -webkit-transition: $raw-def;
+    -o-transition: $raw-def;
+    -ms-transition: $raw-def;  // IE10, but still..!
+    transition: $raw-def;
+}
 @mixin transition-property($def) {
     $raw-def: $def;
     -moz-transition-property: $raw-def;
