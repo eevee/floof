@@ -9,7 +9,7 @@
     email = user.email or ''
     hash = hashlib.md5(email.lower()).hexdigest()
 %>\
-<img src="https://secure.gravatar.com/avatar/${hash}?r=r&s=${size}&d=mm" />\
+<img src="https://secure.gravatar.com/avatar/${hash}?r=r&s=${size}&d=mm" class="avatar">\
 </%def>
 
 <%def name="icon(which, alt='')">\

@@ -62,7 +62,7 @@ body > header {
         ));
 
         > menu > li > a,
-        #user a {
+        #user > li > a {
             display: block;
             padding: 0 1em;
 
@@ -79,7 +79,7 @@ body > header {
         #user {
             float: right;
 
-            img {
+            img.avatar {
                 height: 2em;
                 max-width: 2em;
                 margin: 0 -1em 0 1em;
@@ -106,22 +106,33 @@ body > header {
                 > menu {
                     display: none;
                     position: absolute;
-                    z-index: 9999;
-                    width: 10em;
-                    padding: 0.5em;
+                    z-index: 9999;  // i fuckin mean it man
+                    min-width: 8em;
                     right: 0;
                     top: 2em;
-                    margin-top: 1px;
 
-                    background: hsla(0, 0%, 30%, 0.9);
-                    border: 1px solid hsla(0, 0%, 30%, 1.0);
+                    background: hsl(0, 0%, 50%);
+                    border: 1px solid hsl(0, 0%, 30%);
                     border-top: none;
                     @include box-shadow(2px 2px 3px #e0e0e0);
 
                     > li {
+                        line-height: normal;
+                        text-align: right;
+                        white-space: nowrap;
+
+                        > a {
+                            display: block;
+                            padding: 0.33em 0.5em;
+                            @include transition(background-color 0.2s linear);
+
+                            &:hover {
+                                background: hsl(216, 30%, 50%);
+                            }
+                        }
                         button {
-                            width: 100%;
-                            text-align: left;
+                            width: 12em;
+                            margin: 0.25em 0.33em;
                             @include box-sizing(margin-box);
                         }
                     }
@@ -606,6 +617,13 @@ ol.pager {
 
 ////////////////////////////////////////////////////////////////////////////////
 // App-specific components
+
+// Login (browserid) stuff
+.browserid > img {
+    // This is a measurement of the "sign in" image; it aligns the text on the
+    // image with the baseline
+    vertical-align: -6px;
+}
 
 // Cool button-like link to a user.  Not really finished
 .user-panel {

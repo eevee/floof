@@ -95,7 +95,10 @@ def account_login_browserid(context, request):
         next_url = request.route_url('account.login')
         if return_key is not None:
             next_url = update_params(next_url, return_key=return_key)
-        return {'next_url': next_url}
+        return {
+            'status': 'redirect',
+            'redirect-to': next_url,
+        }
 
     ## Verify the identity assertion
 
@@ -119,8 +122,10 @@ def account_login_browserid(context, request):
     if not identity_email:
         # New user or new ID
         request.session['pending_identity_email'] = email
-        return {'next_url': request.route_url('account.register'),
-                'post_id': 'postform'}
+        return {
+            'status': 'redirect',
+            'redirect-to': request.route_url('account.register'),
+        }
 
     ## Attempt to log in
 
@@ -155,15 +160,20 @@ def account_login_browserid(context, request):
                 next_url = update_params(old_url, return_key=return_key)
                 log.debug('Following Return Key \'{0}\' to URL: {1}'
                           .format(return_key, next_url))
-                return {'next_url': next_url}
+                return {
+                    'status': 'redirect',
+                    'redirect-to': next_url,
+                }
 
-        return {'next_url': request.route_url('root')}
+    else:
+        # Existing user; new login
+        request.session.flash(
+                'Logged in with BrowserID', level=u'success', icon='user')
 
-    # Existing user; new login
-    request.session.flash(
-            'Logged in with BrowserID', level=u'success', icon='user')
-
-    return {'next_url': request.route_url('root')}
+    return {
+        'status': 'redirect',
+        'redirect-to': request.route_url('root'),
+    }
 
 
 @view_config(
@@ -388,8 +398,7 @@ class RegistrationForm(wtforms.form.Form):
 
 
 @view_config(
-    route_name='account.register',
-    request_method='POST')
+    route_name='account.register')
 def register(context, request):
     def clear_pending():
         request.session.pop('pending_identity_email', None)
@@ -421,15 +430,9 @@ def register(context, request):
     if identity_email and browserid_q.count():
         return bail()
 
-    # display_only for use with BrowserID since it can only redirect or POST,
-    # not display a page directly (because it's all AJAX).
-    display_only = request.params.get('display_only')
-    if display_only:
-        form = RegistrationForm(email=identity_email)
-    else:
-        form = RegistrationForm(request.POST)
+    form = RegistrationForm(request.POST)
 
-    if display_only or not form.validate():
+    if request.method != 'POST' or not form.validate():
         return render_to_response('account/register.mako', {
                 'form': form,
                 'identity_email': identity_email,

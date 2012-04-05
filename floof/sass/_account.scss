@@ -1,13 +1,15 @@
 @import "_colors";
 
+#big-ol-browserid-box,
 #big-ol-openid-box {
-    font-size: 2em;
+    font-size: 1.33em;
     margin-bottom: 1em;
     text-align: center;
 
 }
 
 
+// TODO make this work more generally and get it out of here (archetype?)
 .text-plus-button {
     input[type="text"],
     input[type="search"] {
@@ -22,8 +24,8 @@
 
 
 #big-ol-openid-box--field {
-    background: transparent url(/icons/openid.png) no-repeat 10px center;
-    padding-left: 34px;
+    background: transparent url(/icons/openid.png) no-repeat 4px center;
+    padding-left: 24px;
 }
 
 

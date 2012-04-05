@@ -5,12 +5,24 @@
     <title>${self.title()} - ${request.registry.settings['site_title']}</title>
     <meta charset="utf-8" />
     <link rel="stylesheet" type="text/css" href="${request.static_url('floof:public/css/all.css')}">
+    ${h.javascript_link('https://browserid.org/include.js', async=True)}
     ${h.javascript_link(request.static_url('floof:public/js/lib/jquery-1.7.2.min.js'))}
     ${h.javascript_link(request.static_url('floof:public/js/lib/jquery.cookie.js'))}
+    ${h.javascript_link(request.static_url('floof:public/js/browserid.js'))}
 
     ## Allow templates to define their script dependencies to include in head
     ${self.script_dependencies()}
-    <script type="text/javascript">var csrf_token="${request.session.get_csrf_token()}";</script>
+
+    ## Super-duper JS globals -- important stuff only please
+    <script type="text/javascript">
+        <%! import json %>
+        window.floofdata = ${json.dumps(dict(
+            csrf_token=request.session.get_csrf_token(),
+            browserid_url=h.update_params(
+                request.route_path("account.browserid.login"),
+                return_key=request.params.get('return_key')),
+        )) | n};
+    </script>
 </head>
 <body>
     <header>
@@ -18,16 +30,6 @@
             <a id="site-title" href="${request.route_url('root')}">${request.registry.settings['site_title']}</a>
         </div>
         <nav>
-        <!--
-            <div id="user">
-                ## XXX merge these
-                ## XXX add and style logout
-                ## XXX the column+section stuff is kinda grody
-                ## XXX thereis a bunch of -moz- crap all over
-                <span><a href="/users/eevee">eevee<img src="https://secure.gravatar.com/avatar/2c87a0857f4e3910154bc17a8f807b60"></a></span>
-                <span><a href="/account/login">log in / register</a></span>
-            </div>
-            -->
             <menu id="user">
             % if request.user:
                 <li>
@@ -43,7 +45,15 @@
                     </menu>
                 </li>
             % else:
-                <li><a href="${request.route_url('account.login')}">Log in or register</a></li>
+                <li>
+                    <a href="${request.route_url('account.login')}" class="browserid">
+                        <img src="https://browserid.org/i/sign_in_blue.png" alt="Sign in with BrowserID" title="Sign in with BrowserID">
+                        or register
+                    </a>
+                    <menu>
+                        <li><a href="${request.route_url('account.login')}">More details</a></li>
+                    </menu>
+                </li>
             % endif
             </menu>
             <menu>
