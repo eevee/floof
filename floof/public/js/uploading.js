@@ -195,9 +195,11 @@ $.extend(UploadController.prototype, {
 
             // Read the file as a data: URL and attach it to the Image
             var reader = new FileReader();
-            reader.addEventListener('load', function(evt) {
+            // NOTE: as of this writing (apr '12), webkit doesn't support
+            // addEventListener on FileReader objects
+            reader.onload = function(evt) {
                 img.src = evt.target.result;
-            });
+            };
 
             reader.readAsDataURL(file);
 

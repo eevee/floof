@@ -180,10 +180,16 @@ table.detailed-artwork-table {
 // I love me some state classes
 .upload-block.state-oldmode .-part-file-button,
 .upload-block.state-oldmode .-part-thumbnail,
-.upload-block.state-oldmode .-part-metadata,
+.upload-block.state-oldmode .-part-metadata {
+    display: none;
+}
+// Do NOT display-none the file upload control; webkit won't allow JS to
+// trigger it.
 .upload-block.state-init .-part-file-field,
 .upload-block.state-ready .-part-file-field {
-    display: none;
+    height: 0;
+    width: 0;
+    overflow: hidden;
 }
 // These parts are just hidden, so the page doesn't reflow when they become
 // visible
