@@ -54,7 +54,7 @@ def error403(context, request):
     return _error_view(context, request,
                        default_message="I'm afraid I can't let you do that",
                        outstanding_principals=outstanding)
-
+                       
 @view_config(
     context=httpexceptions.HTTPNotFound,
     renderer='error.mako')
@@ -62,7 +62,6 @@ def error404(context, request):
     # XXX this can probably be improved
     return _error_view(context, request,
         default_message=u"No such number // no such zone  ♪")
-
 
 @view_config(
     context=NoCookiesError,
