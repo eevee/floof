@@ -114,8 +114,8 @@ def configure_routing(config):
     r('debug.status.404', '/debug/404')
 
     # Just some basic fuckery to find my way around Pyramid's routing
-    kw = sqla_route_options('artwork', 'id', model.Artwork.id)
-    r('api.test', '/api/{id}', **kw)
+    # kw = sqla_route_options('artwork', 'id', model.Artwork.id)
+    r('api.art.browse', '/api/art')
 
     # Comments; made complex because they can attach to different parent URLs.
     # Rather than hack around how Pyramid's routes works, we can just use our
