@@ -113,9 +113,26 @@ def configure_routing(config):
     r('debug.status.403', '/debug/403')
     r('debug.status.404', '/debug/404')
 
-    # Just some basic fuckery to find my way around Pyramid's routing
-    # kw = sqla_route_options('artwork', 'id', model.Artwork.id)
+    # API - Art
+    kw = sqla_route_options('artwork', 'id', model.Artwork.id)
     r('api.art.browse', '/api/art')
+    r('api.art.browse.page', '/api/art/{page:\d+}')
+    r('api.art.view', '/api/art/{id}', **kw)
+
+    # API - User
+    kw = sqla_route_options('user', 'name', model.User.name)
+    r('api.users.view', '/api/users/{name}', **kw)
+    r('api.users.user_index', '/api/users/{name}/labels', **kw)
+    r('api.users.watchstream', '/api/users/{name}/watchstream', **kw)
+    # Not implemented because not in use or regular implementation is broken
+    # r('api.users.profile', '/api/users/{name}/profile', **kw)
+    # r('api.users.art_by_label', '/api/users/{name}/art/{label}', **kw)
+
+    # API - Tags
+    kw = sqla_route_options('tag', 'name', model.Tag.name)
+    r('api.tags.list', '/api/tags')
+    r('api.tags.view', '/api/tags/{name}', **kw)
+    r('api.tags.artwork', '/api/tags/{name}/artwork', **kw)
 
     # Comments; made complex because they can attach to different parent URLs.
     # Rather than hack around how Pyramid's routes works, we can just use our
