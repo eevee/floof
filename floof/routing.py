@@ -116,8 +116,7 @@ def configure_routing(config):
     # API - Art
     kw = sqla_route_options('artwork', 'id', model.Artwork.id)
     r('api.art.browse', '/api/art')
-    r('api.art.browse.page', '/api/art/{page:\d+}')
-    r('api.art.view', '/api/art/{id}', **kw)
+    r('api.art.view', '/api/art/{id:\d+}{title:(-.+)?}', **kw)
 
     # API - User
     kw = sqla_route_options('user', 'name', model.User.name)
