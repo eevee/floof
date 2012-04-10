@@ -21,7 +21,6 @@ class PyTest(Command):
             self.config = os.path.abspath(self.config)
 
     def run(self):
-        import sys
         from subprocess import call
 
         testdir = os.path.join(HERE, 'floof', 'tests')

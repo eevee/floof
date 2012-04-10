@@ -1,13 +1,13 @@
 # encoding: utf8
 import logging
 
-from pyramid.httpexceptions import HTTPForbidden
 from pyramid.view import view_config
 
-from floof import model
 from floof.lib.gallery import GallerySieve
 
+
 log = logging.getLogger(__name__)
+
 
 @view_config(
     route_name='labels.user_index',

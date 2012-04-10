@@ -5,7 +5,6 @@ from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.view import view_config
 import wtforms
 
-from floof import model
 from floof.forms import DisplayNameField, IDNAField, TimezoneField
 from floof.lib.helpers import reduce_display_name
 

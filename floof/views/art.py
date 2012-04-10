@@ -5,7 +5,7 @@ import hashlib
 import logging
 
 import magic
-from pyramid.httpexceptions import HTTPBadRequest, HTTPSeeOther, WSGIHTTPException
+from pyramid.httpexceptions import HTTPBadRequest, HTTPSeeOther
 from pyramid.view import view_config, view_defaults
 import wtforms.form, wtforms.fields, wtforms.validators
 

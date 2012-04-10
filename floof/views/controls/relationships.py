@@ -23,7 +23,6 @@ def relationships(context, request):
     q = model.session.query(model.UserWatch) \
         .with_parent(request.user) \
         .order_by(model.UserWatch.created_time.desc())
-    watches = q.all()
 
     return {
         'watches': q.all(),
@@ -112,7 +111,7 @@ def relationships_unwatch_commit(context, request):
     target_user = model.session.query(model.User) \
         .filter_by(name=target_username).one()
     if not target_user:
-        abort(404)
+        raise NotFound()
 
     if not request.POST.get('confirm', False):
         # XXX better redirect whatever

@@ -10,33 +10,14 @@ __copyright__ = 'Copyright 2005-2008, Janrain, Inc.'
 from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 from urlparse import urlparse
 
-import time
-import Cookie
 import cgi
-import cgitb
 import sys
-
-def quoteattr(s):
-    qs = cgi.escape(s, 1)
-    return '"%s"' % (qs,)
-
-try:
-    import openid
-except ImportError:
-    sys.stderr.write("""
-Failed to import the OpenID library. In order to use this example, you
-must either install the library (see INSTALL in the root of the
-distribution) or else add the library to python's import path (the
-PYTHONPATH environment variable).
-
-For more information, see the README in the root of the library
-distribution.""")
-    sys.exit(1)
 
 from openid.extensions import sreg
 from openid.server import server
 from openid.store.filestore import FileOpenIDStore
 from openid.consumer import discover
+
 
 class OpenIDHTTPServer(HTTPServer):
     """

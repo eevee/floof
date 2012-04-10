@@ -57,7 +57,7 @@ def resolve_webfinger(address):
     except HTTPError:
         raise OpenIDError(
             "It doesn't look like '{0}' supports webfinger.".format(domain))
-    except Exception as exc:
+    except Exception:
         raise OpenIDError(
             "Something hilariously broken happened and I don't know what.  Sorry.  :(")
 
@@ -123,7 +123,6 @@ def openid_end(return_url, request):
     """Step two of logging in; the OpenID provider redirects back here."""
 
     cons = Consumer(session=request.session, store=openid_store)
-    host = request.headers['host']
     params = request.params
 
     if 'return_key' in params and not key_from_request(request):

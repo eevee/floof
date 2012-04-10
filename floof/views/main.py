@@ -3,7 +3,6 @@ import urllib2
 
 from sqlalchemy.orm.exc import NoResultFound
 from pyramid.exceptions import NotFound
-from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.response import Response
 from pyramid.view import view_config
 

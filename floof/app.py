@@ -1,4 +1,3 @@
-from datetime import timedelta
 import logging
 import os
 import subprocess
@@ -7,9 +6,8 @@ from pyramid_beaker import session_factory_from_settings
 from pyramid.authorization import ACLAuthorizationPolicy
 from pyramid.config import Configurator
 from pyramid.decorator import reify
-from pyramid.events import BeforeRender, ContextFound, NewRequest, NewResponse
+from pyramid.events import BeforeRender, ContextFound, NewRequest
 from pyramid.request import Request
-from pyramid.security import has_permission
 from pyramid.settings import asbool
 from sqlalchemy import engine_from_config
 import transaction
