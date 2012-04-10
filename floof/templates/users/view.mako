@@ -34,7 +34,7 @@
             </div>
             ##</a>
             <div class="user-activity-date">${lib.time(artwork.uploaded_time)}</div>
-            <a href="${request.route_url('art.view', artwork=artwork)}">${artwork.title}</a><br>
+            <a href="${request.route_url('art.view', artwork=artwork)}">${artwork.resource_title}</a><br>
             new art <strong>${action.relationship_type}</strong> ${target_user.display_name}<br>
         </li>
         % endfor
