@@ -78,7 +78,7 @@ class TestAccountViews(UnitTests):
             flashes = request.session['_f_']
             assert len(flashes) == 1
             assert flash_msg in flashes[0]
-            assert response['next_url'] == next_url
+            assert response['redirect-to'] == next_url
 
         audience = 'https://mysite.example.org'
         self.config.add_settings({'auth.browserid.audience': audience})

@@ -55,7 +55,7 @@ class TestAccount(FunctionalTests):
                )
 
         response = self.app.get(self.url('root'))
-        assert 'Log in or register' in response, 'Page does not appear logged out even when no auth data should be present.'
+        assert 'or register' in response, 'Page does not appear logged out even when no auth data should be present.'
 
         user = model.session.query(model.User).filter_by(id=self.user.id).one()
         assert len(user.certificates) == 1, 'Expected user to have exactly one certificate, found {0}. (Test setup error)'.format(len(user.certificates))
@@ -74,7 +74,7 @@ class TestAccount(FunctionalTests):
                     response = self.app.post(self.url('account.logout'))
                     response = self.app.get(self.url('root'), extra_environ=extra)
 
-                    if 'Log in or register' in response:
+                    if 'or register' in response:
                         assert result == 'logged_out', 'Wound up in state "logged_out", wanted "{0}", for cert_auth "{1}" with authed mechanisms: {2}'.format(result, cert_auth, mech_combo)
                     else:
                         assert result == 'logged_in', 'Wound up in state "logged_in", wanted "{0}", for cert_auth "{1}" with authed mechanisms: {2}'.format(result, cert_auth, mech_combo)
