@@ -107,6 +107,7 @@ def browserid(context, request):
     return {'form': form}
 
 
+# XXX: Currently not being hit by the BrowserID address addition flow.
 def browserid_add(context, request):
     next_url = request.route_url('controls.browserid')
 

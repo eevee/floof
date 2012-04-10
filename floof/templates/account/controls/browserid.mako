@@ -5,10 +5,6 @@
 <%def name="panel_title()">BrowserID Identity Settings</%def>
 <%def name="panel_icon()">${lib.icon('user')}</%def>
 
-<%def name="script_dependencies()">
-    ${h.javascript_link(request.static_url('floof:public/js/browserid.js'))}
-</%def>
-
 <noscript>
     <p>It looks like you don't have Javascript enabled for this site.</p>
     <p>Unfortunately, BrowserID requires Javascript to work.</p>
@@ -16,15 +12,11 @@
 <dl class="standard-form">
     <dt>New BrowserID</dt>
     <dd>
-        <a href="#" id="browserid" title="Sign-in with BrowserID to add a new email address to this account">
-            <img src="https://browserid.org/i/sign_in_blue.png" alt="Sign in to add a new identity" />
+        <a href="${request.route_url('account.login')}" class="browserid" title="Sign-in with BrowserID to add a new email address to this account">
+            <img src="https://browserid.org/i/sign_in_blue.png" alt="Sign in to add a new email address identity" />
         </a>
     </dd>
 </dl>
-<script src="https://browserid.org/include.js" async></script>
-<script type="text/javascript">
-    $(browseridOnClick('#browserid', '${request.route_path("controls.browserid.add")}'));
-</script>
 
 <%lib:secure_form url="${request.route_url('controls.browserid.remove')}">
 <dl class="standard-form">
