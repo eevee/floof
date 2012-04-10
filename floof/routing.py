@@ -113,26 +113,6 @@ def configure_routing(config):
     r('debug.status.403', '/debug/403')
     r('debug.status.404', '/debug/404')
 
-    # API - Art
-    kw = sqla_route_options('artwork', 'id', model.Artwork.id)
-    r('api.art.browse', '/api/art')
-    r('api.art.view', '/api/art/{id:\d+}{title:(-.+)?}', **kw)
-
-    # API - User
-    kw = sqla_route_options('user', 'name', model.User.name)
-    r('api.users.view', '/api/users/{name}', **kw)
-    r('api.users.user_index', '/api/users/{name}/labels', **kw)
-    r('api.users.watchstream', '/api/users/{name}/watchstream', **kw)
-    # Not implemented because not in use or regular implementation is broken
-    # r('api.users.profile', '/api/users/{name}/profile', **kw)
-    # r('api.users.art_by_label', '/api/users/{name}/art/{label}', **kw)
-
-    # API - Tags
-    kw = sqla_route_options('tag', 'name', model.Tag.name)
-    r('api.tags.list', '/api/tags')
-    r('api.tags.view', '/api/tags/{name}', **kw)
-    r('api.tags.artwork', '/api/tags/{name}/artwork', **kw)
-
     # Comments; made complex because they can attach to different parent URLs.
     # Rather than hack around how Pyramid's routes works, we can just use our
     # own class that does what we want!
@@ -198,6 +178,31 @@ def configure_routing(config):
     r('comments.view', '/{type}/{identifier}/comments/{comment_id}', factory=comments_factory, pregenerator=comments_pregenerator)
     r('comments.edit', '/{type}/{identifier}/comments/{comment_id}/edit', factory=comments_factory, pregenerator=comments_pregenerator)
     r('comments.reply', '/{type}/{identifier}/comments/{comment_id}/write', factory=comments_factory, pregenerator=comments_pregenerator)
+
+    # API - Art
+    kw = sqla_route_options('artwork', 'id', model.Artwork.id)
+    r('api.art.browse', '/api/art')
+    r('api.art.view', '/api/art/{id:\d+}{title:(-.+)?}', **kw)
+
+    # API - Comments
+    r('api.comments.list', '/api/{type}/{identifier}/comments', factory=comments_factory)
+    r('api.comments.view', '/api/{type}/{identifier}/comments/{comment_id}', factory=comments_factory, pregenerator=comments_pregenerator)
+
+    # API - Users
+    kw = sqla_route_options('user', 'name', model.User.name)
+    r('api.users.view', '/api/users/{name}', **kw)
+    r('api.users.user_index', '/api/users/{name}/labels', **kw)
+    r('api.users.watchstream', '/api/users/{name}/watchstream', **kw)
+    # Not implemented because not in use or regular implementation is broken
+    # r('api.users.profile', '/api/users/{name}/profile', **kw)
+    # r('api.users.art_by_label', '/api/users/{name}/art/{label}', **kw)
+
+    # API - Tags
+    kw = sqla_route_options('tag', 'name', model.Tag.name)
+    r('api.tags.list', '/api/tags')
+    r('api.tags.view', '/api/tags/{name}', **kw)
+    r('api.tags.artwork', '/api/tags/{name}/artwork', **kw)
+
 
 class SugarRouter(object):
     """Glues routing to the ORM.
