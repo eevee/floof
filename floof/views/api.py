@@ -140,6 +140,14 @@ def artwork_dict(request, artwork):
 
 
 def user_dict(request, target_user):
+    """Used for watchstream
+
+    ``request``:
+        Request the comment is being generated for; passed to time() function for comment timedate string
+
+    ``target_user``:
+        Target user to fetch watchstream for
+    """
     activity = model.session.query(model.UserArtwork).with_parent(target_user).join(model.UserArtwork.artwork).order_by(model.Artwork.uploaded_time.desc()).limit(20)
     artwork_list = []
 
@@ -149,13 +157,14 @@ def user_dict(request, target_user):
     return dict(name=target_user.name,
                 name_display=target_user.display_name,
                 artwork=artwork_list)
-
-
+                
 
 # -------- API.ART.BROWSE --------
 
 @view_config(route_name='api.art.browse', renderer='json')
 def api_art_browse(request):
+    # Pagenum will be used, depending on what the other devs want, to call
+    # the other pages generated from the art.browse route. No GET variable required.
     pagenum = 0
     artworks_list = []
     gallery_sieve = GallerySieve(user=request.user, formdata=request.GET)
@@ -193,7 +202,6 @@ def api_users_view_notfound(request):
 def api_users_view(target_user, request):
     return api_json_response(request, user_dict(request, target_user))
 
-
 # -------- API.USERS.WATCHSTREAM --------
 
 @notfound_view_config(route_name='api.users.watchstream', renderer='json')
@@ -212,7 +220,6 @@ def api_users_watchstream(target_user, request):
         watched_artwork_list.append(dict(id=artwork.id, title=artwork.title))
     
     return api_json_response(request, dict(artworks=watched_artwork_list, count=watches_sieve.query.count()))
-
 
 # -------- API.TAGS.LIST --------
 
@@ -253,12 +260,12 @@ def api_tags_artwork(tag, request):
 
     return api_json_response(request, dict(artworks=artworks_list, count=tag_artworks.count()))
 
-
 # -------- API.COMMENTS.LIST --------
 
 # TODO Comments
 # XXX This is a land of fuckery that I do not wish to enter
-# People are going to have to know directory traversal techniques for this object to work
+# People are going to have to know directory traversal techniques for this object to work out
+# Replies of replies of replies
 
 @notfound_view_config(route_name='api.comments.list', renderer='json')
 def api_comments_list_notfound(request):
@@ -267,7 +274,8 @@ def api_comments_list_notfound(request):
 
 @view_config(route_name='api.comments.list', renderer='json')
 def api_comments_list(discussion, request):
-    pass
+    set_response_notfound(request)
+    return api_json_response(request, None)
 
 # -------- API.COMMENTS.VIEW --------
 
@@ -278,4 +286,5 @@ def api_comments_view_notfound(request):
 
 @view_config(route_name='api.comments.view', renderer='json')
 def api_comments_view(comment, request):
-    pass
+    set_response_notfound(request)
+    return api_json_response(request, None)
