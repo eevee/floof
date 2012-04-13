@@ -1,9 +1,7 @@
 # encoding: utf8
-import re
 import logging
-from datetime import datetime
 
-from pyramid.view import view_config
+from pyramid.view import view_config, view_defaults
 from pyramid.view import notfound_view_config
 from pyramid import httpexceptions
 
@@ -12,63 +10,6 @@ from floof.lib.pager import DiscretePager
 from floof import model
 
 log = logging.getLogger(__name__)
-
-
-def api_json_response(request, responsedict):
-    """Extremely simple function that returns a standardized API JSON response
-
-    HEADS UP: To have your responsedict rendered as empty, every key`s value must be None or responsedict must be None.
-
-    ``request``:
-        The request this is to be sent for
-    ``responsedict``:
-        The data you wish to display as a python dictionary
-
-    Standard response format:
-        head: Contains status code and affiliated message
-        body: Contains response content
-    """
-
-    httpstatusmsg = re.sub(r'\A\d+\s*', "", request.response.status)
-    httpstatuscode = request.response.status_int
-
-    # If the responsedict is empty, body should be empty.
-    if responsedict:
-        empty_flag = True
-
-        for kvpair in responsedict.items():
-            if kvpair[1] is not None:
-                empty_flag = False
-
-        if empty_flag:
-            responsedict = None
-
-    return dict(head={'status_int':httpstatuscode, 'status_msg':httpstatusmsg}, response=responsedict)
-
-
-def time(request, t):
-    """Return time string for given datetime `t`; this is the same function that`s used on the template pages
-
-    ``request``:
-        Request time is being gathered for
-
-    ``t``:
-        Datetime to create string for
-    """
-
-    return request.user.localtime(t).strftime('%A, %d %B %Y at %H:%M %Z')
-
-
-def set_response_notfound(request):
-    """Pass in a request and this small utility changes its status code and message to `404 Not Found`
-
-    ``request``:
-        The request you need to change the status headers for.
-    """
-
-    request.response.status = u'404 Not Found'
-    request.response.status_int = 404
-    return request
 
 
 def tags_list(artwork):
@@ -84,37 +25,31 @@ def tags_list(artwork):
     return return_list
 
 
-def comment_dict(request, comment):
+def comment_dict(comment):
     """Pass in a comment object and this generates a standard comment dictionary for it
 
     Best use-case: generating comment list
-
-    ``request``:
-        Request the comment is being generated for; passed to time() function for comment timedate string
 
     ``comment``:
         Comment object used to create the dictionary
     """
 
-    comment_timedate = time(request, comment.posted_time)
     return dict(id=comment.id,
                 author=comment.author.name,
                 author_display=comment.author.display_name,
                 content=comment.content,
-                timedate=comment_timedate)
+                timedate=comment.posted_time.isoformat())
 
 
-def artwork_dict(request, artwork):
+def artwork_dict(artwork, request):
     """Pass in an artwork object and this generates a standard artwork dictionary for it
-
-    ``request``:
-        Request the comment is being generated for; passed to time() function for comment timedate string
 
     ``artwork``:
         Artwork object used to create dictionary
+    ``request``:
+        The request this is to be sent for; used to generate URLs
     """
     rating = artwork.rating_score
-    upload_timedate = time(request, artwork.uploaded_time)
     artists = artwork.user_artwork
     artist_list = []
 
@@ -129,7 +64,7 @@ def artwork_dict(request, artwork):
                 rating=rating or 0,
                 tags=tags_list(artwork) or None,
                 remark=artwork.remark or None,
-                timedate=upload_timedate,
+                timedate=artwork.uploaded_time.isoformat(),
                 filename=artwork.filename,
                 filename_old=artwork.original_filename,
                 filesize=artwork.file_size,
@@ -142,9 +77,6 @@ def artwork_dict(request, artwork):
 def user_dict(request, target_user):
     """Used for watchstream
 
-    ``request``:
-        Request the comment is being generated for; passed to time() function for comment timedate string
-
     ``target_user``:
         Target user to fetch watchstream for
     """
@@ -152,139 +84,135 @@ def user_dict(request, target_user):
     artwork_list = []
 
     for action in activity:
-        artwork_list.append(action.artwork.title)
+        artwork_list.append(action.artwork.resource_title)
 
     return dict(name=target_user.name,
                 name_display=target_user.display_name,
                 artwork=artwork_list)
-                
 
-# -------- API.ART.BROWSE --------
 
-@view_config(route_name='api.art.browse', renderer='json')
-def api_art_browse(request):
-    # Pagenum will be used, depending on what the other devs want, to call
-    # the other pages generated from the art.browse route. No GET variable required.
-    pagenum = 0
-    artworks_list = []
-    gallery_sieve = GallerySieve(user=request.user, formdata=request.GET)
-    pager = gallery_sieve.evaluate()
-    pager = DiscretePager(gallery_sieve.query, 64, pager.formdata_for(pagenum * 64))
-    artworks = pager.items
+@view_defaults(renderer='json')
+class API(object):
+    def __init__(self, request):
+        self.request = request
+        self.context = request.context
 
-    for artwork in pager.items:
-        artworks_list.append(dict(id=artwork.id,
-                                    title=artwork.title,
-                                    uploader=artwork.uploader.name,
-                                    uploader_display=artwork.uploader.display_name))
+    # XXX: Perhaps there is a nicer/more automatic way of doing this?
+    # Note that class view defaults do not appear to apply to
+    # notfound_view_config
+    notfound = lambda r: notfound_view_config(route_name=r,
+                                              renderer='json')
+    @notfound('api.art.view')
+    @notfound('api.users.view')
+    @notfound('api.users.watchstream')
+    @notfound('api.tags.view')
+    @notfound('api.tags.artwork')
+    @notfound('api.comments.list')
+    @notfound('api.comments.view')
+    def api_notfound(self):
+        self.request.response.status = 404
+        return None
 
-    return api_json_response(request, dict(artworks=artworks_list, count=pager.visible_count))
+    # -------- API.ART.BROWSE --------
 
-# -------- API.ART.VIEW --------
+    @view_config(route_name='api.art.browse')
+    def api_art_browse(self):
+        # Pagenum will be used, depending on what the other devs want, to call
+        # the other pages generated from the art.browse route. No GET variable required.
+        pagenum = 0
+        artworks_list = []
+        gallery_sieve = GallerySieve(user=self.request.user, formdata=self.request.GET)
+        pager = gallery_sieve.evaluate()
+        pager = DiscretePager(gallery_sieve.query, 64, pager.formdata_for(pagenum * 64))
 
-@notfound_view_config(route_name='api.art.view', renderer='json')
-def api_art_view_notfound(request):
-    set_response_notfound(request)
-    return api_json_response(request, None)
+        for artwork in pager.items:
+            artworks_list.append(dict(id=artwork.id,
+                                        title=artwork.resource_title,
+                                        uploader=artwork.uploader.name,
+                                        uploader_display=artwork.uploader.display_name))
 
-@view_config(route_name='api.art.view', renderer='json')
-def api_art_view(artwork, request):
-    return api_json_response(request, artwork_dict(request, artwork))
+        return dict(artworks=artworks_list, count=pager.visible_count)
 
-# -------- API.USERS.VIEW --------
+    # -------- API.ART.VIEW --------
 
-@notfound_view_config(route_name='api.users.view', renderer='json')
-def api_users_view_notfound(request):
-    set_response_notfound(request)
-    return api_json_response(request, None)
+    @view_config(route_name='api.art.view')
+    def api_art_view(self):
+        artwork = self.context
+        return artwork_dict(artwork, self.request)
 
-@view_config(route_name='api.users.view', renderer='json')
-def api_users_view(target_user, request):
-    return api_json_response(request, user_dict(request, target_user))
+    # -------- API.USERS.VIEW --------
 
-# -------- API.USERS.WATCHSTREAM --------
 
-@notfound_view_config(route_name='api.users.watchstream', renderer='json')
-def api_users_watchstream(request):
-    set_response_notfound(request)
-    return api_json_response(request, None)
+    @view_config(route_name='api.users.view')
+    def api_users_view(self):
+        target_user = self.context
+        return user_dict(self.request, target_user)
 
-@view_config(route_name='api.users.watchstream', renderer='json')
-def api_users_watchstream(target_user, request):
-    watched_artwork_list = []
-    watches_sieve = GallerySieve(user=request.user)
-    watches_sieve.filter_by_watches(target_user)
-    watches_artworks = watches_sieve.query.all()
+    # -------- API.USERS.WATCHSTREAM --------
 
-    for artwork in watches_artworks:
-        watched_artwork_list.append(dict(id=artwork.id, title=artwork.title))
-    
-    return api_json_response(request, dict(artworks=watched_artwork_list, count=watches_sieve.query.count()))
+    @view_config(route_name='api.users.watchstream')
+    def api_users_watchstream(self):
+        target_user = self.context
+        watched_artwork_list = []
+        watches_sieve = GallerySieve(user=self.request.user)
+        watches_sieve.filter_by_watches(target_user)
+        watches_artworks = watches_sieve.query.all()
 
-# -------- API.TAGS.LIST --------
+        for artwork in watches_artworks:
+            watched_artwork_list.append(dict(id=artwork.id, title=artwork.resource_title))
 
-@view_config(route_name='api.tags.list', renderer='json')
-def api_tags_list(request):
-    tags = model.session.query(model.Tag).order_by(model.Tag.name)
-    tags = tags_list(tags)
+        return dict(
+            artworks=watched_artwork_list,
+            count=watches_sieve.query.count()
+        )
 
-    return api_json_response(request, dict(tags=tags, count=tags.count()))
+    # -------- API.TAGS.LIST --------
 
-# -------- API.TAGS.VIEW --------
+    @view_config(route_name='api.tags.list')
+    def api_tags_list(self):
+        tags = model.session.query(model.Tag).order_by(model.Tag.name)
+        count = tags.count()
+        tags = [t.name for t in tags.all()]
 
-@notfound_view_config(route_name='api.tags.view', renderer='json')
-def api_tags_view(request):
-    set_response_notfound(request)
-    return api_json_response(request, None)
+        return dict(tags=tags, count=count)
 
-@view_config(route_name='api.tags.view', renderer='json')
-def api_tags_view(tag, request):
-    tag_artworks = model.session.query(model.Artwork).filter(model.Artwork.tag_objs.any(id=tag.id))
+    # -------- API.TAGS.VIEW --------
 
-    return api_json_response(request, dict(count=tag_artworks.count()))
+    @view_config(route_name='api.tags.view')
+    def api_tags_view(self):
+        tag = self.context
+        tag_artworks = model.session.query(model.Artwork).filter(model.Artwork.tag_objs.any(id=tag.id))
 
-# -------- API.TAGS.ARTWORK --------
+        return dict(count=tag_artworks.count())
 
-@notfound_view_config(route_name='api.tags.artwork', renderer='json')
-def api_tags_artwork(request):
-    set_response_notfound(request)
-    return api_json_response(request, None)
+    # -------- API.TAGS.ARTWORK --------
 
-@view_config(route_name='api.tags.artwork', renderer='json')
-def api_tags_artwork(tag, request):
-    tag_artworks = model.session.query(model.Artwork).filter(model.Artwork.tag_objs.any(id=tag.id))
-    artworks_list = []
+    @view_config(route_name='api.tags.artwork')
+    def api_tags_artwork(self):
+        tag = self.context
+        tag_artworks = model.session.query(model.Artwork).filter(model.Artwork.tag_objs.any(id=tag.id))
+        artworks_list = []
 
-    for artwork in tag_artworks:
-        artworks_list.append(dict(id=artwork.id, title=artwork.title, uploader=artwork.uploader.name, uploader_display=artwork.uploader.display_name))
+        for artwork in tag_artworks:
+            artworks_list.append(dict(id=artwork.id, title=artwork.resource_title, uploader=artwork.uploader.name, uploader_display=artwork.uploader.display_name))
 
-    return api_json_response(request, dict(artworks=artworks_list, count=tag_artworks.count()))
+        return dict(artworks=artworks_list, count=tag_artworks.count())
 
-# -------- API.COMMENTS.LIST --------
+    # -------- API.COMMENTS.LIST --------
 
-# TODO Comments
-# XXX This is a land of fuckery that I do not wish to enter
-# People are going to have to know directory traversal techniques for this object to work out
-# Replies of replies of replies
+    # TODO Comments
+    # XXX This is a land of fuckery that I do not wish to enter
+    # People are going to have to know directory traversal techniques for this object to work out
+    # Replies of replies of replies
 
-@notfound_view_config(route_name='api.comments.list', renderer='json')
-def api_comments_list_notfound(request):
-    set_response_notfound(request)
-    return api_json_response(request, None)
+    @view_config(route_name='api.comments.list')
+    def api_comments_list(self):
+        self.request.response.status = 404
+        return None
 
-@view_config(route_name='api.comments.list', renderer='json')
-def api_comments_list(discussion, request):
-    set_response_notfound(request)
-    return api_json_response(request, None)
+    # -------- API.COMMENTS.VIEW --------
 
-# -------- API.COMMENTS.VIEW --------
-
-@notfound_view_config(route_name='api.comments.view', renderer='json')
-def api_comments_view_notfound(request):
-    set_response_notfound(request)
-    return api_json_response(request, None)
-
-@view_config(route_name='api.comments.view', renderer='json')
-def api_comments_view(comment, request):
-    set_response_notfound(request)
-    return api_json_response(request, None)
+    @view_config(route_name='api.comments.view')
+    def api_comments_view(self):
+        self.request.response.status = 404
+        return None
