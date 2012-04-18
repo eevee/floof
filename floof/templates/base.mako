@@ -47,7 +47,7 @@
             % else:
                 <li>
                     <a href="${request.route_url('account.login')}" class="browserid">
-                        <img src="https://browserid.org/i/sign_in_blue.png" alt="Sign in with BrowserID" title="Sign in with BrowserID">
+                        <img src="https://browserid.org/i/sign_in_blue.png" height="22" width="79" alt="Sign in with BrowserID" title="Sign in with BrowserID">
                         or register
                     </a>
                     <menu>
