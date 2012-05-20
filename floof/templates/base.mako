@@ -6,8 +6,8 @@
     <meta charset="utf-8" />
     <link rel="stylesheet" type="text/css" href="${request.static_url('floof:public/css/all.css')}">
     ${h.javascript_link('https://browserid.org/include.js', async=True)}
-    ${h.javascript_link(request.static_url('floof:public/js/lib/jquery-1.7.2.min.js'))}
-    ${h.javascript_link(request.static_url('floof:public/js/lib/jquery.cookie.js'))}
+    ${h.javascript_link(request.static_url('floof:public/js/vendor/jquery-1.7.2.min.js'))}
+    ${h.javascript_link(request.static_url('floof:public/js/vendor/jquery.cookie.js'))}
     ${h.javascript_link(request.static_url('floof:public/js/browserid.js'))}
 
     ## Allow templates to define their script dependencies to include in head

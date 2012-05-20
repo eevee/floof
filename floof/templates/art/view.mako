@@ -5,8 +5,8 @@
 
 <%def name="title()">${artwork.title or 'Untitled'} - Artwork</%def>
 <%def name="script_dependencies()">
-    ${h.javascript_link(request.static_url('floof:public/js/lib/jquery.ui-1.8.7.js'))}
-    ${h.javascript_link(request.static_url('floof:public/js/lib/jquery.ui.rater.js'))}
+    ${h.javascript_link(request.static_url('floof:public/js/vendor/jquery.ui-1.8.7.js'))}
+    ${h.javascript_link(request.static_url('floof:public/js/vendor/jquery.ui.rater.js'))}
 </%def>
 
 <section class="neutral-background">
