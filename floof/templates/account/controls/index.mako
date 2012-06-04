@@ -4,6 +4,8 @@
 <%def name="panel_title()">Current page</%def>
 <%def name="panel_icon()">${lib.icon('question')}</%def>
 
-<p>Some words!</p>
+<section>
+    <p>Some words!</p>
 
-<p>Some more words!</p>
+    <p>Some more words!</p>
+</section>
