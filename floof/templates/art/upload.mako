@@ -4,7 +4,7 @@
 <%def name="title()">Upload - Artwork</%def>
 
 <%def name="script_dependencies()">
-    ${h.javascript_link(request.static_url('floof:public/js/uploading.js'))}
+    ${h.javascript_link(request.static_url('floof:assets/js/uploading.js'))}
 </%def>
 
 

@@ -2,8 +2,8 @@
 <%namespace name="lib" file="/lib.mako" />
 
 <%def name="script_dependencies()">
-    ${h.javascript_link(request.static_url('floof:public/js/vendor/jquery.ui-1.8.7.js'))}
-    ${h.javascript_link(request.static_url('floof:public/js/widget/user_selector.js'))}
+    ${h.javascript_link(request.static_url('floof:assets/js/vendor/jquery.ui-1.8.7.js'))}
+    ${h.javascript_link(request.static_url('floof:assets/js/widget/user_selector.js'))}
 </%def>
 
 <%def name="panel_title()">Watches</%def>

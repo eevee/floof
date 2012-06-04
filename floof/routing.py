@@ -14,13 +14,13 @@ def configure_routing(config):
     """Adds route declarations to the app config."""
     # Static file access.  Separate root for each subdirectory, because Pyramid
     # treats these as first-class routables rather than a last-ditch fallback
-    config.add_static_view('/css', 'floof:public/css')
-    config.add_static_view('/files', 'floof:public/files')  # dummy file store
-    config.add_static_view('/icons', 'floof:public/icons')
-    config.add_static_view('/images', 'floof:public/images')
-    config.add_static_view('/js', 'floof:public/js')
+    config.add_static_view('/css', 'floof:assets/css')
+    config.add_static_view('/files', 'floof:assets/files')  # dummy file store
+    config.add_static_view('/icons', 'floof:assets/icons')
+    config.add_static_view('/images', 'floof:assets/images')
+    config.add_static_view('/js', 'floof:assets/js')
     # TODO this doesn't actually work
-    config.add_static_view('/favicon.ico', 'floof:public/favicon.ico')
+    config.add_static_view('/favicon.ico', 'floof:assets/favicon.ico')
 
 
     r = config.add_route

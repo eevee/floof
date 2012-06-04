@@ -13,7 +13,7 @@
 </%def>
 
 <%def name="icon(which, alt='')">\
-<img src="${request.static_url("floof:public/icons/{which}.png".format(which=which))}" alt="${alt}">\
+<img src="${request.static_url("floof:assets/icons/{which}.png".format(which=which))}" alt="${alt}">\
 </%def>
 
 <%!

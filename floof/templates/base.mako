@@ -4,11 +4,11 @@
 <head>
     <title>${self.title()} - ${request.registry.settings['site_title']}</title>
     <meta charset="utf-8" />
-    <link rel="stylesheet" type="text/css" href="${request.static_url('floof:public/css/all.css')}">
+    <link rel="stylesheet" type="text/css" href="${request.static_url('floof:assets/css/all.css')}">
     ${h.javascript_link('https://browserid.org/include.js', async=True)}
-    ${h.javascript_link(request.static_url('floof:public/js/vendor/jquery-1.7.2.min.js'))}
-    ${h.javascript_link(request.static_url('floof:public/js/vendor/jquery.cookie.js'))}
-    ${h.javascript_link(request.static_url('floof:public/js/browserid.js'))}
+    ${h.javascript_link(request.static_url('floof:assets/js/vendor/jquery-1.7.2.min.js'))}
+    ${h.javascript_link(request.static_url('floof:assets/js/vendor/jquery.cookie.js'))}
+    ${h.javascript_link(request.static_url('floof:assets/js/browserid.js'))}
 
     ## Allow templates to define their script dependencies to include in head
     ${self.script_dependencies()}

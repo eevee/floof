@@ -201,7 +201,7 @@ def compile_sass(root):
     """
     sass_paths = u':'.join((
         os.path.join(root, 'sass'),
-        os.path.join(root, 'public', 'css'),
+        os.path.join(root, 'assets', 'css'),
     ))
 
     # If this fails with a file not found, sass probably isn't installed
