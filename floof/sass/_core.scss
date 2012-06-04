@@ -771,3 +771,40 @@ body#js-disabled .js {
     from { transform: rotate(0deg); }
     to   { transform: rotate(360deg); }
 }
+
+
+// jQuery UI-specific styling, really just for menu which is in turn for autocomplete
+// TODO merge this into archetype...
+.ui-menu {
+    background: #e8e8e8;
+    border: 1px solid #404040;
+
+    // this junk is required
+    float: left;
+    .ui-menu-item {
+    }
+}
+.ui-menu-item a {
+    display: block;
+    padding: 0.33em;
+    border: 1px solid transparent;
+    border-width: 1px 0;
+
+    text-decoration: none;
+    cursor: pointer;
+
+    &.ui-state-hover,
+    &.ui-state-active {
+        border-color: hsl(216, 80%, 60%);
+        background: -moz-linear-gradient(hsl(216, 80%, 80%), hsl(216, 80%, 70%));
+        color: inherit;
+    }
+}
+.ui-menu-item:first-child a {
+    border-top: none;
+}
+.ui-menu-item:last-child a {
+    border-bottom: none;
+}
+
+

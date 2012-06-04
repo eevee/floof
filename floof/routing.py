@@ -76,6 +76,8 @@ def configure_routing(config):
     r('users.watchstream', '/users/{name}/watchstream', **kw)
     r('labels.user_index', '/users/{name}/labels', **kw)
 
+    r('api:users.list', '/users.json')
+
     # Artwork
     kw = sqla_route_options('artwork', 'id', model.Artwork.id)
     kw['pregenerator'] = artwork_pregenerator

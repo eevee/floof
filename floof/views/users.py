@@ -60,3 +60,31 @@ def art_by_label(target_user, request):
         rel=rel,
         gallery_sieve=gallery_sieve,
     )
+
+
+@view_config(
+    route_name='api:users.list',
+    renderer='json',
+)
+def api_user_list(request):
+    q = model.session.query(model.User)
+
+    if request.GET.get('name'):
+        # TODO escape LIKE syntax, and maybe also search display name
+        q = q.filter(model.User.name.like('%' + request.GET['name'] + '%'))
+
+    users = q.all()
+
+    # TODO need a more better way to define the api repr of an orm object
+    data = []
+    for user in users:
+        data.append(dict(
+            id=user.id,
+            name=user.name,
+        ))
+
+    # TODO and a wrapper for this kind of common thing
+    return {
+        'status': 'success',
+        'results': data,
+    }
