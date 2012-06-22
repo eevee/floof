@@ -24,7 +24,9 @@ class PyTest(Command):
         from subprocess import call
 
         testdir = os.path.join(HERE, 'floof', 'tests')
-        cmd = ['py.test', testdir]
+        unit = os.path.join(testdir, 'unit')
+        functional = os.path.join(testdir, 'functional')
+        cmd = ['py.test', unit, functional]
         if self.config:
             cmd.append('--config={0}'.format(self.config))
 
