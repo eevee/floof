@@ -1,5 +1,8 @@
+import browserid
+
 from pyramid import testing
-from vep import DummyVerifier
+from browserid import LocalVerifier
+from browserid.tests.support import make_assertion
 from webob.multidict import MultiDict
 
 from floof.routing import configure_routing
@@ -9,43 +12,32 @@ from floof.tests import sim
 
 OLD_ASSERTION_ADDR = 'floof-throwaway@leptic.net'
 OLD_ASSERTION = """
-eyJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJicm93c2VyaWQub3JnIiwiZXhwIjoxMzI3MjM3Njg5NjUyLC
-JpYXQiOjEzMjcxNTEyODk2NTIsInB1YmxpYy1rZXkiOnsiYWxnb3JpdGhtIjoiRFMiLCJ5IjoiNGNmO
-WM2NmQ5YzAwZWNmNDZjMDY0NTUzMjNhMjk0YzgxN2I5NzJkOTkxZDcyYTE4YjgzYWUxY2I4NzhkMGZj
-ZTZhMjNlZTJlZmQ5MjYyMmVjNmJmYzM2ZjIyZGMyNTc5MzkyNGI2Mjk1Mjc4NmNmZThiOWYyNzFlZjg
-zZTU0NDY4ZGQyYTRlZTA0ZDIwNDliZWM2M2E3N2U1MGQ0MTk1YjExNzhhNGQ1ZTE5MTJmZGQyZTdiOG
-U2ZWQ3ODg4MDJiNzRiNjJmZGMxOTEwYjU5OTY4MWU1OWNhMDhmNmQ3Y2MyYTYyNjM5NzEwYTIwZDAyM
-jI5OGIwNDE4Y2ZjOTIyMzkwNTdjOWZkODFkZTE5NzQ3Y2NiODQ3MzNlYmZkNGExOTRhYTZiMGMzMDUw
-MTA3MThmZGM2MzNhNDJjYWFjMjllYTZjMGYwNTdlYTMzNTIxZDE3YzZlYzA4YWNmZmY2NTc1OTJkYTk
-zODE2NmVhNzVkMTllM2U1MzkwYzhmMDJkNzJiMjU5MGMxZGM5YTJhYzQ1M2IyZTA4MDg0MWI5ZWI2Ym
-E1NjNiMTYxYjBjYmU1YTI1ZGViOWY5MTVhNjM0M2UzZjRkZGZkNGVlZGE1Yzk4NTVjYzZkMGM4MDllZ
-jVmM2ZkZmY4NGM1ODQxZGYzN2Q4NzhjNmNmYjQ0YjYzZjkiLCJwIjoiZDZjNGU1MDQ1Njk3NzU2Yzdh
-MzEyZDAyYzIyODljMjVkNDBmOTk1NDI2MWY3YjU4NzYyMTRiNmRmMTA5YzczOGI3NjIyNmIxOTliYjd
-lMzNmOGZjN2FjMWRjYzMxNmUxZTdjNzg5NzM5NTFiZmM2ZmYyZTAwY2M5ODdjZDc2ZmNmYjBiOGMwMD
-k2YjBiNDYwZmZmYWM5NjBjYTQxMzZjMjhmNGJmYjU4MGRlNDdjZjdlNzkzNGMzOTg1ZTNiM2Q5NDNiN
-zdmMDZlZjJhZjNhYzM0OTRmYzNjNmZjNDk4MTBhNjM4NTM4NjJhMDJiYjFjODI0YTAxYjdmYzY4OGU0
-MDI4NTI3YTU4YWQ1OGM5ZDUxMjkyMjY2MGRiNWQ1MDViYzI2M2FmMjkzYmM5M2JjZDZkODg1YTE1NzU
-3OWQ3ZjUyOTUyMjM2ZGQ5ZDA2YTRmYzNiYzIyNDdkMjFmMWE3MGY1ODQ4ZWIwMTc2NTEzNTM3Yzk4M2
-Y1YTM2NzM3ZjAxZjgyYjQ0NTQ2ZThlN2YwZmFiYzQ1N2UzZGUxZDljNWRiYTk2OTY1YjEwYTJhMDU4M
-GIwYWQwZjg4MTc5ZTEwMDY2MTA3ZmI3NDMxNGEwN2U2NzQ1ODYzYmM3OTdiNzAwMmViZWMwYjAwMGE5
-OGViNjk3NDE0NzA5YWMxN2I0MDEiLCJxIjoiYjFlMzcwZjY0NzJjODc1NGNjZDc1ZTk5NjY2ZWM4ZWY
-xZmQ3NDhiNzQ4YmJiYzA4NTAzZDgyY2U4MDU1YWIzYiIsImciOiI5YTgyNjlhYjJlM2I3MzNhNTI0Mj
-E3OWQ4ZjhkZGIxN2ZmOTMyOTdkOWVhYjAwMzc2ZGIyMTFhMjJiMTljODU0ZGZhODAxNjZkZjIxMzJjY
-mM1MWZiMjI0YjA5MDRhYmIyMmRhMmM3Yjc4NTBmNzgyMTI0Y2I1NzViMTE2ZjQxZWE3YzRmYzc1YjFk
-Nzc1MjUyMDRjZDdjMjNhMTU5OTkwMDRjMjNjZGViNzIzNTllZTc0ZTg4NmExZGRlNzg1NWFlMDVmZTg
-0NzQ0N2QwYTY4MDU5MDAyYzM4MTlhNzVkYzdkY2JiMzBlMzllZmFjMzZlMDdlMmM0MDRiN2NhOThiMj
-YzYjI1ZmEzMTRiYTkzYzA2MjU3MThiZDQ4OWNlYTZkMDRiYTRiMGI3ZjE1NmVlYjRjNTZjNDRiNTBlN
-GZiNWJjZTlkN2FlMGQ1NWIzNzkyMjVmZWIwMjE0YTA0YmVkNzJmMzNlMDY2NGQyOTBlN2M4NDBkZjNl
-MmFiYjVlNDgxODlmYTRlOTA2NDZmMTg2N2RiMjg5YzY1NjA0NzY3OTlmN2JlODQyMGE2ZGMwMWQwNzh
-kZTQzN2YyODBmZmYyZDdkZGYxMjQ4ZDU2ZTFhNTRiOTMzYTQxNjI5ZDZjMjUyOTgzYzU4Nzk1MTA1OD
-AyZDMwZDdiY2Q4MTljZjZlZiJ9LCJwcmluY2lwYWwiOnsiZW1haWwiOiJmbG9vZi10aHJvd2F3YXlAb
-GVwdGljLm5ldCJ9fQ.P-_r4udeAZJPaFjq6vLUesQ9KtsnnPKA3JJZe91G_aYYBSt0M-HlbNgWLKbAT
-W7T-64-VDBAD0cWZfDr1M2QD7z3ZZDjjpHOt1n3v3R6Jn6yOW-xVvQcNeMXw0WMJr_LCx_h06JVkb1i
-emCFx-Luc4kce1q4UU8VIIuxGItvsVAvlzXpEHP_jt61VjmOu6-82x0bFaTimTw26yV0x40iQhwAESc
-MrS5kvCpnku31DCcC73yERzr10SDXyVbmRgUiSEzo1UBMV8_hvZLZnTn1M015gQDp8QvOHX3wgSH-9f
-1Ck2BKFFz4gwcVX5PSR9tyNdwuM6Ym-UHwWWdxY5e0Tw~eyJhbGciOiJEUzI1NiJ9.eyJleHAiOjEzM
-jcxNTE0NTIyMTYsImF1ZCI6Imh0dHBzOi8vbG9jYWxob3N0In0.Ji1fIhsI1SNBZDSIC8xDxerFD1F1
-LoZKl__ohAiL1Z2q9iPR9cgC9xPEdiPugZqhTQUXAbutPe4RkhedtiPGVQ
+eyJhbGciOiJSUzI1NiJ9.eyJwdWJsaWMta2V5Ijp7ImFsZ29yaXRobSI6IkRTIiwieSI6Im
+RhNmE3MTRhZWYzMDFlNmYzODVlMzJiNDIwMWRhMzAyZmQ0YmJlZTEyZmY4MDc0ZmQ1MDNjY
+zg4MDRkNjUyMDA0ZmU0MzBiYjUzYTI5ZTg4YWJjY2U1YmViODc4NjI4ZDRjOGQzMTcyNDIz
+ZmZiYWM2OTFkNjU2MDBkMjVhOGY1MTM0NmRlMDMzMzczZjg1ZWY2ZmU0NzRjOWI3ZTFhMWV
+jZDBlZjE3MjBiMTBkODZkNjA1YzMzMWRlMWYxMThkNzliMjFjN2JkZjgxYjdhN2JmNDIxNm
+EwZTJjZGMxZTY5ZGFiNmU0ZDc2M2I5YTY0NTAyNGJmMGM2YTQxYWQ5YWUiLCJwIjoiZmY2M
+DA0ODNkYjZhYmZjNWI0NWVhYjc4NTk0YjM1MzNkNTUwZDlmMWJmMmE5OTJhN2E4ZGFhNmRj
+MzRmODA0NWFkNGU2ZTBjNDI5ZDMzNGVlZWFhZWZkN2UyM2Q0ODEwYmUwMGU0Y2MxNDkyY2J
+hMzI1YmE4MWZmMmQ1YTViMzA1YThkMTdlYjNiZjRhMDZhMzQ5ZDM5MmUwMGQzMjk3NDRhNT
+E3OTM4MDM0NGU4MmExOGM0NzkzMzQzOGY4OTFlMjJhZWVmODEyZDY5YzhmNzVlMzI2Y2I3M
+GVhMDAwYzNmNzc2ZGZkYmQ2MDQ2MzhjMmVmNzE3ZmMyNmQwMmUxNyIsInEiOiJlMjFlMDRm
+OTExZDFlZDc5OTEwMDhlY2FhYjNiZjc3NTk4NDMwOWMzIiwiZyI6ImM1MmE0YTBmZjNiN2U
+2MWZkZjE4NjdjZTg0MTM4MzY5YTYxNTRmNGFmYTkyOTY2ZTNjODI3ZTI1Y2ZhNmNmNTA4Yj
+kwZTVkZTQxOWUxMzM3ZTA3YTJlOWUyYTNjZDVkZWE3MDRkMTc1ZjhlYmY2YWYzOTdkNjllM
+TEwYjk2YWZiMTdjN2EwMzI1OTMyOWU0ODI5YjBkMDNiYmM3ODk2YjE1YjRhZGU1M2UxMzA4
+NThjYzM0ZDk2MjY5YWE4OTA0MWY0MDkxMzZjNzI0MmEzODg5NWM5ZDViY2NhZDRmMzg5YWY
+xZDdhNGJkMTM5OGJkMDcyZGZmYTg5NjIzMzM5N2EifSwicHJpbmNpcGFsIjp7ImVtYWlsIj
+oiZmxvb2YtdGhyb3dhd2F5QGxlcHRpYy5uZXQifSwiaWF0IjoxMzQwMzYyOTA1ODEwLCJle
+HAiOjEzNDA0NDkzMDU4MTAsImlzcyI6ImJyb3dzZXJpZC5vcmcifQ.LtqQpeHiqMJ1goQD4
+MN89SbZCs6vK1K_JVVsDCqTrw446uWQtjVg72muVwqPDy3jWD5CbZ8aIrILULTvB_zzllvV
+lrD-xVABUgJBwSOTZ1UWSZxs2REkEMtkW5-VeM4pLl2tyDcIhR220YYAW58G6Mmjm70Jib_
+39IPdJfbSMRI46eSznWqFdgU7jUFCvW8D7ocakzN8gGOgbrdRw0Ic8MKwqdRDwYeXZVbm_6
+rsQ4eM3cuTyNoQ2FW0RhDJWg7MaKYPYa51j1kLkBISxNQlkaztNqAb1Qxm__dooor7c8lD0
+5p9XmpSFNNQWRATIgeu2x-hhKCud2XSnbAb-5OIbg~eyJhbGciOiJEUzEyOCJ9.eyJleHAi
+OjEzNDAzNjMwMjU3OTYsImF1ZCI6Imh0dHBzOi8vbG9jYWxob3N0In0.3Z_lYt6eKJBeDaj
+mAhJT9oXw1X4dJqxpEmKLz7pJuZ1HT-zuHyWdAg
 """.replace("\n", "").strip()
 
 
@@ -80,22 +72,34 @@ class TestAccountViews(UnitTests):
             assert flash_msg in flashes[0]
             assert response['redirect-to'] == next_url
 
-        audience = 'https://mysite.example.org'
+        audience = 'https://localhost'
         self.config.add_settings({'auth.browserid.audience': audience})
         request = self._make_request()
         request.method = 'POST'
         request.user = sim.sim_user(credentials=[('browserid', OLD_ASSERTION_ADDR)])
 
-        for a in (None, '', self._randstr(), OLD_ASSERTION):
+        trials = (
+            (None, 'unspecified error'),
+            ('', 'unspecified error'),
+            (self._randstr(), 'unspecified error'),
+            (OLD_ASSERTION, 'signature was invalid')
+        )
+
+        for a, f in trials:
             request.POST = MultiDict({'assertion': a})
             verify(request,
                    next_url=request.route_url('account.login'),
-                   flash_msg='signature was invalid')
+                   flash_msg=f)
             request.session.clear()
 
+        # Ew, monkey patch
+        from browserid.tests.support import fetch_public_key
+        browserid.certificates.fetch_public_key = fetch_public_key
+
         email = self._randstr() + '@example.com'
-        verifier = DummyVerifier()
-        a = verifier.make_assertion(email, audience)
+        verifier = LocalVerifier([audience], warning=False)
+        a = make_assertion(email, audience)
+
         request.POST = MultiDict({'assertion': a})
         request.user = sim.sim_user(credentials=[('browserid', email)])
         request.environ['paste.testing'] = True

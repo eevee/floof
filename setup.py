@@ -78,7 +78,7 @@ setup(
         'pytest',
         'lxml>=2.3.1',  # strip data: urls
         'markdown',
-        'PyVEP>=0.2',
+        'PyBrowserID',
         'PasteScript',
     ],
     setup_requires=["PasteScript>=1.6.3"],

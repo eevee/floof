@@ -1,41 +1,36 @@
+from __future__ import absolute_import
+
 import logging
 
-from functools import partial
 from ssl import SSLError
 
-import vep
+import browserid
 
 log = logging.getLogger(__name__)
 
 
-class BrowserIDRemoteVerifier(vep.RemoteVerifier):
-    """Add a timeout to :class:`vep.RemoteVerifier`"""
-    def __init__(self, *args, **kwargs):
-        urlopen = partial(vep.utils.secure_urlopen, timeout=5)
-        vep.RemoteVerifier.__init__(self, *args, urlopen=urlopen, **kwargs)
-
-
 class BrowserIDError(Exception): pass
 class BrowserIDSSLError(BrowserIDError, SSLError): pass
-class BrowserIDConnectionError(BrowserIDError, vep.errors.ConnectionError): pass
-class BrowserIDTrustError(BrowserIDError, vep.errors.TrustError): pass
-class BrowserIDExpiredSignatureError(BrowserIDTrustError, vep.errors.ExpiredSignatureError): pass
-class BrowserIDInvalidSignatureError(BrowserIDTrustError, vep.errors.InvalidSignatureError): pass
-class BrowserIDInvalidIssuerError(BrowserIDTrustError, vep.errors.InvalidIssuerError): pass
-class BrowserIDAudienceMismatchError(BrowserIDTrustError, vep.errors.AudienceMismatchError): pass
-class BrowserIDUnspecifiedError(BrowserIDError, vep.errors.Error): pass
+class BrowserIDConnectionError(BrowserIDError, browserid.errors.ConnectionError): pass
+class BrowserIDTrustError(BrowserIDError, browserid.errors.TrustError): pass
+class BrowserIDExpiredSignatureError(BrowserIDTrustError, browserid.errors.ExpiredSignatureError): pass
+class BrowserIDInvalidSignatureError(BrowserIDTrustError, browserid.errors.InvalidSignatureError): pass
+class BrowserIDInvalidIssuerError(BrowserIDTrustError, browserid.errors.InvalidIssuerError): pass
+class BrowserIDAudienceMismatchError(BrowserIDTrustError, browserid.errors.AudienceMismatchError): pass
+class BrowserIDUnspecifiedError(BrowserIDError, browserid.errors.Error): pass
 
 
 EXC_MAP = {
     SSLError: BrowserIDSSLError,
+    KeyError: BrowserIDUnspecifiedError,
     ValueError: BrowserIDUnspecifiedError,
-    vep.errors.ConnectionError: BrowserIDConnectionError,
-    vep.errors.InvalidSignatureError: BrowserIDTrustError,
-    vep.errors.ExpiredSignatureError: BrowserIDExpiredSignatureError,
-    vep.errors.InvalidSignatureError: BrowserIDInvalidSignatureError,
-    vep.errors.InvalidIssuerError: BrowserIDInvalidIssuerError,
-    vep.errors.AudienceMismatchError: BrowserIDAudienceMismatchError,
-    vep.errors.Error: BrowserIDUnspecifiedError,
+    browserid.errors.ConnectionError: BrowserIDConnectionError,
+    browserid.errors.InvalidSignatureError: BrowserIDTrustError,
+    browserid.errors.ExpiredSignatureError: BrowserIDExpiredSignatureError,
+    browserid.errors.InvalidSignatureError: BrowserIDInvalidSignatureError,
+    browserid.errors.InvalidIssuerError: BrowserIDInvalidIssuerError,
+    browserid.errors.AudienceMismatchError: BrowserIDAudienceMismatchError,
+    browserid.errors.Error: BrowserIDUnspecifiedError,
 }
 
 
@@ -63,7 +58,8 @@ EXC_MSG = {
 
 
 def verify_browserid(assertion, request, flash_errors=False):
-    verifier = BrowserIDRemoteVerifier()
+    print assertion
+    verifier = browserid.verifiers.remote.RemoteVerifier()
     audience = request.registry.settings.get('auth.browserid.audience')
 
     if not audience:
@@ -73,8 +69,12 @@ def verify_browserid(assertion, request, flash_errors=False):
     if 'paste.testing' in request.environ:
         alternative = request.environ.get('tests.auth.browserid.verifier')
         verifier = alternative or verifier
+        alternative = request.environ.get('tests.auth.browserid.audience')
+        audience = alternative or audience
 
     try:
+        if assertion is None:
+            raise ValueError
         data = verifier.verify(assertion, audience)
     except Exception as e:
         if e.__class__ in EXC_MAP:
@@ -83,7 +83,7 @@ def verify_browserid(assertion, request, flash_errors=False):
 
     print "BrowserID response:", data
 
-    # XXX Possibly superfluous -- I think PyVEP does this.
+    # XXX Possibly superfluous -- I think PyBrowserID does this.
     if data.get('status') != 'okay':
         raise BrowserIDTrustError("BrowserID authentication failed.")
 
