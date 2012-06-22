@@ -13,10 +13,9 @@ FLOOF_SKIP_SASS_COMPILATION=1
 
 # Is this a virtualenv...?
 PASTER=paster
-if [[ -e $DIR/../bin/paster ]]; then
-    PASTER=$DIR/../bin/paster
+if [[ -n "$VIRTUAL_ENV" && -e "$VIRTUAL_ENV" ]]; then
+    PASTER="$VIRTUAL_ENV/bin/paster"
 fi
-
 
 ### OK, run stuff
 
