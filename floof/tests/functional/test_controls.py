@@ -72,7 +72,7 @@ class TestControls(FunctionalTests):
                 extra_environ={'tests.user_id': self.user.id},
                 )
         assert 'Barack Obama' in response, 'Failed to set display name.'
-        assert 'selected="selected" value="US/Eastern"' in response, 'Failed to set timezone.'
+        assert 'selected value="US/Eastern"' in response, 'Failed to set timezone.'
 
         # TODO: Test normalization of the display name
 
@@ -270,7 +270,7 @@ class TestControls(FunctionalTests):
                 self.url('controls.auth'),
                 extra_environ=environ,
                 )
-        assert 'selected="selected" value="disabled"' in response, 'Could not find evidence of anticipated default value.'
+        assert 'selected value="disabled"' in response, 'Could not find evidence of anticipated default value.'
 
         response = self.app.post(
                 self.url('controls.auth'),
@@ -333,7 +333,7 @@ class TestControls(FunctionalTests):
                 extra_environ=self.default_environ,
                 status=200,
                 )
-        assert 'selected="selected" value="disabled"' in response, 'Expected existing cert_auth value of "disabled" not found.'
+        assert 'selected value="disabled"' in response, 'Expected existing cert_auth value of "disabled" not found.'
 
         # Pretend to try to change our cert_auth options while our auth is too old
         environ = copy.deepcopy(self.default_environ)
