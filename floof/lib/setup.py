@@ -52,10 +52,12 @@ def generate_ca(conf):
         # Save the new key and certificate out to files
         if not os.path.isdir(cert_dir):
             os.makedirs(cert_dir)
-        with open(os.path.join(cert_dir, 'ca.key'), 'w') as f:
-            f.write(ssl.dump_privatekey(ssl.FILETYPE_PEM, ca_key))
         with open(os.path.join(cert_dir, 'ca.pem'), 'w') as f:
             f.write(ssl.dump_certificate(ssl.FILETYPE_PEM, ca))
+        oldmask = os.umask(0077)
+        with open(os.path.join(cert_dir, 'ca.key'), 'w') as f:
+            f.write(ssl.dump_privatekey(ssl.FILETYPE_PEM, ca_key))
+        os.umask(oldmask)
         print """  New SSL Client Certificate CA generated at {0}
   ENSURE that {1} has appropriately restrictive access permissions!""".format(
                 os.path.join(cert_dir, 'ca.pem'),
