@@ -186,6 +186,10 @@ def main(global_config, **settings):
     floof.routing.configure_routing(config)
     config.scan(floof.views)
 
+    if not settings['debug']:
+        from floof.views.errors import error500
+        config.add_view(error500, renderer='error.mako', context=Exception)
+
     app = config.make_wsgi_app()
     app = HTTPOnlyCookieMiddleware(app)
     return app

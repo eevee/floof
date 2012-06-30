@@ -80,10 +80,9 @@ def no_cookies_error(context, request):
     return _error_view(context, request, msg, status=409,
                        image='cookie--exclamation')
 
-@view_config(
-    context=Exception,
-    renderer='error.mako')
+
 def error500(context, request):
+    """Catch-all error handler; imperatively added in floof.app.main."""
     return _error_view(context, request,
         status='500 Server On Fire',
         default_message=u"everything is fine.  nothing is ruined._")
