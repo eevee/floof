@@ -36,19 +36,18 @@ ${lib.icon('plus', '+')} Generate New Certificate</a></p>
             <td>${status}</td>
             <td>${cert.bits}</td>
             <td>${lib.date(cert.created_time)}</td>
+            <td>${lib.date(cert.expiry_time)}</td>
             % if cert.valid:
-                <td>${lib.date(cert.expiry_time)}</td>
                 <td>${lib.longtimedelta(cert.expiry_time)}</td>
             % else:
-                <td></td>
-                <td></td>
+                <td>N/A</td>
             % endif
             <td><a href="${request.route_url('controls.certs.details', serial=cert.serial)}" title="Full text of the certificate">Details</a></td>
             <td><a href="${request.route_url('controls.certs.download', serial=cert.serial, name=request.user.name)}" title="Download this certificate (public component only) in PEM-encoded X.509 format">Download</a></td>
             % if cert.valid:
                 <td><a href="${request.route_url('controls.certs.revoke', serial=cert.serial)}" title="Revoke this certificate">Revoke...</a></td>
             % else:
-                <td></td>
+                <td>N/A</td>
             % endif
         </tr>
     % endfor
