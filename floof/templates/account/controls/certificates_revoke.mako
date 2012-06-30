@@ -28,7 +28,7 @@ ${h.friendly_serial(cert.serial)}</%def>
     ${form.cancel()}
 
     <h1>Certificate Details</h1>
-    <dl class="standard-form certificate">
+    <dl class="horizontal certificate">
         <dt>ID</dt>
         <dd>${lib.cert_serial(cert)}</dd>
         <dt>Full Certificate Serial</dt>

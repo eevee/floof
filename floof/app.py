@@ -204,6 +204,8 @@ def compile_sass(root):
         os.path.join(root, 'assets', 'css'),
     ))
 
+    archetype_path = os.path.join(root, 'assets', 'vendor', 'archetype', 'scss')
+
     # If this fails with a file not found, sass probably isn't installed
     # or in your path.  (gem install haml)
     subprocess.Popen(['sass',
@@ -211,4 +213,5 @@ def compile_sass(root):
         '--style', 'compressed',
         '--stop-on-error',
         '--update', sass_paths,
+        '--load-path', archetype_path,
     ]).wait()

@@ -134,7 +134,7 @@ ${lib.temporal_pager(pager)}
     ${h.form(request.path_url, method='GET')}
     <div class="column-container">
     <div class="column">
-        <dl class="standard-form">
+        <dl class="horizontal">
             ${lib.field(form.tags)}
             ${lib.field(form.time_radius)}
             % if request.user:
@@ -146,7 +146,7 @@ ${lib.temporal_pager(pager)}
         </dl>
     </div>
     <div class="column">
-        <dl class="standard-form">
+        <dl class="horizontal">
             ${lib.field(form.sort)}
             <dt>${form.display.label() | n}</dt>
             <dd>

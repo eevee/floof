@@ -15,8 +15,8 @@
     </h1>
 
     <%lib:secure_form multipart="${True}" id="upload-form">
-    <div class="column-container">
-        <section class="column">
+    <div class="columns">
+        <section class="col4">
             <div class="upload-block state-oldmode">
                 <p class="-part-file-field">${form.file(multiple=True, accept='image/*')}</p>
                 <div class="-part-thumbnail">
@@ -31,17 +31,19 @@
                 <p class="-part-upload"><button type="submit">Upload!</button></p>
             </div>
         </section>
-        <section class="column-2x">
-            <dl class="standard-form">
-                ${lib.field(form.title, size=64, maxlength=133)}
-                ${lib.field(form.remark, rows=10, cols=80)}
-            </dl>
-
+        <section class="col8">
+            <fieldset>
+                <dl>
+                    ${lib.field(form.title, size=64, maxlength=133)}
+                    ${lib.field(form.remark, rows=10, cols=80)}
+                </dl>
+            </fieldset>
         </section>
     </div>
-        <section>
-            <h1>Organize it</h1>
-            <dl class="standard-form">
+    <section>
+        <h1>Organize it</h1>
+        <fieldset>
+            <dl>
                 ${lib.field(form.tags, size=64)}
 
                 ## Relationship stuff
@@ -71,7 +73,8 @@
                 ${lib.field(form.labels)}
                 ## TODO thing to add a new label
             </dl>
-        </section>
+        </fieldset>
+    </section>
     </%lib:secure_form>
 </section>
 

@@ -38,22 +38,25 @@
 </aside>
 
 <%lib:secure_form url="${request.route_url('account.register')}" style="overflow: hidden;">
-<dl class="standard-form">
-    <dt>Registering from</dt>
-    <dd>
-        % if identity_webfinger:
-            <code>${identity_webfinger}</code> <br>
-            as <code>${identity_url}</code>
-        % else:
-            <code>${identity}</code>
-        % endif
-    </dd>
-    ${lib.field(form.username, hint_text=u"up to 24 characters.  lowercase letters, numbers, underscores.  can't be changed!")}
-    ${lib.field(form.display_name, hint_text=u"optional.  up to 24 characters.  whatever you want.  can change at any time.")}
-    ${lib.field(form.email, hint_text=u"we don't check this yet")}
-    ${lib.field(form.timezone, hint_text=u"our best guess")}
-
-    <dd><button type="submit">OK, register!</button></dd>
-</dl>
+<fieldset>
+    <dl>
+        <dt>Registering from</dt>
+        <dd>
+            % if identity_webfinger:
+                <code>${identity_webfinger}</code> <br>
+                as <code>${identity_url}</code>
+            % else:
+                <code>${identity}</code>
+            % endif
+        </dd>
+        ${lib.field(form.username, hint_text=u"up to 24 characters.  lowercase letters, numbers, underscores.  can't be changed!")}
+        ${lib.field(form.display_name, hint_text=u"optional.  up to 24 characters.  whatever you want.  can change at any time.")}
+        ${lib.field(form.email, hint_text=u"we don't check this yet")}
+        ${lib.field(form.timezone, hint_text=u"our best guess")}
+    </dl>
+    <footer>
+        <button type="submit">OK, register!</button>
+    </footer>
+</fieldset>
 </%lib:secure_form>
 </section>

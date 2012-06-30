@@ -4,34 +4,11 @@
 <%def name="panel_title()">New SSL Certificate</%def>
 <%def name="panel_icon()">${lib.icon('plus')}</%def>
 
-<script type="text/javascript">
-// Redirect back to the certs list 2 secs after clicking the browser-generate button
-$(document).ready(function() {
-    $('#browser-gen-commit').click(function() {
-        window.setTimeout(function() {
-            window.location = "${request.route_url('controls.certs')}";
-        }, 2000);
-    });
-});
-</script>
-
 <section>
     <p><a href="${request.route_url('controls.certs')}">Go back to Certificates List</a></p>
 
-    <div class="clearfix">
-    <div class="halfsplit left">
-        <%lib:secure_form>
-        <h1 class="top-heading">Generate Certificate in Browser</h1>
-        <dl class="standard-form">
-            ${lib.field(browser_form.days)}
-            ${lib.field(browser_form.pubkey)}
-            <dd class="standard-form-footer">
-                <button id="browser-gen-commit">Generate in Browser</button>
-            </dd>
-        </dl>
-        </%lib:secure_form>
-    </div>
-    <div class="halfsplit right">
+    <h1>Generate Certificate in Browser</h1>
+    <aside class="sidebar">
         <p>This will cause your browser to generate and install a certificate
         automatically.</p>
         <p>It is the easiest option, but it's not supported by all
@@ -47,24 +24,23 @@ $(document).ready(function() {
         your browser or operating system's certificate store.  This is useful
         as a backup and will allow you to import and use the one certificate
         on multiple computers.</p>
-    </div>
-    </div>
-
-    <div class="clearfix">
-    <div class="halfsplit left">
-        <h1>Generate Certificate on Server</h1>
-        <%lib:secure_form url="${request.route_url('controls.certs.generate_server', name=request.user.name)}">
-        <dl class="standard-form">
-            ${lib.field(server_form.days)}
-            ${lib.field(server_form.name)}
-            ${lib.field(server_form.passphrase)}
-            <dd class="standard-form-footer">
-                <button>Generate on Server</button>
-            </dd>
+    </aside>
+    <%lib:secure_form>
+    <fieldset>
+        <dl>
+            ${lib.field(browser_form.days)}
+            ${lib.field(browser_form.pubkey)}
         </dl>
-        </%lib:secure_form>
-    </div>
-    <div class="halfsplit right">
+        <footer>
+            <button id="browser-gen-commit">Generate in Browser</button>
+        </footer>
+    </fieldset>
+    </%lib:secure_form>
+</section>
+
+<section>
+    <h1>Generate Certificate on Server</h1>
+    <aside class="sidebar">
         <p>This will return a PKCS12 (.p12) certificate file for download and
         manual installation.</p>
         <p>This method is compatible with any browser, but you'll have to work
@@ -73,8 +49,30 @@ $(document).ready(function() {
         passphrase may fix import errors on certain buggy platforms.</p>
         <p><strong>Be sure to save the file when prompted</strong> -- you will not
         be able to download the generated private key again.</p>
-    </div>
-    </div>
+    </aside>
+    <%lib:secure_form url="${request.route_url('controls.certs.generate_server', name=request.user.name)}">
+    <fieldset>
+        <dl>
+            ${lib.field(server_form.days)}
+            ${lib.field(server_form.name)}
+            ${lib.field(server_form.passphrase)}
+        </dl>
+        <footer>
+            <button>Generate on Server</button>
+        </footer>
+    </fieldset>
+    </%lib:secure_form>
 
     <p><a href="${request.route_url('controls.certs')}">Go back to Certificates List</a></p>
 </section>
+
+<script type="text/javascript">
+// Redirect back to the certs list 2 secs after clicking the browser-generate button
+$(document).ready(function() {
+    $('#browser-gen-commit').click(function() {
+        window.setTimeout(function() {
+            window.location = "${request.route_url('controls.certs')}";
+        }, 2000);
+    });
+});
+</script>

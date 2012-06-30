@@ -7,22 +7,26 @@
 
 <section>
     <%lib:secure_form url="${request.route_url('controls.openid.add')}">
-    <dl class="standard-form">
-        ${lib.field(add_openid_form.new_openid)}
-        <dd class="standard-form-footer">
+    <fieldset>
+        <dl>
+            ${lib.field(add_openid_form.new_openid)}
+        </dl>
+        <footer>
             <button>Add</button>
-        </dd>
-    </dl>
+        </footer>
+    </fieldset>
     </%lib:secure_form>
 </section>
 
 <section>
     <%lib:secure_form url="${request.route_url('controls.openid.remove')}">
-    <dl class="standard-form">
-        ${lib.field(remove_openid_form.openids)}
-        <dd class="standard-form-footer">
+    <fieldset>
+        <dl>
+            ${lib.field(remove_openid_form.openids)}
+        </dl>
+        <footer>
             <button>Remove</button>
-        </dd>
-    </dl>
+        </footer>
+    </fieldset>
     </%lib:secure_form>
 </section>

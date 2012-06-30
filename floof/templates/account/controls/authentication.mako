@@ -9,12 +9,15 @@
     This control is intended for use by <strong>advanced users</strong> only.</p>
 
     <%lib:secure_form>
-    <dl class="standard-form">
-        ${lib.field(form.cert_auth)}
-        <dd class="standard-form-footer">
+    <fieldset>
+        <dl>
+            ${lib.field(form.cert_auth)}
+        </dl>
+        <footer>
             <button>Update</button>
-        </dd>
-    </dl>
+        </footer>
+    </fieldset>
+    </%lib:secure_form>
 
     <p>There are important things to be aware of when choosing any non-default
     option.  Some of them are listed below.</p>
@@ -34,5 +37,4 @@
         <li>Options that require certificates will be hidden until you select
         &quot;Allow for login&quot; and authenticate with a certificate.</l1>
     </ol>
-    </%lib:secure_form>
 </section>

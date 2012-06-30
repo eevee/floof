@@ -8,9 +8,9 @@
     <h1>Detailed Info for Certificate ${lib.cert_serial(cert)}</h1>
     <p><a href="${request.route_url('controls.certs')}">Go back to Certificates List</a></p>
     % if cert.valid:
-    <dl class="standard-form certificate valid">
+    <dl class="horizontal certificate valid">
     % else:
-    <dl class="standard-form certificate invalid">
+    <dl class="horizontal certificate invalid">
     % endif
         <dt>ID</dt>
         <dd>${lib.cert_serial(cert)}</dd>

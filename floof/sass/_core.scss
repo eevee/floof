@@ -1,6 +1,8 @@
 @import "_colors";
 @import "_lib";
 
+@import "archetype/lib/mixins";
+
 ////////////////////////////////////////////////////////////////////////////////
 // Core layout
 
@@ -203,6 +205,7 @@ body > section {
         // This is the main page title, and sometimes major sections below
         font-size: 3em;
         font-family: serif;  // XXX
+        font-weight: normal;
         color: #111;
         border-bottom: 3px double #ccc;
         margin-bottom: 0.33em;
@@ -221,6 +224,7 @@ body > section {
     section h1,
     aside h1 {
         font-size: 2em;
+        font-weight: normal;
         text-shadow: 1px 1px 1px #ddd;
         border-bottom: 1px solid #ccc;
         margin: 1em 0 0.5em;
@@ -236,12 +240,13 @@ body > section {
     h2 {
         // For significant thematic sub-headings
         font-size: 1.5em;
+        font-weight: normal;
     }
 }
 
 // Generic content styling
 section, aside {
-    overflow: auto;
+    @include float-clear();
     margin: 2em 0;
 }
 
@@ -278,8 +283,6 @@ body > footer {
 // Simple elements
 
 a {
-    text-decoration: underline;
-
     &:link {
         color: hsl(216, 70%, 50%);
     }
@@ -295,142 +298,11 @@ img {
     vertical-align: middle;
 }
 
-p {
-    line-height: 1.5;
-    margin: 0.5em 0 1em;
-}
-
-pre {
-    line-height: 1.2;
-    font-family: monospace;
-}
-
-code {
-    padding: 0.25em 0.5em;
-    font-family: Monaco, DejaVu Sans Mono, Bitstream Vera Sans Mono, Andale Mono, Consolas, Courier New, monospace;
-    color: #404040;
-    background: hsl(45, 70%, 92%);
-    border-radius: 2px;
-}
-kbd {
-    @extend code;
-    letter-spacing: 0.08em;
-}
-
-var {
-    color: hsl(45, 70%, 40%);
-}
-
-strong {
-    font-weight: bold;
-}
-
-em {
-    font-style: italic;
-}
-
 // -----------------------------------------------------------------------------
 // Forms
 
 // XXX: i want a label:hover
 // XXX: i also want some highlight for checked checkboxes
-
-input, button, select {
-    vertical-align: middle;
-}
-input[type="radio"] {
-    margin: 0.25em;
-}
-label,
-input[type="radio"], input[type="checkbox"],
-input[type="submit"], input[type="button"], input[type="submit"], input[type="image"], button {
-    cursor: pointer;
-}
-
-select,
-input[type="text"],
-input[type="password"],
-textarea {
-    color: #404040;
-    background: #fff;
-    padding: 0.25em;
-    border: 1px solid #999;
-    @include border-radius(3px);
-}
-
-input[type="text"],
-textarea {
-    font-size: inherit;
-
-    @include box-shadow(inset 1px 1px 2px -1px $shadow);
-
-    @include transition-property((-moz-box-shadow, -webkit-box-shadow, box-shadow, border-color));
-    @include transition-duration(0.2s);
-
-    &:focus {
-        z-index: 1;
-        border-color: hsl(216, 60%, 50%);
-        @include box-shadow((
-            inset 1px 1px 2px -1px $shadow,
-            0 0 0.25em 0.25em hsl(216, 60%, 90%)
-        ));
-    }
-
-    // nb: DO NOT consolidate these blocks; each selector looks bogus to the
-    // other browser and the whole thing gets ignored
-    &::-webkit-input-placeholder {
-        color: #ccc;
-    }
-    &:-moz-placeholder {
-        color: #ccc;
-    }
-
-
-    // Variants
-    &.with-icon {
-        background: url(/icons/ui-text-field.png) white 2px center no-repeat;
-        padding-left: 20px;
-    }
-}
-
-button {
-    font-size: inherit;
-
-    background: hsl(0, 0%, 95%);
-    border: 1px solid hsl(0, 0%, 70%);
-    padding: 0.25em 0.5em;
-
-    @include box-shadow((
-        inset 0 0 1px white,
-        inset 0 -2em 2em -2em hsl(0, 0%, 80%)
-    ));
-
-    @include transition-property((-moz-box-shadow, -webkit-box-shadow, box-shadow, border-color, background-color));
-    @include transition-duration(0.2s);
-
-    &:hover {
-        background-color: hsl(216, 60%, 95%);
-        border-color: hsl(216, 60%, 70%);
-        @include box-shadow((
-            inset 0 0 1px white,
-            inset 0 -2em 2em -2em hsl(216, 60%, 80%)
-        ));
-    }
-    &:focus {
-        border-color: hsl(216, 60%, 50%);
-    }
-    &:active {
-        background-color: hsl(216, 60%, 90%);
-        @include box-shadow((
-            inset 0 1px 3px -1px black,
-            inset 0 -2em 2em -2em hsl(216, 60%, 70%)
-        ));
-    }
-}
-
-::-moz-focus-inner {
-    border: 0;
-}
 
 .form-error {
     margin: 0.25em 0.25em 0.5em;
@@ -443,30 +315,7 @@ button {
 // Form container
 
 dl.standard-form {
-    > dt {
-        float: left;
-        clear: left;
-        width: 11em;
-        text-align: right;
-        color: #999;
-    }
-    > dd {
-        margin-left: 12em;  // float width
-
-        &:after {
-            content: 'float clear';
-            display: block;
-            clear: both;
-            height: 0;
-            visibility: hidden;
-            overflow: hidden;
-        }
-    }
-    > dt,
-    > dd {
-        padding: 0.5em 0;
-        line-height: 2;
-    }
+    @include horizontal-dl(11em, 1em);
 
     > dd.standard-form-footer {
         button {

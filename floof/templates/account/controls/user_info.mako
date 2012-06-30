@@ -14,19 +14,21 @@ fields = [
 
 <section>
     <%lib:secure_form>
-    <dl class="standard-form">
-        % for f in fields:
-            <% field = form[f] %>\
-            <% maxlen = getattr(form, '_{0}_maxlen'.format(f), None) %>\
-            % if maxlen:
-                ${lib.field(field, size=maxlen, maxlength=maxlen)}
-            % else:
-                ${lib.field(field)}
-            % endif
-        % endfor
-        <dd class="standard-form-footer">
+    <fieldset>
+        <dl>
+            % for f in fields:
+                <% field = form[f] %>\
+                <% maxlen = getattr(form, '_{0}_maxlen'.format(f), None) %>\
+                % if maxlen:
+                    ${lib.field(field, size=maxlen, maxlength=maxlen)}
+                % else:
+                    ${lib.field(field)}
+                % endif
+            % endfor
+        </dl>
+        <footer>
             <button>Update</button>
-        </dd>
-    </dl>
+        </footer>
+    </fieldset>
     </%lib:secure_form>
 </section>
