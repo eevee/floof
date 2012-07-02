@@ -6,9 +6,9 @@
 *.log
 *.egg-info/
 data/
-floof/public/files
+floof/assets/files
 certs/
 
 # sass cruft
 .sass-cache
-floof/public/css
+floof/assets/css
