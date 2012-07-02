@@ -543,7 +543,7 @@ class Tag(TableBase):
     def __init__(self, name):
         self.name = name
 
-class Label(TableBase):
+class Album(TableBase):
     __tablename__ = 'labels'
     id = Column(Integer, primary_key=True)
     name = Column(Unicode(64), nullable=False)
@@ -555,7 +555,7 @@ artwork_tags = Table('artwork_tags', TableBase.metadata,
     Column('tag_id', Integer, ForeignKey('tags.id'), primary_key=True),
 )
 
-artwork_labels = Table('artwork_labels', TableBase.metadata,
+artwork_albums = Table('artwork_labels', TableBase.metadata,
     Column('artwork_id', Integer, ForeignKey('artwork.id'), primary_key=True),
     Column('label_id', Integer, ForeignKey('labels.id'), primary_key=True),
 )
@@ -643,9 +643,9 @@ Discussion.comments = relation(Comment, order_by=Comment.left.asc(),
 # Certificates
 Certificate.user = relation(User, innerjoin=True, backref='certificates')
 
-# Tags & Labels
-Label.user = relation(User, innerjoin=True, backref='labels')
-Label.artwork = relation(Artwork, secondary=artwork_labels, backref='labels')
+# Tags & albums
+Album.user = relation(User, innerjoin=True, backref='albums')
+Album.artwork = relation(Artwork, secondary=artwork_albums, backref='albums')
 
 # Logs
 Log.user = relation(User, backref='logs',

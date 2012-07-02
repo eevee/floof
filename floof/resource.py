@@ -128,15 +128,15 @@ class CommentCtx(ORMContext):
         ]
 
 
-class LabelCtx(ORMContext):
+class AlbumCtx(ORMContext):
     @property
     def __acl__(self):
-        label = self.ormobj
+        album = self.ormobj
         acl = [
-            (Allow, 'role:user:{0}'.format(label.user_id), ('label.view',)),
+            (Allow, 'role:user:{0}'.format(album.user_id), ('album.view',)),
         ]
-        if label.encapsulation in ('public', 'plug'):
-            acl.append((Allow, Everyone, ('label.view',)))
+        if album.encapsulation in ('public', 'plug'):
+            acl.append((Allow, Everyone, ('album.view',)))
         return acl
 
 

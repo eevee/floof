@@ -70,8 +70,8 @@
                 <dd>${lib.field_errors(form.relationship)}</dd>
                 % endif
 
-                ${lib.field(form.labels)}
-                ## TODO thing to add a new label
+                ${lib.field(form.albums)}
+                ## TODO thing to add a new album
             </dl>
         </fieldset>
     </section>

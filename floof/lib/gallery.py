@@ -14,9 +14,9 @@ import wtforms.form, wtforms.fields
 from floof.lib import pager
 from floof import model
 
-# TODO: labels (is there a favorites ticket?)
+# TODO: albums (is there a favorites ticket?)
 # TODO: "art like this" on art page
-# TODO: another special search, elsewhere, for friend-of-friends (watches of everyone in label x)
+# TODO: another special search, elsewhere, for friend-of-friends (watches of everyone in album x)
 
 class GalleryForm(wtforms.form.Form):
     """Form used all over the place for "searching" (really filtering) through
@@ -294,13 +294,13 @@ class GallerySieve(object):
             ),
         ))
 
-    def filter_by_label(self, label):
-        """Filter by a user's particular label.
+    def filter_by_album(self, album):
+        """Filter by a user's particular album.
 
-        This method DOES NOT CHECK that the label is viewable; do that yourself.
+        This method DOES NOT CHECK that the album is viewable; do that yourself.
         """
         self.query = self.query.filter(
-            model.Artwork.labels.any(id=label.id))
+            model.Artwork.albums.any(id=album.id))
 
 
     def order_by(self, order):

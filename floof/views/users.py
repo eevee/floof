@@ -45,14 +45,14 @@ def watchstream(target_user, request):
 
 
 @view_config(
-    route_name='users.art_by_label',
+    route_name='users.art_by_album',
     request_method='GET',
-    renderer='users/label.mako')
-def art_by_label(target_user, request):
-    if label not in model.user_artwork_types:
+    renderer='users/album.mako')
+def art_by_album(target_user, request):
+    if album not in model.user_artwork_types:
         raise NotImplementedError  # XXX
 
-    rel = request.matchdict['label']
+    rel = request.matchdict['album']
     gallery_sieve = GallerySieve(user=request.user, formdata=request.GET, countable=True)
     gallery_sieve.filter_by_user(rel, target_user)
 

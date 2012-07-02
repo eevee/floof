@@ -121,7 +121,7 @@
     <h1>Albums</h1>
     <ul class="standard-list">
         ## TODO artist
-        % for album in request.user.permitted('label.view', artwork.labels):
+        % for album in request.user.permitted('album.view', artwork.albums):
         <li>${artlib.album_link(album)} (${lib.user_link(album.user)}'s)</li>
         % endfor
     </ul>

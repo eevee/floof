@@ -24,7 +24,7 @@ def media_icon(type):
 %>
 <%def name="album_link(album)">
 ## Render a link to an album.  Includes an appropriate icon.
-<a href="${request.route_url('labels.artwork', label=album)}">
+<a href="${request.route_url('albums.artwork', album=album)}">
     ${lib.icon(_album_icons[album.encapsulation])}
     ${album.name}</a>
 </%def>

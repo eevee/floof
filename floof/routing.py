@@ -71,10 +71,10 @@ def configure_routing(config):
     # User pages
     kw = sqla_route_options('user', 'name', model.User.name)
     r('users.view', '/users/{name}', **kw)
-    r('users.art_by_label', '/users/{name}/art/{label}', **kw)
+    r('users.art_by_album', '/users/{name}/art/{album}', **kw)
     r('users.profile', '/users/{name}/profile', **kw)
     r('users.watchstream', '/users/{name}/watchstream', **kw)
-    r('labels.user_index', '/users/{name}/labels', **kw)
+    r('albums.user_index', '/users/{name}/albums', **kw)
 
     r('api:users.list', '/users.json')
 
@@ -96,11 +96,11 @@ def configure_routing(config):
     r('tags.view', '/tags/{name}', **kw)
     r('tags.artwork', '/tags/{name}/artwork', **kw)
 
-    # Labels
+    # Albums
     # XXX well this is getting complicated!  needs to check user, needs to check id, needs to generate correctly, needs a title like art has
     user_router = SugarRouter(config, '/users/{user}', model.User.name)
-    label_router = user_router.chain('/labels/{label}', model.Label.id, rel=model.Label.user)
-    label_router.add_route('labels.artwork', '')
+    album_router = user_router.chain('/albums/{album}', model.Album.id, rel=model.Album.user)
+    album_router.add_route('albums.artwork', '')
 
     # Administration
     r('admin.dashboard', '/admin')

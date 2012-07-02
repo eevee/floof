@@ -83,16 +83,16 @@ class UploadPage(FormWorkflow):
         )
         tags = MultiTagField(u'Tags')
 
-        labels = None  # I am populated dynamically based on user
+        albums = None  # I am populated dynamically based on user
 
         remark = wtforms.fields.TextAreaField(u'Remark')
 
     def make_form(self):
-        # Tack label fields onto the form
+        # Tack album fields onto the form
         class DerivedForm(self.form_class):
-            labels = QueryMultiCheckboxField(u'Labels',
-                query_factory=lambda: model.session.query(model.Label).with_parent(self.request.user),
-                get_label=lambda label: label.name,
+            albums = QueryMultiCheckboxField(u'Albums',
+                query_factory=lambda: model.session.query(model.Album).with_parent(self.request.user),
+                get_label=lambda album: album.name,
             )
         return DerivedForm(self.request.POST)
 
@@ -234,12 +234,12 @@ class UploadPage(FormWorkflow):
                 )
             )
 
-        # Attach tags and labels
+        # Attach tags and albums
         for tag in form.tags.data:
             artwork.tags.append(tag)
 
-        for label in form.labels.data:
-            artwork.labels.append(label)
+        for album in form.albums.data:
+            artwork.albums.append(album)
 
 
         model.session.add_all([artwork, discussion, resource])

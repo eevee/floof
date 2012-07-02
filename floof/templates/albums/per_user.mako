@@ -10,7 +10,7 @@
     <h1>${title()}</h1>
 
     <ul class="standard-list">
-        % for album in request.user.permitted('label.view', target_user.labels):
+        % for album in request.user.permitted('album.view', target_user.albums):
         <li>${artlib.album_link(album)}</li>
         % endfor
     </ul>
