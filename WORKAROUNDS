@@ -1,0 +1,37 @@
+These are a bunch of workarounds for problems epii encountered when trying to
+deploy.  They're listed here so he doesn't have to keep rediscovering them
+every 3 months.
+
+
+You probably want to consider installing floof within a python virtualenv to
+keep floof's Python environment separate from the rest of your system.  If you
+do so and hit "SSLv2_method" errors with M2Crypto later on in the install
+process (typically on Debian-derived distros), try installing your
+distribution's python-m2crypto package and then running (adjusting for local
+version numbers and system library locations):
+
+    rm -r env/lib/python2.7/site-packages/M2Crypto-0.21.1-py2.7-linux-i686.egg/M2Crypto
+    ln -s /usr/lib/python2.7/dist-packages/M2Crypto env/lib/python2.7/site-packages/M2Crypto-0.21.1-py2.7-linux-i686.egg/M2Crypto
+
+(This is a horribly hacky solution, and I dearly hope someone has a better one.)
+
+
+You may also run into errors with PIL and errors like "python decoder zip not
+available".  Make sure that you have the zlib, libjpeg and libfreetype
+development packages installed on your system and that lib{freetype,jpeg,z}.so
+are all available in /usr/lib (if necessary, run find over /usr/lib and symlink
+them from their subdir hidey-holes up to /usr/lib) then run:
+
+    pip uninstall PIL
+    pip install PIL
+
+Check the installation-time compilation output: you should see a section to
+the effect of:
+
+    *** TKINTER support not available
+    --- JPEG support available
+    --- ZLIB (PNG/ZIP) support available
+    --- FREETYPE2 support available
+    *** LITTLECMS support not available
+
+At least JPEG and ZLIB really need to be available.

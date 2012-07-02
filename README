@@ -10,6 +10,8 @@ Pyramid.
 Use the setuptools setup script:
 
     python setup.py install
+    -- OR --
+    python setup.py develop
 
 If you're a developer, you probably want `develop` instead of `install`, and
 you may wish to consider using virtualenv to keep floof's Python environment
@@ -51,6 +53,10 @@ You have two options for storing files, controlled by the `filestore` setting:
 For development, invoke the application with:
 
     bin/dev-server.sh config.ini
+
+If you hit some annoying problem during installation, check WORKAROUNDS.  If
+the problem or answer is not there but you subsequently work it out, add your
+solution to WORKAROUNDS for the sake of those who follow.
 
 
 # Testing
