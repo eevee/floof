@@ -10,6 +10,7 @@
 <div class="artwork-categories">
     ${h.form(request.path_url, method='GET', class_='inline')}
         Browse:
+        <span class="btn-set">
         <button class="stylish-button selected" disabled="disabled">Everything</button>
         ## FILTERS: time < 24h.  not mine?  SORT: rating, desc
         <button class="stylish-button">Popular today</button>
@@ -19,6 +20,7 @@
         <button class="stylish-button">Up and coming</button>
         ## FILTERS: not mine?  SORT: rating-to-me
         <button class="stylish-button">Art I might like</button>
+        </span>
     ${h.end_form()}
 </div>
 

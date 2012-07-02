@@ -203,7 +203,7 @@ body > section {
 
     > h1 {
         // This is the main page title, and sometimes major sections below
-        font-size: 3em;
+        font-size: 2em;
         font-family: serif;  // XXX
         font-weight: normal;
         color: #111;
@@ -212,18 +212,13 @@ body > section {
         text-shadow: 1px 1px 1px #ccc;
 
         > img {
-            // Accompanying icon; scale it up to a more reasonable size
-            height: 32px;
-            width: 32px;
             vertical-align: baseline;
-
-            @include pixel-scaling;
         }
     }
 
     section h1,
     aside h1 {
-        font-size: 2em;
+        font-size: 1.5em;
         font-weight: normal;
         text-shadow: 1px 1px 1px #ddd;
         border-bottom: 1px solid #ccc;
@@ -511,19 +506,6 @@ ol.pager {
 ////////////////////////////////////////////////////////////////////////////////
 // App-specific components
 
-// Some generic table stylings. Not necessarily complete.
-table {
-    th {
-        background: $body-bg;
-        font-weight: bold;
-    }
-    tr.even {
-        background: lighten($body-bg, 12%);
-    }
-    th, td {
-        padding: 0.5em;
-    }
-}
 
 ////////////////////////////////////////////////////////////////////////////////
 // Markdown styling
