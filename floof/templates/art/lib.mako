@@ -15,19 +15,18 @@ def media_icon(type):
 %>
 
 <%!
-    _label_icons = dict(
-        private='tag-label-red',
-        public='tag-label-black',
-        gallery='tag-label-green',
+    _album_icons = dict(
+        private='book-brown',
+        public='book-bookmark',
+        gallery='photo-album-blue',
         plug='plug',
     )
 %>
-<%def name="label(label_)">
-## Render a label.  Includes an appropriate icon and a link.
-<a href="${request.route_url('labels.artwork', label=label_)}">
-    ${lib.icon(_label_icons[label_.encapsulation])}
-    ${label_.name}
-</a>
+<%def name="album_link(album)">
+## Render a link to an album.  Includes an appropriate icon.
+<a href="${request.route_url('labels.artwork', label=album)}">
+    ${lib.icon(_album_icons[album.encapsulation])}
+    ${album.name}</a>
 </%def>
 
 <%def name="thumbnail(artwork)">

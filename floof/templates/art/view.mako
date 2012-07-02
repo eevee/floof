@@ -118,10 +118,11 @@
     % endif
     % endfor
 
-    <h1>Labels</h1>
+    <h1>Albums</h1>
     <ul class="standard-list">
-        % for label in request.user.permitted('label.view', artwork.labels):
-        <li>${artlib.label(label)} (by ${lib.user_link(label.user)})</li>
+        ## TODO artist
+        % for album in request.user.permitted('label.view', artwork.labels):
+        <li>${artlib.album_link(album)} (${lib.user_link(album.user)}'s)</li>
         % endfor
     </ul>
 
