@@ -10,7 +10,7 @@
     % if outstanding_principals:
 
         % if len(outstanding_principals) == 1:
-            <p>You may gain authorization by following the following steps:</p>
+            <p>You may gain authorization by following the steps below:</p>
         % else:
             <p>You may gain authorization by following any of the following
             groups of steps:</p>
@@ -20,10 +20,28 @@
             % if len(outstanding_principals) > 1:
                 <h2>Alternative ${i + 1}</h2>
             % endif
+
             <ol class="standard-list">
-            % for principal in principal_group:
-                <li>${auth_actions[principal](request)}</li>
-            % endfor
+            % if 'trusted:cert' in principal_group:
+                % if len(request.user.valid_certificates) < 1:
+                    <li>Generate and configure a client certificate</li>
+                % endif
+                <li>Present your client certificate for authentication</li>
+            % endif
+            % if 'auth:secure' in principal_group:
+                <li>Configure your certificate authentication option to either
+                'Require for login' or 'Require for Sensitive Operations only'</li>
+            % endif
+            % if 'trusted:browserid_recent' in principal_group:
+                <li>Re-authenticate with your BrowserID</li>
+            % elif 'trusted:browserid' in principal_group:
+                <li>Authenticate with your BrowserID</li>
+            % endif
+            % if 'trusted:openid_recent' in principal_group:
+                <li>Re-authenticate with your OpenID</li>
+            % elif 'trusted:openid' in principal_group:
+                <li>Authenticate with your OpenID</li>
+            % endif
             </ol>
         % endfor
 
