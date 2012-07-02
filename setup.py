@@ -68,7 +68,7 @@ setup(
         'pytz',
         'iso8601',
         'pyOpenSSL>=0.11',
-        'pyramid>=1.2',
+        'pyramid>=1.3',
         'pyramid_beaker',
         'pyramid_debugtoolbar',
         'repoze.tm2>=1.0b1',  # default_commit_veto
