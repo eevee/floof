@@ -9,96 +9,156 @@ from pyramid.security import ALL_PERMISSIONS
 from pyramid.security import Allow, Deny
 from pyramid.security import Authenticated, Everyone
 
-from floof.model import Comment, Label
 
-ROOT_ACL = (
-    (Allow, 'trusted_for:admin', ALL_PERMISSIONS),
+class ORMContext(dict):
+    """A node in floof's context tree.
 
-    (Deny, 'banned:interact_with_others', (
-        'art.rate',
-        'comments.add',
-        'tags.add',
-    )),
+    For the convenience of :func:``contextualize`` the "tree" really is just
+    a chain (it has only one leaf).  It is expected that the chain will be
+    built from the leaf ORM object up to the root.  The constructor will
+    attempt to create this chain automatically.
 
-    (Allow, Authenticated, '__authenticated__'),
+    If we ever use traversal for more than authorization, this will likely
+    change.
 
-    (Allow, 'role:user', (
-        'art.upload', 'art.rate',
-        'comments.add',
-        'tags.add', 'tags.remove',
-    )),
-
-    (Allow, 'trusted_for:auth', (
-        'auth.method', 'auth.certificates', 'auth.openid', 'auth.browserid')),
-)
-"""The root ACL attached to instances of :class:`FloofRoot`.
-
-This ACL defines the base, generic permissions that apply in the absence of an
-ORM object with more specific or nuanced principal -> permission mappings.
-"""
-
-
-def label_acl(label):
-    acl = [
-        (Allow, 'user:{0}'.format(label.user_id), ('label.view',)),
-    ]
-    if label.encapsulation in ('public', 'plug'):
-        acl.append((Allow, Everyone, ('label.view',)))
-
-    return tuple(acl)
-
-
-ORM_ACLS = {
-    Comment: lambda ormobj: (
-        (Allow, 'user:{0}'.format(ormobj.author_user_id), (
-            'comment.delete',
-            'comment.edit',
-        )),
-    ),
-    Label: label_acl,
-}
-"""A mapping from a subset of ORM classes to factory functions that, called
-with an ORM object of that class, will return a Pyramid ACL appropriate for
-application to that object.
-
-This constant essentially defines the ACLs that should be applied to ORM
-objects by :func:`contextualize`.
-"""
-
-
-class FloofRoot(dict):
-    """Root element of the Floof context tree.
-
-    The ``__acl__`` attribute of this class is :const:`ROOT_ACL`.
-
-    At present, the option request parameter is ignored.
+    Child classes may override :attr:`parent_class` with another ORMContext
+    class to indicate that that context should be used as its immediate parent,
+    rather than the root context.  Child classes that do so must also override
+    :meth:``get_parent_ormobj``, which must return the ORM object to which the
+    :attr:`parent_class` should be applied.  In the case that the appropriate
+    parent class depends on the particular ORM object, simply make the
+    :attr:``parent_class`` a property getter.
 
     """
-    __name__ = ''
-    __parent__ = None
-    __acl__ = ROOT_ACL
+    parent_class = None
+    __acl__ = []
 
-    def __init__(self, request=None):
-        pass
+    def __init__(self, ormobj, name=None, root=None):
+        self.ormobj = ormobj
+
+        # Set name
+        if name is None:
+            default = id(self.ormobj if self.ormobj is not None else self)
+            objid = getattr(self.ormobj, 'id', default)
+            name = self.ormobj.__class__.__name__ + ':' + str(objid)
+        self.__name__ = name
+
+        # Set parent, potentially recursing
+        if self.parent_class:
+            parent_ormobj = self.get_parent_ormobj()
+            self.__parent__ = self.parent_class(parent_ormobj, root=root)
+        else:
+            self.__parent__ = root or FloofRoot()
+
+        # Set parent's child
+        self.__parent__[name] = self
 
     def __repr__(self):
         tmpl = "<FloofContext '{cls}' ( Name: '{name}'; Parent: '{parent}' )>"
         return tmpl.format(cls=self.__class__.__name__, name=self.__name__,
                            parent=self.__parent__)
 
+    def get_parent_ormobj(self):
+        raise NotImplementedError
+
+
+class FloofRoot(ORMContext):
+    """Root element of the Floof context tree.
+
+    The ``__acl__`` attribute of this class defines the base, generic
+    permissions that apply in the absence of an ORM object with more specific
+    or nuanced principal -> permission mappings.
+
+    At present, the optional request parameter is ignored.
+
+    """
+    __acl__ = [
+        (Allow, 'trusted_for:admin', ALL_PERMISSIONS),
+
+        (Deny, 'banned:interact_with_others', (
+            'art.rate',
+            'comments.add',
+            'tags.add',
+        )),
+
+        (Allow, Authenticated, '__authenticated__'),
+
+        (Allow, 'role:user', (
+            'art.upload', 'art.rate',
+            'comments.add',
+            'tags.add', 'tags.remove',
+        )),
+
+        (Allow, 'trusted_for:auth', (
+            'auth.method', 'auth.certificates', 'auth.openid',
+            'auth.browserid')),
+    ]
+
+    def __init__(self, request=None):
+        self.__name__ = ''
+        self.__parent__ = None
+
+
+class ResourceCtx(ORMContext):
+    pass
+
+
+class DiscussionCtx(ORMContext):
+    parent_class = ResourceCtx
+
+    def get_parent_ormobj(self):
+        return self.ormobj.resource
+
+
+class CommentCtx(ORMContext):
+    parent_class = DiscussionCtx
+
+    def get_parent_ormobj(self):
+        return self.ormobj.discussion
+
+    @property
+    def __acl__(self):
+        ALL = ('comment.delete', 'comment.edit')
+        comment = self.ormobj
+        return [
+            (Allow, 'role:user:{0}'.format(comment.author_user_id),
+                ALL),
+            (Allow, 'scope:comments:{0}'.format(comment.author_user_id),
+                ALL),
+        ]
+
+
+class LabelCtx(ORMContext):
+    @property
+    def __acl__(self):
+        label = self.ormobj
+        acl = [
+            (Allow, 'role:user:{0}'.format(label.user_id), ('label.view',)),
+        ]
+        if label.encapsulation in ('public', 'plug'):
+            acl.append((Allow, Everyone, ('label.view',)))
+        return acl
+
+
+class OAuth2ClientCtx(ORMContext):
+    @property
+    def __acl__(self):
+        client = self.ormobj
+        acl = [
+            (Allow, 'role:user:{0}'.format(client.user_id),
+                ('api.oauth.edit',)),
+        ]
+        return acl
+
 
 def contextualize(ormobj, name=None, root=None):
     """Attaches an ORM object to a makeshift resource tree.
 
     `ormobj` is attached to the tree by adding appropriate attributes.  The
-    tree is only guarnteed to contain those elements required to successfully
+    tree is only guaranteed to contain those elements required to successfully
     preform ACL authorization on the object.  If `ormobj` already has an
     ``__acl__`` or ``__parent__`` attribute, then it is returned immediately
     and without modification.
-
-    Currently all objects are shoved into a fresh two-member tree with the
-    modifierd `ormobj` as the only leaf and an instance of :class:`FloofRoot`
-    as the root.
 
     Typically, this function is used to wrap ORM objects as part of a URL
     Dispatch route factory.  Note that, as the returned object is used as both
@@ -117,27 +177,36 @@ def contextualize(ormobj, name=None, root=None):
        `name`
           Defaults to the concatenation of the class name of `ormobj` with
           either the value of ``ormobj.id`` or, failing that, ``id(ormobj)``.
-          The ``__name__`` attribute that will be added ot `ormobj`.
+          The ``__name__`` attribute that will be added to `ormobj`.
 
        `root`
           Defaults to ``FloofRoot()``. The object to use as the root of the
           context tree into which `ormobj` will be placed.
 
     """
+    # Don't re-evaluate if it looks like something tried to contextualise the
+    # object before; not especially precise, though
     if hasattr(ormobj, '__acl__') or hasattr(ormobj, '__parent__'):
         return ormobj
 
-    if name is None:
-        objid = getattr(ormobj, 'id', id(ormobj))
-        name = ormobj.__class__.__name__ + ':' + str(objid)
+    # XXX: Avoids a dull class->class map, but is it too hackish?
+    clsname = ormobj.__class__.__name__
+    ctx_cls = globals().get(clsname + 'Ctx')
 
-    parent = root or FloofRoot()
-    parent[name] = ormobj
-    ormobj.__name__ = name
-    ormobj.__parent__ = parent
+    # Build the appropriate context tree
+    if ctx_cls:
+        ctx = ctx_cls(ormobj, name, root)
+    else:
+        # Lacking a more specific context, just use the root
+        ctx = root or FloofRoot()
 
-    ormcls = ormobj.__class__
-    if ormcls in ORM_ACLS:
-        ormobj.__acl__ = ORM_ACLS[ormcls](ormobj)
+    # Get the ORM object to "hijack" the position of the context tree leaf, so
+    # that the object may be used directly in authorization requests
+    # XXX: Should ormobj become a child of the found leaf instead?
+    ormobj.__acl__ = ctx.__acl__
+    ormobj.__name__ = ctx.__name__
+    ormobj.__parent__ = ctx.__parent__
+    if ormobj.__parent__:
+        ormobj.__parent__[ormobj.__name__] = ormobj
 
     return ormobj
