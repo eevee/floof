@@ -12,8 +12,8 @@
         % if len(outstanding_principals) == 1:
             <p>You may gain authorization by following the steps below:</p>
         % else:
-            <p>You may gain authorization by following any of the following
-            groups of steps:</p>
+            <p>You may gain authorization by following any of the groups of
+            steps below:</p>
         % endif
 
         % for i, principal_group in enumerate(outstanding_principals):
