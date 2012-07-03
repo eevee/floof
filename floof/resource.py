@@ -5,12 +5,15 @@ As ``floof`` uses URL Dispatch, the resource tree provides only authorization
 information, and authorization is the focus of this module.
 
 """
+from pyramid.security import ALL_PERMISSIONS
 from pyramid.security import Allow, Deny
 from pyramid.security import Authenticated, Everyone
 
 from floof.model import Comment, Label
 
 ROOT_ACL = (
+    (Allow, 'trusted_for:admin', ALL_PERMISSIONS),
+
     (Deny, 'banned:interact_with_others', (
         'art.rate',
         'comments.add',
@@ -27,8 +30,6 @@ ROOT_ACL = (
 
     (Allow, 'trusted_for:auth', (
         'auth.method', 'auth.certificates', 'auth.openid', 'auth.browserid')),
-
-    (Allow, 'trusted_for:admin', ('admin.view')),
 )
 """The root ACL attached to instances of :class:`FloofRoot`.
 
@@ -40,7 +41,6 @@ ORM object with more specific or nuanced principal -> permission mappings.
 def label_acl(label):
     acl = [
         (Allow, 'user:{0}'.format(label.user_id), ('label.view',)),
-        (Allow, 'trusted_for:admin', ('label.view',)),
     ]
     if label.encapsulation in ('public', 'plug'):
         acl.append((Allow, Everyone, ('label.view',)))
@@ -51,10 +51,6 @@ def label_acl(label):
 ORM_ACLS = {
     Comment: lambda ormobj: (
         (Allow, 'user:{0}'.format(ormobj.author_user_id), (
-            'comment.delete',
-            'comment.edit',
-        )),
-        (Allow, 'trusted_for:admin', (
             'comment.delete',
             'comment.edit',
         )),

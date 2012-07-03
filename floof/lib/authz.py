@@ -16,6 +16,7 @@ permissions need to be administratively granted.
 """
 import logging
 
+from pyramid.security import ALL_PERMISSIONS
 from pyramid.security import effective_principals, has_permission
 from pyramid.security import principals_allowed_by_permission
 
@@ -199,7 +200,9 @@ def permissions_in_context(context, request):
 
     permissions = set()
     for action, principal, perms in acl:
-        if not hasattr(perms, '__iter__'):
+        if (perms == ALL_PERMISSIONS or
+            isinstance(perms, basestring) or
+            not hasattr(perms, '__iter__')):
             perms = [perms]
         permissions.update(set(perms))
 
