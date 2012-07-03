@@ -82,6 +82,8 @@ def attempt_privilege_escalation(permission, context, request):
     entail setting a stash for the current request then redirecting.
 
     """
+    upgradeable = ('trusted:browserid_recent', 'trusted:openid_recent')
+
     if not could_have_permission(permission, context, request):
         return
 
@@ -91,8 +93,8 @@ def attempt_privilege_escalation(permission, context, request):
 
         principal = altset.pop()
 
-        if principal.startswith('trusted:') and principal != 'trusted:cert':
-            # Can elevate by performing an OpenID authentication; so set a
+        if principal in upgradeable:
+            # Can elevate by performing a simple authentication; so set a
             # return_key and redirect to the login screen
             from floof.lib.stash import stash_post
             from pyramid.httpexceptions import HTTPSeeOther
