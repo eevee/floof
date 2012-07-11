@@ -59,7 +59,7 @@ class FloofAuthnPolicy(object):
         principals.add(Authenticated)
         principals.update(['user:' + str(user.id)])
         principals.update('role:' + role.name for role in user.roles)
-        principals.update('trusted:' + flag for flag in request.auth.trust)
+        principals.update('cred:' + flag for flag in request.auth.creds)
 
         if user.cert_auth in ('required', 'sensitive_required'):
             principals.add('auth:secure')
@@ -153,7 +153,7 @@ class Authenticizer(object):
     3. If they resolve a valid authentication, and this agrees with the
        prevailing value of :attr:`user` (or :attr:`user` is None), they must
        add any related authentication information to :attr:`state` and append
-       appropriate flags to :attr:`trust`.  If :attr:`user` is None, they must
+       appropriate flags to :attr:`creds`.  If :attr:`user` is None, they must
        set it to the resolved user; and
 
     4. If the authentication fails or is invalid or inconsistent, they should
@@ -165,11 +165,11 @@ class Authenticizer(object):
     constructor should ensure this.
 
     """
-    # These are used for injecting tokens and trust flags during tests
+    # These are used for injecting tokens and cred flags during tests
     _cred_tokens = ['cert_serial', 'openid_url', 'openid_timestamp',
                     'browserid_email', 'browserid_timestamp']
-    _trust_flags = ['cert', 'openid', 'openid_recent', 'browserid',
-                    'browserid_recent']
+    _cred_flags = ['cert', 'openid', 'openid_recent', 'browserid',
+                   'browserid_recent']
 
     def __init__(self, request):
         config = request.registry.settings
@@ -183,9 +183,9 @@ class Authenticizer(object):
         self.user = model.AnonymousUser()
         """Either the user authenticated by the state of the various
         authentication mechanisms of :class:`Authenticizer` (listed in
-        :attr:`trust`) or an instance of :class:`floof.model.AnonymousUser`."""
+        :attr:`creds`) or an instance of :class:`floof.model.AnonymousUser`."""
 
-        self.trust = []
+        self.creds = []
         """A list of authentication mechanisms satisfied that the current
         request authenticates :attr:`user`."""
 
@@ -233,7 +233,7 @@ class Authenticizer(object):
         if 'paste.testing' in request.environ:
             self._setup_testing_late(request)
 
-        if len(self.trust) == 0:
+        if not self.creds:
             # Either there's no user, or none of their current auths are valid.
             # Wipe the slate clean
             self.clear()
@@ -265,11 +265,11 @@ class Authenticizer(object):
                     self.state[token] = env[idx]
 
     def _setup_testing_late(self, request):
-        """Override trust flags as requested or required."""
+        """Override cred flags as requested or required."""
 
         env = request.environ
-        if ('tests.auth_trust' in env or 'tests.user_id' in env):
-            self.trust = env.get('tests.auth_trust', self._trust_flags)
+        if 'tests.auth_creds' in env or 'tests.user_id' in env:
+            self.creds = env.get('tests.auth_creds', self._cred_flags)
 
     def check_certificate(self, request):
         """Check a client certificate serial and add authentication if valid."""
@@ -305,7 +305,7 @@ class Authenticizer(object):
         # At this point, we're confident that the supplied cert is valid
 
         self.state['cert_serial'] = serial
-        self.trust.append('cert')
+        self.creds.append('cert')
 
         if not self.user:
             self.user = cert.user
@@ -341,7 +341,7 @@ class Authenticizer(object):
 
         self.state['openid_url'] = url
         self.state['openid_timestamp'] = timestamp
-        self.trust.append('openid')
+        self.creds.append('openid')
 
         # Evaluate OpenID freshness
         confidence_expiry_secs = int(config.get(
@@ -350,7 +350,7 @@ class Authenticizer(object):
 
         age = datetime.utcnow() - datetime.utcfromtimestamp(timestamp)
         if age <= timedelta(seconds=confidence_expiry_secs):
-            self.trust.append('openid_recent')
+            self.creds.append('openid_recent')
 
         if not self.user:
             self.user = openid.user
@@ -387,7 +387,7 @@ class Authenticizer(object):
 
         self.state['browserid_email'] = email
         self.state['browserid_timestamp'] = timestamp
-        self.trust.append('browserid')
+        self.creds.append('browserid')
 
         # Evaluate BrowserID freshness
         confidence_expiry_secs = int(config.get(
@@ -396,7 +396,7 @@ class Authenticizer(object):
 
         age = datetime.utcnow() - datetime.utcfromtimestamp(timestamp)
         if age <= timedelta(seconds=confidence_expiry_secs):
-            self.trust.append('browserid_recent')
+            self.creds.append('browserid_recent')
 
         if not self.user:
             self.user = browserid.user
@@ -445,7 +445,7 @@ class Authenticizer(object):
         """Clears all auth state, logging out unless certs are in use."""
         self.state.clear()
         self.user = model.AnonymousUser()
-        self.trust = []
+        self.creds = []
 
     # Provide implementation-independent introspection of credential tokens
     def _get_state(key):
@@ -475,7 +475,7 @@ class Authenticizer(object):
         if get('browserid_email'):
             ret += 'BrowserID: {0} @ {1}, '.format(
                     get('browserid_email'), ages.get('browserid'))
-        ret += 'Trust Flags: {0} )>'.format(repr(self.trust))
+        ret += 'Cred Flags: {0} )>'.format(repr(self.creds))
 
         return ret
 

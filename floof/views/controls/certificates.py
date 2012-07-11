@@ -214,9 +214,9 @@ def certificates_revoke_commit(context, request):
         level=u'success')
 
     principals = effective_principals(request)
-    trust = [p for p in principals if p.startswith('trusted:')]
+    creds = [p for p in principals if p.startswith('cred:')]
     serial = request.auth.certificate_serial
-    if trust == ['trusted:cert'] and cert.serial == serial:
+    if creds == ['cred:cert'] and cert.serial == serial:
         # The user will be logged out by this revocation
         return HTTPSeeOther(location=request.route_url('account.login'))
 

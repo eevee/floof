@@ -24,17 +24,17 @@ from floof.resource import contextualize
 
 log = logging.getLogger(__name__)
 
-UPGRADABLE_PRINCIPALS = ('auth:', 'trusted:')
+UPGRADABLE_PRINCIPALS = ('auth:', 'cred:')
 
 TRUST_MAP = dict([
     ('trusted_for:auth', [
-        ('role:user', 'auth:insecure', 'trusted:browserid_recent'),
-        ('role:user', 'auth:insecure', 'trusted:openid_recent'),
-        ('role:user', 'auth:insecure', 'trusted:cert'),
-        ('role:user', 'auth:secure', 'trusted:cert'),
+        ('role:user', 'auth:insecure', 'cred:browserid_recent'),
+        ('role:user', 'auth:insecure', 'cred:openid_recent'),
+        ('role:user', 'auth:insecure', 'cred:cert'),
+        ('role:user', 'auth:secure', 'cred:cert'),
     ]),
     ('trusted_for:admin', [
-        ('role:admin', 'auth:secure', 'trusted:cert'),
+        ('role:admin', 'auth:secure', 'cred:cert'),
     ]),
 ])
 """A dictionary mapping :term:`derived principal` identifiers to a list of
@@ -51,7 +51,7 @@ The point is to allow for principals that arise from holding a combination of:
 - ``auth:*`` principals, which reflect to the relative strength of the user's
   chosen auth method; and
 
-- ``trusted:*`` principals, which reflect the valid authentication mechanisms
+- ``cred:*`` principals, which reflect the valid authentication mechanisms
   in the context of the current request.
 
 """
@@ -82,7 +82,7 @@ def attempt_privilege_escalation(permission, context, request):
     entail setting a stash for the current request then redirecting.
 
     """
-    upgradeable = ('trusted:browserid_recent', 'trusted:openid_recent')
+    upgradeable = ('cred:browserid_recent', 'cred:openid_recent')
 
     if not could_have_permission(permission, context, request):
         return

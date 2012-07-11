@@ -353,7 +353,7 @@ def login_finish(context, request):
 def logout(context, request):
     """Logs the user out, if possible."""
 
-    cert_active = 'trusted:cert' in effective_principals(request)
+    cert_active = 'cred:cert' in effective_principals(request)
 
     # XXX if you're using a client cert, this should try hard to log you out
     # with the crypto api

@@ -85,7 +85,7 @@ class AuthenticationForm(FloofForm):
                         'that requires an SSL certificate to log in or to '
                         'change this setting while you have no valid SSL '
                         'certificates registered against your account.')
-            if not 'trusted:cert' in effective_principals(request):
+            if not 'cred:cert' in effective_principals(request):
                 raise wtforms.ValidationError('To prevent locking yourself '
                         'out, you cannot make a selection that requires an '
                         'SSL certificate to log in or to change this '
@@ -321,7 +321,7 @@ def authentication(context, request):
 
     # Trim options that will be denied
     if (not request.user.cert_auth in ('required', 'sensitive_required') and
-            not 'trusted:cert' in effective_principals(request)):
+            not 'cred:cert' in effective_principals(request)):
         form.cert_auth.choices = form.cert_auth.choices[:2]
 
     return {'form': form}

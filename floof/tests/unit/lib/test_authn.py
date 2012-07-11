@@ -58,7 +58,7 @@ class TestFloofAuthnPolicy(UnitTests):
             principals = self.policy.effective_principals(request)
             assert 'auth:{0}'.format(nature) in principals
 
-    def test_principals_trusted(self):
+    def test_principals_cred(self):
         authn_flags = ['cert', 'openid', 'browserid']
         additional_flags = [
                 'openid_recent', 'openid_recent',
@@ -82,7 +82,7 @@ class TestFloofAuthnPolicy(UnitTests):
                 assert 'user:{0}'.format(self.user.id) in principals
 
                 for mech in combo:
-                    flag = 'trusted:{0}'.format(mech)
+                    flag = 'cred:{0}'.format(mech)
                     if mech.endswith('_recent') and mech[:-7] not in combo:
                         assert flag not in principals
                     else:

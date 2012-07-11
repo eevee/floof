@@ -265,7 +265,7 @@ class TestControls(FunctionalTests):
     def test_cert_auth_change(self):
         """Test changing the user certificate authentication option."""
         environ = copy.deepcopy(self.default_environ)
-        environ['tests.auth_trust'] = ['cert']
+        environ['tests.auth_creds'] = ['cert']
         response = self.app.get(
                 self.url('controls.auth'),
                 extra_environ=environ,
@@ -286,7 +286,7 @@ class TestControls(FunctionalTests):
         cert_auth = model.session.query(model.User).filter_by(id=self.user.id).one().cert_auth
         assert cert_auth == u'disabled', 'Allowed change to method requiring a certificate when user has no certificates.'
 
-        environ['tests.auth_trust'] = ['openid', 'openid_recent']
+        environ['tests.auth_creds'] = ['openid', 'openid_recent']
         response = self.app.post(
                 self.url('controls.certs.generate_server', name=self.user.name),
                 params=[
@@ -311,7 +311,7 @@ class TestControls(FunctionalTests):
         user = model.session.query(model.User).filter_by(id=self.user.id).one()
         assert len(user.valid_certificates) > 0, 'User does not appear to have any valid certificates, even though we just created one.'
 
-        environ['tests.auth_trust'] = ['cert']
+        environ['tests.auth_creds'] = ['cert']
         response = self.app.post(
                 self.url('controls.auth'),
                 params=[
@@ -337,7 +337,7 @@ class TestControls(FunctionalTests):
 
         # Pretend to try to change our cert_auth options while our auth is too old
         environ = copy.deepcopy(self.default_environ)
-        environ['tests.auth_trust'] = ['openid']
+        environ['tests.auth_creds'] = ['openid']
         response = self.app.post(
                 self.url('controls.auth'),
                 params=[('cert_auth', u'allowed')],
@@ -393,7 +393,7 @@ class TestControls(FunctionalTests):
         # have taken place).
 
         # XXX prefer to avoid setting this explictly
-        environ['tests.auth_trust'].append('openid_recent')
+        environ['tests.auth_creds'].append('openid_recent')
         pu = urlparse(response.headers['location'])
         path, params = pu[2], pu[4]
         assert path == self.url('controls.auth'), 'Unexpected redirect path: {0}'.format(path)
