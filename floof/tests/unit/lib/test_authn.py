@@ -72,7 +72,7 @@ class TestFloofAuthnPolicy(UnitTests):
                 principals = self.policy.effective_principals(request)
                 print combo, principals
 
-                if not any([f for f in combo if f in authn_flags]):
+                if not any(f for f in combo if f in authn_flags):
                     # With no flags from authn_flags, no user should resolve
                     assert principals == set([Everyone])
                     continue
@@ -87,9 +87,3 @@ class TestFloofAuthnPolicy(UnitTests):
                         assert flag not in principals
                     else:
                         assert flag in principals
-
-    def test_principal_derivation_trustedfor_auth(self):
-        pass
-
-    def test_principal_derivation_trustedfor_admin(self):
-        pass

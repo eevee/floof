@@ -9,6 +9,8 @@ from pyramid.security import ALL_PERMISSIONS
 from pyramid.security import Allow, Deny
 from pyramid.security import Authenticated, Everyone
 
+from floof.lib.authz import PrivCheck
+
 
 class ORMContext(dict):
     """A node in floof's context tree.
@@ -73,7 +75,12 @@ class FloofRoot(ORMContext):
 
     """
     __acl__ = [
-        (Allow, 'trusted_for:admin', ALL_PERMISSIONS),
+        (Allow, PrivCheck(
+            role='admin',
+            trusted_for='admin'
+            ),
+            ALL_PERMISSIONS
+        ),
 
         (Deny, 'banned:interact_with_others', (
             'art.rate',
@@ -83,15 +90,21 @@ class FloofRoot(ORMContext):
 
         (Allow, Authenticated, '__authenticated__'),
 
-        (Allow, 'role:user', (
+        (Allow, PrivCheck(
+            role='user',
+            ), (
             'art.upload', 'art.rate',
             'comments.add',
             'tags.add', 'tags.remove',
         )),
 
-        (Allow, 'trusted_for:auth', (
-            'auth.method', 'auth.certificates', 'auth.openid',
-            'auth.browserid')),
+        (Allow, PrivCheck(
+            role='user',
+            trusted_for='auth'
+            ), (
+            'auth.browserid', 'auth.openid', 'auth.certificates',
+            'auth.method',
+        )),
     ]
 
     def __init__(self, request=None):
@@ -112,20 +125,27 @@ class DiscussionCtx(ORMContext):
 
 class CommentCtx(ORMContext):
     parent_class = DiscussionCtx
+    @property
+    def __acl__(self):
+        comment = self.ormobj
+        return [
+            (Allow, PrivCheck(
+                role='moderator',
+                trusted_for='admin'
+                ), (
+                'comment.delete', 'comment.edit'
+            )),
+            (Allow, PrivCheck(
+                role='user',
+                user_id=comment.author_user_id,
+                scope='comment'
+                ), (
+                'comment.delete', 'comment.edit'
+            )),
+        ]
 
     def get_parent_ormobj(self):
         return self.ormobj.discussion
-
-    @property
-    def __acl__(self):
-        ALL = ('comment.delete', 'comment.edit')
-        comment = self.ormobj
-        return [
-            (Allow, 'role:user:{0}'.format(comment.author_user_id),
-                ALL),
-            (Allow, 'scope:comments:{0}'.format(comment.author_user_id),
-                ALL),
-        ]
 
 
 class LabelCtx(ORMContext):
@@ -133,7 +153,12 @@ class LabelCtx(ORMContext):
     def __acl__(self):
         label = self.ormobj
         acl = [
-            (Allow, 'role:user:{0}'.format(label.user_id), ('label.view',)),
+            (Allow, PrivCheck(
+                role='user',
+                user_id=label.user_id
+                ), (
+                'label.view',
+            )),
         ]
         if label.encapsulation in ('public', 'plug'):
             acl.append((Allow, Everyone, ('label.view',)))
@@ -145,8 +170,12 @@ class OAuth2ClientCtx(ORMContext):
     def __acl__(self):
         client = self.ormobj
         acl = [
-            (Allow, 'role:user:{0}'.format(client.user_id),
-                ('api.oauth.edit',)),
+            (Allow, PrivCheck(
+                role='user',
+                user_id=client.user_id
+                ), (
+                'oauth.client.control',
+            )),
         ]
         return acl
 
@@ -166,7 +195,8 @@ def contextualize(ormobj, name=None, root=None):
     of affairs where ``request.root`` does not point to the root of the context
     tree, but to the ORM object `ormobj`.  This behaviour is expected and
     should not cause any problems with
-    :class:`pyramid.authorization.ACLAuthorizationPolicy`.
+    :class:`pyramid.authorization.ACLAuthorizationPolicy` or
+    :class:`floof.lib.authz.FloofACLAuthorizationPolicy`.
 
     Parameters:
 

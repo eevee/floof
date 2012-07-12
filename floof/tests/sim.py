@@ -20,8 +20,9 @@ def sim_user(credentials=None, roles=None):
     Parameters:
 
         `credentials` is a sequence of (auth_mechanism, credential) tuples,
-        where auth_mechanism is one of 'openid' or 'cert' and credential is the
-        OpenID URL when paired with 'openid' and ignored when paired with
+        where auth_mechanism is one of 'browserid', 'openid' or 'cert' and
+        credential is the BrowserID email address or OpenID URL when paired
+        with 'browserid' or 'openid' respectively and ignored when paired with
         'cert'.  If not specified, will default to:
         ``[('cert', None), ('openid', 'https://example.com/'), ('browserid',
         '<username>@example.org')]``
@@ -87,7 +88,7 @@ def sim_user_env(user, *trust_flags):
     will be raised.
 
     To gain authentication flags without needing real backing credentials, add
-    the desired cert_flags directly to the tests.auth_trust environment
+    the desired cert_flags directly to the tests.auth_creds environment
     variable.  Note that this alternate method will not test large parts of
     floof's authn code.
 

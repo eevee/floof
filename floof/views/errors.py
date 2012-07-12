@@ -5,8 +5,7 @@ from pyramid import httpexceptions
 from pyramid.view import view_config
 
 from floof.app import NoCookiesError
-from floof.lib.authz import UPGRADABLE_PRINCIPALS
-from floof.lib.authz import outstanding_principals
+from floof.lib.authz import is_upgradeable, outstanding_principals
 
 
 log = logging.getLogger(__name__)
@@ -53,7 +52,7 @@ def error403(exc, request):
         all_outstanding = outstanding_principals(
             request.permission, request.context, request)
         for altset in all_outstanding:
-            if all(p for p in altset if p.startswith(UPGRADABLE_PRINCIPALS)):
+            if all(is_upgradeable(p, request) for p in altset):
                 outstanding.append(tuple(altset))
 
     outstanding = list(set(outstanding))  # Unique-ify

@@ -20,7 +20,6 @@ from sqlalchemy.orm.exc import NoResultFound
 from zope.interface import implements
 
 from floof import model
-from floof.lib.authz import TRUST_MAP
 from floof.lib.authz import add_user_authz_methods
 
 log = logging.getLogger(__name__)
@@ -65,14 +64,6 @@ class FloofAuthnPolicy(object):
             principals.add('auth:secure')
         else:
             principals.add('auth:insecure')
-
-        # Add derived principals
-        for derivative, prereqs_list in TRUST_MAP.iteritems():
-            for prereqs in prereqs_list:
-                f = lambda x: x in principals
-                if all(map(f, prereqs)):
-                    principals.add(derivative)
-                    break
 
         return principals
 
