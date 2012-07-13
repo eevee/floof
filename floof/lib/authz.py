@@ -89,9 +89,9 @@ class PrivCheck(object):
     """Acts as a complex/compound principal for use in ACLs.
 
     Provides a way to encapsulate complex rules for requiring particular
-    combinations of basic, string-based principals.  The core interface is that
-    the complex principal object should be a callable that, called with the
-    session's current principals, will return True if its conditions are
+    combinations of basic, string-based principals.  The core interface is: the
+    complex principal object should be a callable that, called with the
+    session's current `principals`, will return True if its conditions are
     satisfied and False otherwise.  For the sake of floof's "authenication
     upgrade" crud, it also provides the methods :meth:`delta` and
     :meth:`upgradeable`.
@@ -105,7 +105,7 @@ class PrivCheck(object):
     -  Hold a particular scope authorization if an OAuth client; and
     -  Hold a particular set of authentication credentials while acting for a
        user with particular authentication settings (chosen from a predefined
-       set, currently ``trusted_for:admin`` and ``trusted_for:auth``).
+       set given by :const:`TRUST_MAP`).
 
     Or just a subset thereof.
 
@@ -114,10 +114,11 @@ class PrivCheck(object):
     browser-based access is always permitted and that OAuth is the only
     non-browser-based access mechanism.
 
-    NB: To denote the required absence of a string principal, a "-" with be
-    prepended to the principal name.  E.g. "-cred:oauth" means that, to satisfy
-    the instance, the principals must exclude "cred:oauth" (and hence the
-    active session must not be an OAuth client).
+    NB: Whenever it is necessary to denote the required absence of a string
+    principal, a "-" with be prepended to the principal name.  E.g.
+    "-cred:oauth" means that, to satisfy the instance, the principals must
+    exclude "cred:oauth" (and hence the active session must not be an OAuth
+    client).
 
     """
     def __init__(self, role=None, user_id=None, scope=None, trusted_for=None):
@@ -156,9 +157,10 @@ class PrivCheck(object):
         set([('role:admin', 'cred:cert')])
 
         If False, the output is a list of unfulfilled principal categories,
-        with each category being a list of principals, the format of which is
-        not guaranteed.  Additionally, no effort is made to ensure that all
-        principals listed are not already held, e.g.:
+        with each category being a list of principals, a combination thereof,
+        or some other token, the format of which is not guaranteed.
+        Additionally, no effort is made to ensure that all principals listed
+        are not already held, e.g.:
 
         >>> chk.delta(principals, cleanup=False)
         [['role:admin'], [('auth:secure', 'cred:cert')]]
@@ -225,7 +227,8 @@ class PrivCheck(object):
         >>> PrivCheck(role='admin', scope='art').principals
         [['role:admin', '-cred:oauth'], ['role:admin', 'scope:art']]
 
-        NB: the principal 'system.Authenticated' is omitted for brevity.
+        NB: This is only meant as a manual debugging aid.  The principal
+        'system.Authenticated' is omitted from the output for brevity.
 
         """
         factors = []
@@ -266,8 +269,12 @@ class PrivCheck(object):
 
 
 class FloofACLAuthorizationPolicy(ACLAuthorizationPolicy):
-    """Like Pyramid's default ACLAuthorization policy, but accepts and returns
-    PrivCheck objects as principals in addition to simple principal strings.
+    """Like Pyramid's default
+    :class:`pyramid.authorization.ACLAuthorizationPolicy` authorization policy,
+    but accepts and returns callable objects (typically instances of
+    :class:`PrivCheck`) as principals in addition to simple principal strings.
+    The current principal list `principals` is evaluated against the callable
+    by calling the callable with `principals` as its only argument.
     """
     def permits(self, context, principals, permission):
         """ Return an instance of
@@ -359,7 +366,8 @@ def attempt_privilege_escalation(permission, context, request):
                                   "BrowserID to complete this action",
                                   level='notice')
 
-            location = request.route_url('account.login', _query=[('return_key', key)])
+            location = request.route_url('account.login',
+                                         _query=[('return_key', key)])
             raise HTTPSeeOther(location=location)
 
 
@@ -441,8 +449,8 @@ def add_user_authz_methods(user, request):
         return could_have_permission(permission, context, request)
 
     def user_permitted(permission, lst):
-        """Filter iterable lst to include only ORM objects for which the request's
-        user holds the given permission."""
+        """Filter iterable lst to include only ORM objects for which the
+        request's user holds the given permission."""
         f = lambda obj: request.user.can(permission, contextualize(obj))
         return filter(f, lst)
 
@@ -466,8 +474,8 @@ def permissions_in_context(context, request):
     permissions = set()
     for action, principal, perms in acl:
         if (perms == ALL_PERMISSIONS or
-            isinstance(perms, basestring) or
-            not hasattr(perms, '__iter__')):
+                isinstance(perms, basestring) or
+                not hasattr(perms, '__iter__')):
             perms = [perms]
         permissions.update(set(perms))
 

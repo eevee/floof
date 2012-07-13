@@ -15,7 +15,7 @@ from floof.lib.authz import PrivCheck
 class ORMContext(dict):
     """A node in floof's context tree.
 
-    For the convenience of :func:``contextualize`` the "tree" really is just
+    For the convenience of :func:`contextualize` the "tree" really is just
     a chain (it has only one leaf).  It is expected that the chain will be
     built from the leaf ORM object up to the root.  The constructor will
     attempt to create this chain automatically.
@@ -26,14 +26,19 @@ class ORMContext(dict):
     Child classes may override :attr:`parent_class` with another ORMContext
     class to indicate that that context should be used as its immediate parent,
     rather than the root context.  Child classes that do so must also override
-    :meth:``get_parent_ormobj``, which must return the ORM object to which the
+    :meth:`get_parent_ormobj`, which must return the ORM object to which the
     :attr:`parent_class` should be applied.  In the case that the appropriate
     parent class depends on the particular ORM object, simply make the
-    :attr:``parent_class`` a property getter.
+    :attr:`parent_class` a property getter.
 
     """
     parent_class = None
+    """The :class:`ORMContext` subclass that should the instance's parent; None
+    indicates that the parent should be the :class:`FloofRoot`."""
+
     __acl__ = []
+    """The access control list to apply in the context of the
+    :class:`ORMContext` instance."""
 
     def __init__(self, ormobj, name=None, root=None):
         self.ormobj = ormobj
@@ -61,6 +66,9 @@ class ORMContext(dict):
                            parent=self.__parent__)
 
     def get_parent_ormobj(self):
+        """Must return the ORM object that should act as the parent of this
+        :class:`ORMContext` instance.  Only requires definition if
+        :attr:`parent_class` is set."""
         raise NotImplementedError
 
 
@@ -125,6 +133,7 @@ class DiscussionCtx(ORMContext):
 
 class CommentCtx(ORMContext):
     parent_class = DiscussionCtx
+
     @property
     def __acl__(self):
         comment = self.ormobj

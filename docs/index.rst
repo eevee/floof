@@ -17,7 +17,7 @@ and in a state of high interface churn, only the Developer documentation is
 currently being written.
 
 While it is possible that other documentation will be rolled into ``floof``
-itself and thus never appear in this document; for now the Developer
+itself and thus never appear in this document, for now the Developer
 documentation is modelled as a subsection.
 
 

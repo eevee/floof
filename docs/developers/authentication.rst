@@ -57,13 +57,19 @@ either:
 
 At present:
 
-1. A client certificate serial is passed via HTTP header from the front-end
-   HTTP server (if the client presented a valid certificate within the context
-   of the current TLS session); and
+1. A client certificate serial is passed via HTTP header (currently
+   ``X-Floof-SSL-Client-Serial``) from the front-end HTTP server (if the client
+   presented a valid certificate within the context of the current TLS
+   session);
 
-2. The URL and timestamp of the most recent successful OpenID validation and
+2. An OAuth `Bearer token`_ may be passed via the ``Authorization`` HTTP
+   header; and
+
+3. The URL and timestamp of the most recent successful OpenID validation and
    the email address and timestamp of the most recent successful BrowserID
    validation are stored in the Pyramid session.
+
+.. _`Bearer token`: https://tools.ietf.org/html/draft-ietf-oauth-v2-bearer-20
 
 
 Resolving Identity
@@ -78,6 +84,7 @@ resolved to a user identity in the following order:
 1. TLS Client Certificate
 2. OpenID
 3. BrowserID
+4. OAuth
 
 Once one authentication mechanism has resolved a credential token to a user,
 subsequent mechanisms that resolve to a conflicting user will be ignored and
@@ -91,29 +98,30 @@ based.
 Retrieving Concrete Principal Identifiers
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-There are four types of concrete principal identifiers:
+There are five types of concrete principal identifiers:
 
 1. User identifiers, prefixed with ``user:``, that contain simply the user ID
    of the active user, modelled as a principal identifier for convenience.
 
-2. Role identifiers, prefixed with ``role:``.  These are assigned by
-   administrators and are stored in their own database table, and represent
-   static authorization properties of the user.  e.g.:
+2. Role identifiers, prefixed with ``role:``.  A user holds a single role,
+   either assigned by an administrator or defaulting to ``role:user``.  They
+   represent the static privilege level of the user.  e.g.:
 
    -  ``role:admin``
-   -  ``role:banned``
+   -  ``role:moderator``
    -  ``role:user``
 
 3. Authentication mechanism and status identifiers, currently prefixed with
-   ``trusted:``.  These indicate the currently valid credential tokens and
+   ``cred:``.  These indicate the currently valid credential tokens and
    their properties, such as whether a BrowserID or OpenID verification was
    preformed 'recently'.  e.g.:
 
-   -  ``trusted:cert``
-   -  ``trusted:openid``
-   -  ``trusted:openid_recent``
-   -  ``trusted:browserid``
-   -  ``trusted:browserid_recent``
+   -  ``cred:cert``
+   -  ``cred:openid``
+   -  ``cred:openid_recent``
+   -  ``cred:browserid``
+   -  ``cred:browserid_recent``
+   -  ``cred:oauth``
 
 4. Authentication setting identifiers, prefixed with ``auth:``.  These indicate
    properties of a user's authentication settings, such as whether a
@@ -122,24 +130,41 @@ There are four types of concrete principal identifiers:
    -  ``auth:insecure``
    -  ``auth:secure``
 
+5. Scope identifiers, prefixed with ``scope:``.  These are granted to OAuth
+   clients and represent the extent of access granted by the end-user.  They
+   should not provide access above that permitted to the underlying/effective
+   end-user, but that is a matter for :ref:`section-developers-authz` to
+   enforce.  e.g.:
+
+   -  ``scope:art``
+   -  ``scope:comment``
+
 Note that the principal identifiers are treated as flags and are included into
 a request's list in an additive fashion.  For instance, if a user has recently
 performed an OpenID credential verification, their request will include both
-the ``trusted:openid_recent`` and ``trusted:openid`` principal identifiers.
+the ``cred:openid_recent`` and ``cred:openid`` principal identifiers.
 
 
-.. _authn-derived-principals:
+.. _authn-complex-principals:
 
-Derived Principal Identifiers
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Compound/Complex Principal Identifiers
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-A :term:`derived principal` identifier is added to a request based on the
-presence of other, 'concrete' principal identifiers.  This provides a more
-manageable way to grant a permission based on common or meaningful combinations
-of other principal identifiers.
+Principals as resolved by the above mechanism are represented as simple
+strings, all of which apply equally to the request as flags and do not
+interact with each other.
 
-The pre-requisites for derived principal identifiers are specified by the
-dictionary :const:`floof.lib.authz.TRUST_MAP`.
+However, it is desirable in some circumstances to express the result of
+interactions or combinations of these simple, concrete, string principals.  The
+solution (covered in detail in :ref:`section-developers-authz`) is complex
+pseudo-principals that are actually callables accepting a list of active
+principals and returning True or False.
+
+This provides a more manageable way to grant a permission based on common or
+meaningful combinations of other principal identifiers.  For instance, the
+presence of ``cred:oauth`` should have the unusual effect of actually limiting
+granted permissions unless the relevant ``scope:*`` principals are also held by
+the request.
 
 
 Authorization
@@ -174,7 +199,7 @@ the user's authentication settings.
 
 
 ``floof.lib.authn``
-^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^
 
 .. automodule:: floof.lib.authn
    :members:
