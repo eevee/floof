@@ -26,7 +26,9 @@ class FloofForm(form.Form):
                 formdata = MultiDict()
             else:
                 formdata = deepcopy(formdata)
-            formdata.update(request.stash['post'])
+
+            if request.stash['post']:
+                formdata.update(request.stash['post'])
 
         super(FloofForm, self).__init__(formdata=formdata, obj=obj,
                                         prefix=prefix, **kwargs)

@@ -53,7 +53,7 @@ def manage_stashes(event):
 
     if stash:
         request.stash = stash
-        log.debug("Consuming stash '{0}: {1}'", request.path, stash)
+        log.debug("Consuming stash '{0}: {1}'".format(request.path, stash))
 
         if key and stash['post']:
             # Turn this request into a POST.  This side-steps the anti-CSRF
