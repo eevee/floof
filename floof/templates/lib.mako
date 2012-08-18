@@ -41,6 +41,11 @@
 <%def name="levelicon(level)">${icon(level_icons[level][1], level_icons[level][0])}</%def>
 
 
+<%def name="limit_text(text, length)">\
+${text if len(text) <= length else text[:length] + u'…'}\
+</%def>
+
+
 ## User handling
 <%def name="date(t)">\
 ${request.user.localtime(t).strftime('%Y-%m-%d')}\

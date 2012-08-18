@@ -9,10 +9,12 @@
 <nav class="side-navigation">
 <ul>
     % for action, icon, title in [ \
-        ('dashboard',    'question',         u'Dashboard'), \
-        ('log',          'book-bookmark',    u'Log'), \
+        ('dashboard',           'question',         u'Dashboard'), \
+        ('oauth.clients',       'oauth-tiny',       u'OAuth Clients'), \
+        ('log',                 'book-bookmark',    u'Log'), \
     ]:
-    % if action == request.matched_route.name.split('.')[1]:
+    <% route_tail = request.matched_route.name.split('.', 1)[1] %>
+    % if route_tail == action or route_tail.startswith(action + '.'):
     <li class="selected">${lib.icon(icon)} ${title}</li>
     % else:
     <li><a href="${request.route_url('admin.' + action)}">${lib.icon(icon)} ${title}</a></li>

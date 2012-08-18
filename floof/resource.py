@@ -86,6 +86,7 @@ class FloofRoot(ORMContext):
         (Allow, 'role:user', (
             'art.upload', 'art.rate',
             'comments.add',
+            'oauth.clients.add',  # XXX: should this require trusted_for:auth?
             'tags.add', 'tags.remove',
         )),
 

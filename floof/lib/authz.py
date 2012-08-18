@@ -16,11 +16,14 @@ permissions need to be administratively granted.
 """
 import logging
 
-from pyramid.security import ALL_PERMISSIONS
+from pyramid.compat import is_nonstr_iter
+from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.security import effective_principals, has_permission
 from pyramid.security import principals_allowed_by_permission
 
+from floof.lib.stash import stash_post
 from floof.resource import contextualize
+
 
 log = logging.getLogger(__name__)
 
@@ -96,15 +99,13 @@ def attempt_privilege_escalation(permission, context, request):
         if principal in upgradeable:
             # Can elevate by performing a simple authentication; so set a
             # return_key and redirect to the login screen
-            from floof.lib.stash import stash_post
-            from pyramid.httpexceptions import HTTPSeeOther
-
             key = stash_post(request)
             request.session.flash("You need to re-authenticate with OpenID or "
                                   "BrowserID to complete this action",
                                   level='notice')
 
-            location = request.route_url('account.login', _query=[('return_key', key)])
+            location = request.route_url('account.login',
+                                         _query=[('return_key', key)])
             raise HTTPSeeOther(location=location)
 
 
@@ -191,7 +192,7 @@ def permissions_in_context(context, request):
     """Returns a list of ``(permission, allowed, upgradable)`` tuples for each
     permission defined in the ACL (``__acl__``) of the `context`.  `allowed` is
     a boolean that is True if ``request.user`` holds that permission in that
-    context and `upgradeable` is a Boolean that is True if `allowed` is False
+    context and `upgradeable` is a boolean that is True if `allowed` is False
     but the permission may be gained by the user by authentication upgrade
     (typically re-authentication or using cert auth)."""
 
@@ -202,9 +203,7 @@ def permissions_in_context(context, request):
 
     permissions = set()
     for action, principal, perms in acl:
-        if (perms == ALL_PERMISSIONS or
-            isinstance(perms, basestring) or
-            not hasattr(perms, '__iter__')):
+        if not is_nonstr_iter(perms):
             perms = [perms]
         permissions.update(set(perms))
 

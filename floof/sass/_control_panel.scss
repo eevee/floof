@@ -51,3 +51,28 @@ dl.certificate.valid dd:nth-child(4) {
 dl.certificate.invalid dd:nth-child(4) {
     color: #600;
 }
+
+dl.oauth-client textarea {
+    width: 40em;
+    height: 6em;
+
+    &:disabled,
+    &[disabled] {
+        background: darken($body-bg, 10%);
+    }
+}
+
+table.oauth,
+dl.oauth-client {
+    .identifier {
+        font-family: monospace;
+    }
+}
+
+p.keybox {
+    float: left;
+    padding: 0.25em 0.5em;
+    border: 2px solid #333;
+    font-family: monospace;
+    font-size: 2em;
+}

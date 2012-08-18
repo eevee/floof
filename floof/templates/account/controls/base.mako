@@ -16,6 +16,7 @@
         ('openid',   'openid',       u'OpenID Identities'), \
         ('certs',    'certificate',  u'SSL Certificates'), \
         ('auth',     'key',          u'Authentication Options'), \
+        ('oauth',    'oauth-tiny',   u'OAuth'), \
     ]:
     % if action == request.matched_route.name.split('.')[1]:
     <li class="selected">${lib.icon(icon)} ${title}</li>

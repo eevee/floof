@@ -100,6 +100,22 @@ def configure_routing(config):
     label_router = user_router.chain('/labels/{label}', model.Label.id, rel=model.Label.user)
     label_router.add_route('labels.artwork', '')
 
+    # OAuth controls
+    r('controls.oauth', '/account/controls/oauth')
+    kw = sqla_route_options('client', 'client', model.OAuth2Client.identifier)
+    r('controls.oauth.clients.add', '/account/controls/oauth/clients/add')
+    r('controls.oauth.clients.edit', '/account/controls/oauth/clients/{client}', **kw)
+    r('controls.oauth.clients.delete', '/account/controls/oauth/clients/{client}/delete', **kw)
+    r('admin.oauth.clients', '/admin/oauth/clients')
+    r('admin.oauth.clients.add', '/admin/oauth/clients/add')
+    r('admin.oauth.clients.edit', '/admin/oauth/clients/{client}', **kw)
+    r('admin.oauth.clients.delete', '/admin/oauth/clients/{client}/delete', **kw)
+    # XXX: this leaks the total number of issued refresh tokens
+    kw = sqla_route_options('authz', 'id', model.OAuth2RefreshToken.id)
+    r('controls.oauth.authorizations.revoke', '/account/controls/oauth/authorizations/{id}/revoke', **kw)
+    r('admin.oauth.authorizations', '/admin/oauth/authorizations')
+    r('admin.oauth.authorizations.revoke', '/admin/oauth/authorizations/{id}/revoke', **kw)
+
     # Administration
     r('admin.dashboard', '/admin')
     r('admin.log', '/admin/log')
