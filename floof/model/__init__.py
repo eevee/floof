@@ -1,4 +1,5 @@
 """The application's model objects"""
+
 import datetime
 import hashlib
 import OpenSSL.crypto as ssl
@@ -10,6 +11,7 @@ import string
 from sqlalchemy import Column, ForeignKey, Table
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.ext.orderinglist import ordering_list
 from sqlalchemy.orm import backref, class_mapper, relation, validates
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.orm.exc import NoResultFound
@@ -580,6 +582,166 @@ class Log(TableBase):
     __mapper_args__ = {'order_by': timestamp.desc()}
 
 
+### OAuth
+
+# Assume len(charset) == 16
+OAUTH2_CLIENT_IDENTIFIER_LEN = 32  # 128-bits
+OAUTH2_CLIENT_SECRET_LEN = 64  # 256-bits
+
+def oauth_random_identifier():
+    chars = string.hexdigits.lower()
+    return u''.join(random.choice(chars)
+                    for i in xrange(OAUTH2_CLIENT_IDENTIFIER_LEN))
+
+def oauth_random_secret(context):
+    if context.current_parameters.get('type') == 'public':
+        return None
+    rand = random.SystemRandom()
+    chars = string.hexdigits.lower()
+    return u''.join(rand.choice(chars)
+                    for i in xrange(OAUTH2_CLIENT_SECRET_LEN))
+
+class OAuth2Client(TableBase):
+    """Base class for OAuth clients.
+
+    OAuth clients represent applications making requests to protected
+    resources on behalf of the user.
+
+    """
+    __tablename__ = 'oauth2_clients'
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'), index=True)
+    identifier = Column(String(OAUTH2_CLIENT_IDENTIFIER_LEN), nullable=False, unique=True, index=True, default=oauth_random_identifier)
+    type = Column(Enum(
+        u'web',
+        #u'user-agent',
+        u'native',
+        #u'device',
+        name='oauth2_client_type'), nullable=False, index=True)
+    name = Column(Unicode(127), nullable=False)
+    # XXX: store as punycode?
+    site_uri = Column(Unicode)
+    created = Column(TZDateTime, nullable=False, default=now)
+    updated = Column(TZDateTime, nullable=False, default=now)
+    __mapper_args__ = {'polymorphic_on': type}
+
+    @property
+    def auth_type(self):
+        return u'confidential' if self.type == u'web' else u'public'
+
+class OAuth2WebClient(OAuth2Client):
+    """Web sever application clients have a shared secret that they must
+    maintain securely.
+    """
+    __mapper_args__ = {'polymorphic_identity': u'web'}
+    secret = Column(String(OAUTH2_CLIENT_SECRET_LEN), nullable=False, default=oauth_random_secret)
+
+class OAuth2NativeClient(OAuth2Client):
+    """Native/mobile clients have no shared secret but are restricted to
+    redirecting authorization codes to localhost or the screen.
+    """
+    __mapper_args__ = {'polymorphic_identity': u'native'}
+
+class OAuth2RedirectURI(TableBase):
+    __tablename__ = 'oauth2_redirect_uris'
+    id = Column(Integer, primary_key=True)
+    position = Column(Integer)
+    client_id = Column(Integer, ForeignKey('oauth2_clients.id'), nullable=False, index=True)
+    # XXX: store as punycode?
+    uri = Column(Unicode, nullable=False)
+
+class OAuth2Grant(TableBase):
+    """A temporary representation of authorization; must be exchanged for an
+    access token and (potentially) a refresh token.
+    """
+    __tablename__ = 'oauth2_grants'
+    id = Column(Integer, primary_key=True)
+    client_id = Column(Integer, ForeignKey('oauth2_clients.id'), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    redirect_uri = Column(Unicode, nullable=False)
+    # If False, redirect_uri will be the client's default at the time of authz
+    # We keep the effective redirect_uri for future reference, but need to know
+    # whether it was given explicitly to validate a token request
+    redirect_uri_supplied = Column(Boolean, nullable=False)
+    code = Column(String(128), nullable=False, unique=True, index=True)
+    created = Column(TZDateTime, nullable=False, default=now)
+    expires = Column(TZDateTime, nullable=False, index=True)
+    refresh_token_id = Column(Integer, ForeignKey('oauth2_refresh_tokens.id'))
+
+    @property
+    def expired(self):
+        return self.expires < now()
+
+    @property
+    def redeemed(self):
+        return self.refresh_token_id is not None
+
+# TODO: at the business logic level we (SHA-512) hash the token string before
+# storing it in the DB (out of prudence); if possible, it would be nice to
+# instead wrap that functionality into some SQLAlchemy magic at the model level
+class OAuth2RefreshToken(TableBase):
+    """Used to obtain access tokens; currently doubles as the representation of
+    a persistent authorization granted by the user.
+    """
+    __tablename__ = 'oauth2_refresh_tokens'
+    id = Column(Integer, primary_key=True)
+    # For now, OAuth clients can act as only one user per token.
+    client_id = Column(Integer, ForeignKey('oauth2_clients.id'), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
+    token = Column(String(128), nullable=False, unique=True, index=True)
+    created = Column(TZDateTime, nullable=False, default=now)
+
+# One day we may wish to make access tokens signed assertions rather than DB
+# references
+class OAuth2AccessToken(TableBase):
+    """Used directly by clients to authenticate as a particular user with
+    particular permissions (scopes) to resources on the server.  Short-lived.
+    """
+    __tablename__ = 'oauth2_access_tokens'
+    id = Column(Integer, primary_key=True)
+    client_id = Column(Integer, ForeignKey('oauth2_clients.id'), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
+    token = Column(String(128), nullable=False, unique=True, index=True)
+    refresh_token_id = Column(Integer, ForeignKey('oauth2_refresh_tokens.id'))
+    created = Column(TZDateTime, nullable=False, default=now)
+    expires = Column(TZDateTime, nullable=False, index=True)
+
+    type = 'bearer'
+
+    @property
+    def expired(self):
+        return self.expires < now()
+
+# We want the convenience of an association proxy from scope objects to scope
+# names but we don't want to let new scopes be minted through the proxy
+# XXX: is there a nicer way to do this?
+def readonly_scope_creator(name):
+    return session.query(Scope).filter_by(name=name).one()
+
+class Scope(TableBase):
+    """Essentially, OAuth client roles."""
+    __tablename__ = 'scopes'
+    id = Column(Integer, primary_key=True)
+    name = Column(Unicode(127), nullable=False)
+    description = Column(Unicode)
+
+oauth2_grant_scopes = Table('oauth2_grant_scopes', TableBase.metadata,
+    Column('token_id', Integer, ForeignKey('oauth2_grants.id'), primary_key=True),
+    Column('scope_id', Integer, ForeignKey('scopes.id'), primary_key=True),
+)
+
+oauth2_refresh_token_scopes = Table('oauth2_refresh_token_scopes', TableBase.metadata,
+    Column('token_id', Integer, ForeignKey('oauth2_refresh_tokens.id'), primary_key=True),
+    Column('scope_id', Integer, ForeignKey('scopes.id'), primary_key=True),
+)
+
+oauth2_access_token_scopes = Table('oauth2_access_token_scopes', TableBase.metadata,
+    Column('token_id', Integer, ForeignKey('oauth2_access_tokens.id'), primary_key=True),
+    Column('scope_id', Integer, ForeignKey('scopes.id'), primary_key=True),
+)
+
+
+
 ### RELATIONS
 # TODO: For user/user and user/art relations, it would be nice to have SQLA represent them as a dict of lists.
 # See: http://www.sqlalchemy.org/docs/orm/collections.html#instrumentation-and-custom-types
@@ -655,3 +817,45 @@ Log.user = relation(User, backref='logs',
 Log.target_user = relation(User,
         primaryjoin=User.id==Log.target_user_id,
         )
+
+# OAuth
+OAuth2Client.user = relation(User, innerjoin=True,
+    backref=backref('oauth2_clients', cascade="all, delete-orphan"))
+OAuth2Client.redirect_uri_objs = relation(OAuth2RedirectURI,
+    collection_class=ordering_list('position'),
+    order_by=[OAuth2RedirectURI.__table__.c.position],
+    cascade="all, delete-orphan",
+    backref=backref('client', innerjoin=True))
+OAuth2Client.redirect_uris = association_proxy(
+    'redirect_uri_objs', 'uri', creator=lambda uri: OAuth2RedirectURI(uri=uri))
+OAuth2NativeClient.redirect_uris = [
+    u'urn:ietf:wg:oauth:2.0:oob',
+    u'https://localhost:*/*',
+    u'http://localhost:*/*',
+]
+
+OAuth2Grant.user = relation(User, innerjoin=True)
+OAuth2Grant.client = relation(OAuth2Client, innerjoin=True,
+    backref=backref('grants', cascade="all, delete-orphan"))
+OAuth2Grant.refresh_token = relation(OAuth2RefreshToken)
+OAuth2Grant.scope_objs = relation(Scope, secondary=oauth2_grant_scopes, lazy='joined')
+OAuth2Grant.scopes = association_proxy(
+    'scope_objs', 'name', creator=readonly_scope_creator)
+
+OAuth2RefreshToken.user = relation(User, innerjoin=True,
+    backref=backref('oauth2_refresh_tokens', cascade="all, delete-orphan"))
+OAuth2RefreshToken.client = relation(OAuth2Client, innerjoin=True,
+    backref=backref('refresh_tokens', cascade="all, delete-orphan"))
+OAuth2RefreshToken.scope_objs = relation(Scope, secondary=oauth2_refresh_token_scopes, lazy='joined')
+OAuth2RefreshToken.scopes = association_proxy(
+    'scope_objs', 'name', creator=readonly_scope_creator)
+
+OAuth2AccessToken.user = relation(User, innerjoin=True,
+    backref=backref('oauth2_access_tokens', cascade="all, delete-orphan"))
+OAuth2AccessToken.client = relation(OAuth2Client, innerjoin=True,
+    backref=backref('access_tokens', cascade="all, delete-orphan"))
+OAuth2AccessToken.refresh_token = relation(OAuth2RefreshToken,
+    backref=backref('access_tokens', cascade="all, delete-orphan"))
+OAuth2AccessToken.scope_objs = relation(Scope, secondary=oauth2_access_token_scopes, lazy='joined')
+OAuth2AccessToken.scopes = association_proxy(
+    'scope_objs', 'name', creator=readonly_scope_creator)

@@ -27,6 +27,16 @@ def populate_db(metadata, session, is_test=False):
     ]
     role_objs = [model.Role(name=n, description=d) for n, d in roles]
     session.add_all(role_objs)
+
+    # Add canonical scopes
+    scopes = [
+        (u'art', u'Upload and edit artworks'),
+        (u'comments', u'Post and edit comments'),
+        (u'rate', u'Rate artworks'),
+    ]
+    scope_objs = [model.Scope(name=n, description=d) for n, d in scopes]
+    session.add_all(scope_objs)
+
     session.flush()
 
 def generate_ca(conf):
