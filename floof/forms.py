@@ -4,6 +4,7 @@ import random
 import re
 import unicodedata
 
+from sqlalchemy.orm.exc import NoResultFound
 from webob.multidict import MultiDict
 from wtforms import fields, form, widgets, ValidationError
 from wtforms.widgets import HTMLString, html_params
@@ -197,3 +198,62 @@ class DisplayNameField(fields.TextField):
                 continue
 
             raise ValidationError(u'Invalid character: {0}'.format(char))
+
+
+class InappropriateColumnError(ValueError):
+    pass
+
+
+class ManyToOneTextField(fields.TextField):
+
+    def __init__(self, *args, **kwargs):
+        self.sqla_column = kwargs.pop('sqla_column')
+        col_info = self.sqla_column.parententity.c[self.sqla_column.key]
+
+        if not col_info.primary_key and not col_info.unique:
+            raise InappropriateColumnError(
+                "The given column '{0}' of table '{1}' must be unique."
+                .format(self.sqla_column.key, col_info.table.name))
+
+        if not col_info.primary_key and not col_info.index:
+            raise InappropriateColumnError(
+                "The given column '{0}' of table '{1}' must be indexed."
+                .format(self.sqla_column.key, col_info.table.name))
+
+        super(ManyToOneTextField, self).__init__(*args, **kwargs)
+
+    def _value(self):
+        if not self.data:
+            return u''
+        return getattr(self.data, self.sqla_column.key)
+
+    def process_formdata(self, valuelist):
+        if valuelist:
+            value = valuelist[0]
+            q = model.session.query(self.sqla_column.parententity)
+            q = q.filter(self.sqla_column == value)
+            try:
+                self.data = q.one()
+            except NoResultFound:
+                raise ValidationError('Please enter a valid identifier')
+        else:
+            self.data = None
+
+    def process_data(self, value):
+        self.data = value
+
+
+class NewlineDelimitedListField(fields.TextAreaField):
+
+    def _value(self):
+        if not self.data:
+            return u''
+        return u'\n'.join(self.data)
+
+    def process_formdata(self, valuelist):
+        if valuelist:
+            value = valuelist[0]
+            self.data = [x.strip() for x in value.split('\n')
+                         if x.strip()]
+        else:
+            self.data = []
