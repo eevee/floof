@@ -12,9 +12,9 @@ DIR=$(dirname $(readlink -f $0))/..
 FLOOF_SKIP_SASS_COMPILATION=1
 
 # Is this a virtualenv...?
-PASTER=paster
+PSERVE=pserve
 if [[ -n "$VIRTUAL_ENV" && -e "$VIRTUAL_ENV" ]]; then
-    PASTER="$VIRTUAL_ENV/bin/paster"
+    PSERVE="$VIRTUAL_ENV/bin/pserve"
 fi
 
 ### OK, run stuff
@@ -24,7 +24,7 @@ sass --scss --quiet --watch ${DIR}/floof/sass:${DIR}/floof/public/css &
 # Catch the incoming SIGINT that will kill paster and have it kill sass too
 trap 'kill %1' 2
 
-$PASTER serve --reload -n dev $*
+$PSERVE --reload -n dev $*
 
 # Kill sass again just in case; might get here if paster dies on its own
 kill %1

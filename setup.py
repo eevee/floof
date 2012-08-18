@@ -1,11 +1,6 @@
-try:
-    from setuptools import setup, find_packages, Command
-except ImportError:
-    from ez_setup import use_setuptools
-    use_setuptools()
-    from setuptools import setup, find_packages
+import os
 
-import os.path
+from setuptools import setup, find_packages, Command
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 
@@ -50,54 +45,55 @@ class PyTest(Command):
         raise SystemExit(ret_val)
 
 
+README = open(os.path.join(HERE, 'README')).read()
+
+requires = [
+    'pyramid>=1.3',
+    'pyramid_beaker',
+    'pyramid_debugtoolbar',
+    'SQLAlchemy>=0.7',
+    'sqlalchemy-migrate>=0.6',
+    'zope.sqlalchemy',
+    'wtforms',
+    'WebHelpers>=1.0',
+    'python-magic>=0.4.1',
+    'PIL',
+    'pytz',
+    'iso8601',
+    'python-openid',
+    'PyBrowserID>=0.8.0',
+    'pyOpenSSL>=0.11',
+    'repoze.tm2>=1.0b1',  # default_commit_veto
+    'lxml>=2.3.1',  # strip data: urls
+    'markdown',
+    'pytest',
+    'WebTest',
+],
+
+
 setup(
     name='floof',
     version='0.1',
     description='',
+    long_description=README,
+    classifiers=[
+        "Programming Language :: Python",
+        "Framework :: Pylons",
+        "Topic :: Internet :: WWW/HTTP",
+        "Topic :: Internet :: WWW/HTTP :: WSGI :: Application",
+    ],
     author='',
     author_email='',
     url='',
-    install_requires=[
-        "WebHelpers>=1.0",
-        "SQLAlchemy>=0.7",
-        'python-openid',
-        'wtforms',
-        'python-magic>=0.4.1',
-        'PIL',
-        'sqlalchemy-migrate>=0.6',
-        'pytz',
-        'iso8601',
-        'pyOpenSSL>=0.11',
-        'pyramid>=1.3',
-        'pyramid_beaker',
-        'pyramid_debugtoolbar',
-        'repoze.tm2>=1.0b1',  # default_commit_veto
-        'WebError',
-        'WebTest',
-        'zope.sqlalchemy',
-        'pytest',
-        'lxml>=2.3.1',  # strip data: urls
-        'markdown',
-        'PyBrowserID>=0.8.0',
-        'PasteScript',
-    ],
-    setup_requires=["PasteScript>=1.6.3"],
-    packages=find_packages(exclude=['ez_setup']),
+    keywords='web pyramid pylons',
+    packages=find_packages(),
     include_package_data=True,
-    cmdclass={'test': PyTest},
-    package_data={'floof': ['i18n/*/LC_MESSAGES/*.mo']},
-    #message_extractors={'floof': [
-    #        ('**.py', 'python', None),
-    #        ('templates/**.mako', 'mako', {'input_encoding': 'utf-8'}),
-    #        ('public/**', 'ignore', None)]},
     zip_safe=False,
-    paster_plugins=['PasteScript', 'pyramid'],
-    entry_points="""
+    install_requires=requires,
+    tests_require=requires,
+    cmdclass={'test': PyTest},
+    entry_points="""\
     [paste.app_factory]
-    main = floof.config.middleware:make_app
     pyramid = floof.app:main
-
-    [paste.app_install]
-    main = pylons.util:PylonsInstaller
     """,
 )

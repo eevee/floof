@@ -1,3 +1,2 @@
-include floof/config/deployment.ini_tmpl
-recursive-include floof/public *
-recursive-include floof/templates *
+include *.txt *.ini *.cfg *.rst
+recursive-include test *.ico *.png *.css *.gif *.jpg *.pt *.txt *.mak *.mako *.js *.html *.xml
