@@ -11,6 +11,7 @@
     % for action, icon, title in [ \
         ('dashboard',           'question',         u'Dashboard'), \
         ('oauth.clients',       'oauth-tiny',       u'OAuth Clients'), \
+        ('oauth.authorizations','oauth-tiny',       u'OAuth Authorizations'), \
         ('log',                 'book-bookmark',    u'Log'), \
     ]:
     <% route_tail = request.matched_route.name.split('.', 1)[1] %>
