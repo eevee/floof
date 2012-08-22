@@ -63,6 +63,7 @@ requires = [
     'python-openid',
     'PyBrowserID>=0.8.0',
     'pyOpenSSL>=0.11',
+    'oauthlib>=0.3',
     'repoze.tm2>=1.0b1',  # default_commit_veto
     'lxml>=2.3.1',  # strip data: urls
     'markdown',
@@ -94,6 +95,7 @@ setup(
     cmdclass={'test': PyTest},
     entry_points="""\
     [paste.app_factory]
-    pyramid = floof.app:main
+    main = floof.app:main
+    api = floof.api:main
     """,
 )
