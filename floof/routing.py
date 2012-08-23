@@ -42,6 +42,12 @@ def configure_routing(config):
 
     r('account.profile', '/account/profile')
 
+    # OAuth API endpoints
+    r('oauth2.authorize', '/oauth/2.0/authorize')
+    r('oauth2.token', '/oauth/2.0/token')
+    r('oauth2.revoke', '/oauth/2.0/revoke')
+    r('whoami', '/whoami')
+
     # Regular user control panel
     r('controls.index', '/account/controls')
     r('controls.auth', '/account/controls/authentication')
