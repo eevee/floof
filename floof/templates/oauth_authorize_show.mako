@@ -10,6 +10,6 @@
 <p>Provide the below code to the application (${client.name}) that requested
 this access authorization.</p>
 
-<p class="keybox">${code}</p>
+<p id="oauth-code" class="keybox">${code}</p>
 
 </section>

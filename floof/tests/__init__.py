@@ -93,13 +93,16 @@ class FunctionalTests(UnitTests):
         configure_routing(self.config)
         self._fake_request = FakeRequest()
         self.url = self._fake_request.route_path
+        def api_url(*args, **kwargs):
+            return '/api' + self.url(*args, **kwargs)
+        self.api_url = api_url
 
     def __init__(self, *args, **kwargs):
         ini_spec = getattr(pytest.config.option, 'config', None)
         if ini_spec:
             filename, appname = ini_spec.rsplit('#', 1)
         else:
-            filename, appname = 'paster.ini', 'floof-test'
+            filename, appname = 'paster.ini', 'test'
 
         wsgiapp = get_app(filename, appname)
         self.app = webtest.TestApp(wsgiapp)

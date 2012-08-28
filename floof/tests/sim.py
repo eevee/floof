@@ -1,11 +1,14 @@
+import hashlib
 import pytz
 import random
 import string
 import time
 
 from datetime import datetime, timedelta
+from oauthlib.common import generate_token
 
 from floof import model
+from floof.lib.oauth import OAUTH2_GRANT_CODE_LEN
 from floof.lib.setup import gen_ca_certs
 
 # XXX The idea here is that we generate random junk data to use (and print the
@@ -35,8 +38,8 @@ def sim_user(credentials=None, roles=None):
     if credentials is None:
         credentials = [
                 ('cert', None),
-                ('openid', 'https://example.com/'),
-                ('browserid', '{0}@example.com'.format(username))
+                ('openid', 'https://example.com/' + username),
+                ('browserid', username + '@example.com')
                 ]
     if roles is None:
         roles = [u'user']
@@ -131,7 +134,39 @@ def sim_artwork(user):
     model.session.add(artwork)
     return artwork
 
+
 def sim_tag():
     tag = model.Tag(name=u'foo')
     model.session.add(tag)
     return tag
+
+
+def sim_oauth_client(user, type_='web'):
+    clsmap = {
+        'web': model.OAuth2WebClient,
+        'native': model.OAuth2NativeClient,
+    }
+    client = clsmap[type_](
+        user=user,
+        name='Fabulous Test Client',
+    )
+    if client.auth_type == 'confidential':
+        client.redirect_uris.append('https://example.com/oauth/return')
+    model.session.add(client)
+    return client
+
+
+def sim_oauth_grant(client, user, code=None):
+    code = code or generate_token(OAUTH2_GRANT_CODE_LEN)
+    now = datetime.now(pytz.utc)
+    expires= now + timedelta(seconds=300)
+    grant = model.OAuth2Grant(
+        client=client,
+        user=user,
+        redirect_uri=u'https://oauth.example.com/return',
+        redirect_uri_supplied=False,
+        code=hashlib.sha512(code).hexdigest(),
+        expires=expires,
+    )
+    model.session.add(client)
+    return client, code

@@ -14,7 +14,7 @@ claimed identity of the requesting party.</p>
 If you did not initiate this access request, you should decline it.</p>
 <p>Should you later change your mind, you can revoke any granted access from
 your account control panel under the "OAuth" section.</p>
-<%lib:secure_form submit_url>
+<%lib:secure_form submit_url id='oauth-authorize'>
     ${form.client_id()}
     ${form.redirect_uri()}
     ${form.response_type()}
