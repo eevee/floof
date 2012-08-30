@@ -1,8 +1,6 @@
-import browserid
-
 from pyramid import testing
 from browserid import LocalVerifier
-from browserid.tests.support import make_assertion
+from browserid.tests.support import patched_supportdoc_fetching, make_assertion
 from webob.multidict import MultiDict
 
 from floof.routing import configure_routing
@@ -78,6 +76,8 @@ class TestAccountViews(UnitTests):
         request.method = 'POST'
         request.user = sim.sim_user(credentials=[('browserid', OLD_ASSERTION_ADDR)])
 
+        # Test failures
+
         trials = (
             (None, 'unspecified error'),
             ('', 'unspecified error'),
@@ -92,9 +92,7 @@ class TestAccountViews(UnitTests):
                    flash_msg=f)
             request.session.clear()
 
-        # Ew, monkey patch
-        from browserid.tests.support import fetch_public_key
-        browserid.certificates.fetch_public_key = fetch_public_key
+        # Test success
 
         email = self._randstr() + '@example.com'
         verifier = LocalVerifier([audience], warning=False)
@@ -105,6 +103,7 @@ class TestAccountViews(UnitTests):
         request.environ['paste.testing'] = True
         request.environ['tests.auth.browserid.verifier'] = verifier
         request.environ['tests.auth.browserid.audience'] = audience
-        verify(request,
-               next_url=request.route_url('root'),
-               flash_msg='Re-authentication successful')
+        with patched_supportdoc_fetching():
+            verify(request,
+                   next_url=request.route_url('root'),
+                   flash_msg='Re-authentication successful')
