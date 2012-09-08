@@ -1,0 +1,3 @@
+[submodule "floof/assets/vendor/archetype"]
+	path = floof/assets/vendor/archetype
+	url = git://github.com/eevee/archetype.git
