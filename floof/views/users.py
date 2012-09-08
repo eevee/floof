@@ -31,6 +31,20 @@ def profile(target_user, request):
 
 
 @view_config(
+    route_name='users.art',
+    request_method='GET',
+    renderer='users/art.mako')
+def art(target_user, request):
+    artwork = GallerySieve(user=request.user)
+    artwork.filter_by_watches(target_user)
+
+    return dict(
+        artwork=artwork,
+        target_user=target_user,
+    )
+
+
+@view_config(
     route_name='users.watchstream',
     request_method='GET',
     renderer='users/watchstream.mako')

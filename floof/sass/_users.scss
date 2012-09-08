@@ -1,45 +1,75 @@
 nav.user-nav {
-    height: 50px;
+    $user-nav-size: 80px;
+
+    height: $user-nav-size;
     padding: 0.5em 1em;
     -moz-box-sizing: border-box;
 
-    background: hsl(288, 30%, 90%);
+    background: hsl(288, 20%, 90%);
 
     > .-avatar {
         float: left;
-        height: 50px;
-        width: 50px;
+        height: $user-nav-size;
+        width: $user-nav-size;
         margin: -0.5em 1em -0.5em -1em;
     }
     > .-name {
         font-size: 2em;
     }
+
+    ul.-subpages {
+        font-size: 1.33em;
+
+        > li {
+            display: inline-block;
+            border-radius: 0.33em;
+            padding: 0.5em;
+
+            &:hover {
+                background: hsl(288, 20%, 80%);
+            }
+            &.-current {
+                background: hsl(288, 20%, 75%);
+                box-shadow: inset 1px 1px 3px -1px hsl(288, 10%, 30%);
+            }
+
+            img {
+                vertical-align: bottom;
+            }
+        }
+    }
 }
 
 ul.user-activity {
+    $user-activity-size: 50px;
+
     > li {
-        margin: 0.5em 0;
-        padding: 0.5em 1em;
-        min-height: 50px;
+        padding: 1em;
+        min-height: $user-activity-size;
         line-height: 1.33;
-        background: #e8e8e8;
+        border: 1px solid hsl(0, 0%, 93%);
+        border-width: 1px 0;
+
+        & + li {
+            border-top: none;
+        }
 
         &:hover {
-            background: hsl(216, 30%, 90%);
+            background: hsl(0, 0%, 95%);
         }
 
 
         > .user-activity-illus {
             float: left;
-            height: 50px;
-            width: 50px;
+            height: $user-activity-size;
+            width: $user-activity-size;
             margin-right: 1em;
-            line-height: 50px;
+            line-height: $user-activity-size;
             text-align: center;
 
             img {
-                max-height: 50px;
-                max-width: 50px;
+                max-height: $user-activity-size;
+                max-width: $user-activity-size;
                 vertical-align: middle;
                 image-rendering: optimizeQuality;
             }

@@ -1,27 +1,8 @@
-<%inherit file="/base.mako" />
+<%inherit file="base.mako" />
 <%namespace name="lib" file="/lib.mako" />
 <%namespace name="artlib" file="/art/lib.mako" />
 
 <%def name="title()">${target_user.display_name}</%def>
-
-<nav class="user-nav">
-    <div class="-avatar">${lib.avatar(target_user, size=50)}</div>
-    <div class="-name">${target_user.name}</div>
-
-    ## this is kinda grody until there are enough bits to flesh it out
-    ## XXX check for perm here
-    % if request.user and request.user != target_user:
-    <div>
-        <a href="${h.update_params(request.route_url('controls.rels.watch'), target_user=target_user.name)}">
-            % if any(watch.other_user == target_user for watch in request.user.watches):
-            ${lib.icon(u'user--pencil')} Modify watch
-            % else:
-            ${lib.icon(u'user--plus')} Watch
-            % endif
-        </a>
-    </div>
-    % endif
-</nav>
 
 <section>
     <ul class="user-activity">

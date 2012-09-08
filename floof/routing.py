@@ -71,6 +71,7 @@ def configure_routing(config):
     # User pages
     kw = sqla_route_options('user', 'name', model.User.name)
     r('users.view', '/users/{name}', **kw)
+    r('users.art', '/users/{name}/art', **kw)
     r('users.art_by_album', '/users/{name}/art/{album}', **kw)
     r('users.profile', '/users/{name}/profile', **kw)
     r('users.watchstream', '/users/{name}/watchstream', **kw)
