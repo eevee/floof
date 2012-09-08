@@ -544,20 +544,20 @@ class Tag(TableBase):
         self.name = name
 
 class Album(TableBase):
-    __tablename__ = 'labels'
+    __tablename__ = 'albums'
     id = Column(Integer, primary_key=True)
     name = Column(Unicode(64), nullable=False)
     user_id = Column(Integer, ForeignKey('users.id'))
-    encapsulation = Column(Enum(u'public', u'private', name='labels_encapsulation'), nullable=False)
+    encapsulation = Column(Enum(u'public', u'private', name='albums_encapsulation'), nullable=False)
 
 artwork_tags = Table('artwork_tags', TableBase.metadata,
     Column('artwork_id', Integer, ForeignKey('artwork.id'), primary_key=True),
     Column('tag_id', Integer, ForeignKey('tags.id'), primary_key=True),
 )
 
-artwork_albums = Table('artwork_labels', TableBase.metadata,
+artwork_albums = Table('artwork_albums', TableBase.metadata,
     Column('artwork_id', Integer, ForeignKey('artwork.id'), primary_key=True),
-    Column('label_id', Integer, ForeignKey('labels.id'), primary_key=True),
+    Column('album_id', Integer, ForeignKey('albums.id'), primary_key=True),
 )
 
 
