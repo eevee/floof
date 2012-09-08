@@ -79,7 +79,7 @@ setup(
         'lxml>=2.3.1',  # strip data: urls
         'markdown',
         'PyBrowserID>=0.8.0',
-        'PasteScript',
+        'pyramid_scss',
     ],
     setup_requires=["PasteScript>=1.6.3"],
     packages=find_packages(exclude=['ez_setup']),

@@ -8,23 +8,17 @@ fi
 # Absolute path to the floof checkout directory
 DIR=$(dirname $(readlink -f $0))/..
 
-# Tell paster not to use the production-mode CSS compilation
+# Tell pserve not to use the production-mode CSS compilation
 FLOOF_SKIP_SASS_COMPILATION=1
 
 # Is this a virtualenv...?
-PASTER=paster
+PSERVE=pserve
 if [[ -n "$VIRTUAL_ENV" && -e "$VIRTUAL_ENV" ]]; then
-    PASTER="$VIRTUAL_ENV/bin/paster"
+    PSERVE="$VIRTUAL_ENV/bin/pserve"
+elif [[ -e $DIR/../bin/pserve ]]; then
+    PSERVE=$DIR/../bin/pserve
 fi
 
 ### OK, run stuff
 
-sass --scss --quiet --watch ${DIR}/floof/sass:${DIR}/floof/public/css &
-
-# Catch the incoming SIGINT that will kill paster and have it kill sass too
-trap 'kill %1' 2
-
-$PASTER serve --reload -n dev $*
-
-# Kill sass again just in case; might get here if paster dies on its own
-kill %1
+$PSERVE --reload -n dev $*

@@ -4,7 +4,7 @@
 <head>
     <title>${self.title()} - ${request.registry.settings['site_title']}</title>
     <meta charset="utf-8" />
-    <link rel="stylesheet" type="text/css" href="${request.static_url('floof:assets/css/all.css')}">
+    <link rel="stylesheet" type="text/css" href="${request.route_url('pyscss', css_path='all')}">
     ${h.javascript_link('https://browserid.org/include.js', async=True)}
     ${h.javascript_link(request.static_url('floof:assets/js/vendor/jquery-1.7.2.min.js'))}
     ${h.javascript_link(request.static_url('floof:assets/js/vendor/jquery.cookie.js'))}

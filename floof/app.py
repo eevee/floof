@@ -139,13 +139,6 @@ def main(global_config, **settings):
     """Constructs a WSGI application."""
     settings['paste_config'] = global_config
 
-    # Compile stylesheets with Sass
-    # This env var is only set from a convenient dev-mode launcher script
-    # XXX uh this could just be in the .ini
-    if 'FLOOF_SKIP_SASS_COMPILATION' not in os.environ:
-        # XXX consult pyramid for the location?
-        compile_sass(global_config['here'] + '/floof')
-
     ### Settings
     # Set up SQLAlchemy stuff
     engine = engine_from_config(settings, 'sqlalchemy.')
@@ -176,6 +169,11 @@ def main(global_config, **settings):
         authorization_policy=ACLAuthorizationPolicy(),
     )
 
+    # PySCSS support
+    config.include('pyramid_scss')
+    config.add_route('pyscss', '/css/{css_path:[^/]+}.css')
+    config.add_view(route_name='pyscss', view='pyramid_scss.controller.get_scss', renderer='scss', request_method='GET')
+
     # Added manually because @subscriber only works with a
     # scan, and we don't want to scan ourselves
     config.add_subscriber(prevent_csrf, NewRequest)
@@ -193,25 +191,3 @@ def main(global_config, **settings):
     app = config.make_wsgi_app()
     app = HTTPOnlyCookieMiddleware(app)
     return app
-
-def compile_sass(root):
-    """Compile raw Sass into regular ol' CSS.
-
-    Skipped if FLOOF_SKIP_SASS_COMPILATION is set.
-    """
-    sass_paths = u':'.join((
-        os.path.join(root, 'sass'),
-        os.path.join(root, 'assets', 'css'),
-    ))
-
-    archetype_path = os.path.join(root, 'assets', 'vendor', 'archetype', 'scss')
-
-    # If this fails with a file not found, sass probably isn't installed
-    # or in your path.  (gem install haml)
-    subprocess.Popen(['sass',
-        '--scss',
-        '--style', 'compressed',
-        '--stop-on-error',
-        '--update', sass_paths,
-        '--load-path', archetype_path,
-    ]).wait()
