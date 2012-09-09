@@ -101,7 +101,7 @@ def attempt_privilege_escalation(permission, context, request):
 
             key = stash_post(request)
             request.session.flash("You need to re-authenticate with OpenID or "
-                                  "BrowserID to complete this action",
+                                  "Persona to complete this action.",
                                   level='notice')
 
             location = request.route_url('account.login', _query=[('return_key', key)])

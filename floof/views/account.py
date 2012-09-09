@@ -113,7 +113,7 @@ def account_login_browserid(context, request):
 
     email = data.get('email')
     if data.get('status') != 'okay' or not email:
-        return fail("BrowserID authentication failed.")
+        return fail("Persona authentication failed.")
 
     identity_email = model.session.query(IdentityEmail) \
         .filter_by(email=email) \
@@ -140,12 +140,12 @@ def account_login_browserid(context, request):
                     .format(email, identity_email.user.name))
 
     except BrowserIDAuthDisabledError:
-        return fail("Your BrowserID is no longer accepted as your account has "
-                    "disabled BrowserID authentication.")
+        return fail("Your Persona is no longer accepted as your account has "
+                    "disabled Persona authentication.")
 
     # An existing user has logged in successfully.  Bravo!
     request.response.headerlist.extend(auth_headers)
-    log.debug("User {0} logged in via BrowserID: {1}"
+    log.debug("User {0} logged in via Persona: {1}"
               .format(identity_email.user.name, identity_email))
 
     ## Handle redirection
@@ -168,7 +168,7 @@ def account_login_browserid(context, request):
     else:
         # Existing user; new login
         request.session.flash(
-                'Logged in with BrowserID', level=u'success', icon='user')
+                'Logged in with Persona', level=u'success', icon='user')
 
     return {
         'status': 'redirect',

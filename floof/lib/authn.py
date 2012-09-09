@@ -223,11 +223,11 @@ class Authenticizer(object):
         try:
             self.check_browserid(config)
         except BrowserIDNotFoundError:
-            error("I don't recognize your BrowserID email address.")
+            error("I don't recognize your Persona email address.")
         except BrowserIDAuthDisabledError:
-            error("Your BrowserID is no longer accepted as your account has disabled BrowserID authentication.")
+            error("Your Persona is no longer accepted as your account has disabled Persona authentication.")
         except AuthConflictError:
-            error("Your BrowserID conflicted with either your certificate or "
+            error("Your Persona conflicted with either your certificate or "
                   "your OpenID and has been cleared.")
 
         if 'paste.testing' in request.environ:
@@ -473,7 +473,7 @@ class Authenticizer(object):
             ret += 'OpenID: {0} @ {1}, '.format(
                     get('openid_url'), ages.get('openid'))
         if get('browserid_email'):
-            ret += 'BrowserID: {0} @ {1}, '.format(
+            ret += 'Persona: {0} @ {1}, '.format(
                     get('browserid_email'), ages.get('browserid'))
         ret += 'Trust Flags: {0} )>'.format(repr(self.trust))
 

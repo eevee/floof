@@ -37,7 +37,7 @@ def configure_routing(config):
     r('account.login_finish', '/account/login_finish')
     r('account.register', '/account/register')
     r('account.add_identity', '/account/add_identity')
-    r('account.browserid.login', '/account/browserid/login')
+    r('account.browserid.login', '/account/persona/login')
     r('account.logout', '/account/logout')
 
     r('account.profile', '/account/profile')
@@ -45,9 +45,9 @@ def configure_routing(config):
     # Regular user control panel
     r('controls.index', '/account/controls')
     r('controls.auth', '/account/controls/authentication')
-    r('controls.browserid', '/account/controls/browserid')
-    r('controls.browserid.add', '/account/controls/browserid/add')
-    r('controls.browserid.remove', '/account/controls/browserid/remove')
+    r('controls.browserid', '/account/controls/persona')
+    r('controls.browserid.add', '/account/controls/persona/add')
+    r('controls.browserid.remove', '/account/controls/persona/remove')
     r('controls.openid', '/account/controls/openid')
     r('controls.openid.add', '/account/controls/openid/add')
     r('controls.openid.add_finish', '/account/controls/openid/add_finish')

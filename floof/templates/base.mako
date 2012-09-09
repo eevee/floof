@@ -5,7 +5,7 @@
     <title>${self.title()} - ${request.registry.settings['site_title']}</title>
     <meta charset="utf-8" />
     <link rel="stylesheet" type="text/css" href="${request.route_url('pyscss', css_path='all')}">
-    ${h.javascript_link('https://browserid.org/include.js', async=True)}
+    ${h.javascript_link('https://login.persona.org/include.js', async=True)}
     ${h.javascript_link(request.static_url('floof:assets/js/vendor/jquery-1.7.2.min.js'))}
     ${h.javascript_link(request.static_url('floof:assets/js/vendor/jquery.cookie.js'))}
     ${h.javascript_link(request.static_url('floof:assets/js/browserid.js'))}
@@ -47,7 +47,7 @@
             % else:
                 <li>
                     <a href="${request.route_url('account.login')}" class="browserid">
-                        <img src="https://browserid.org/i/sign_in_blue.png" height="22" width="79" alt="Sign in with BrowserID" title="Sign in with BrowserID">
+                        <img src="${request.static_url('floof:assets/images/persona-signin.png')}" height="22" width="79" alt="Sign in with Persona" title="Sign in with Persona">
                         or register
                     </a>
                     <menu>

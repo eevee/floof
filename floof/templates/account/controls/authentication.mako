@@ -30,7 +30,7 @@
         <li>If you choose to require certificates for login or for sensitive
         operations and subsequently all certificates registered against your
         account expire or are revoked, you will automatically be able to log
-        in and perform sensitive operations with just your OpenID or BrowserID.
+        in and perform sensitive operations with just your OpenID or Persona.
         That is, your Certificate Authentication Option will be automatically
         changed to &quot;Allow for login&quot;.</li>
 

@@ -34,7 +34,7 @@ class RemoveOpenIDForm(FloofForm):
         if len(field.data) >= total_ids:
             raise wtforms.ValidationError(
                     'You must keep at least either one OpenID identity URL '
-                    'or one BrowserID identity email address.')
+                    'or one Persona identity email address.')
 
         # XXX less hackish way to do this without adding an attr to
         # Authenticizer for every freakin property of the session's auth?
@@ -46,26 +46,26 @@ class RemoveOpenIDForm(FloofForm):
 
 
 class RemoveBrowserIDForm(FloofForm):
-    browserids = QuerySelectMultipleField(u'Remove BrowserIDs', get_label=lambda row: row.email)
+    browserids = QuerySelectMultipleField(u'Remove Personas', get_label=lambda row: row.email)
 
     def validate_browserids(form, field):
         if not field.data:
             raise wtforms.ValidationError(
-                    'You must select at least one BrowserID identity email '
+                    'You must select at least one Persona identity email '
                     'address to delete.')
 
         user = form.request.user
         total_ids = len(user.identity_urls) + len(user.identity_emails)
         if len(field.data) >= total_ids:
             raise wtforms.ValidationError(
-                    'You must keep at least either one BrowserID identity '
+                    'You must keep at least either one Persona identity '
                     'email address or one OpenID identity URL.')
 
         # XXX see RemoveOpenIDForm.validate_openids
         curr_email = form.request.auth.state.get('browserid_email')
         if curr_email in [obj.email for obj in field.data]:
             raise wtforms.ValidationError(
-                    'You cannot remove the BrowserID identity email address '
+                    'You cannot remove the Persona identity email address '
                     'with which you are currently logged in.')
 
 
@@ -127,7 +127,7 @@ def browserid_add(context, request):
 
     email = data.get('email')
     if not email:
-        return fail("BrowserID authentication failed.")
+        return fail("Persona authentication failed.")
 
     extant_email = model.session.query(model.IdentityEmail) \
         .filter_by(email=email) \
@@ -143,7 +143,7 @@ def browserid_add(context, request):
 
     browserid = model.IdentityEmail(email=email)
     request.user.identity_emails.append(browserid)
-    request.session.flash("Added BrowserID email address '{0}'".format(email),
+    request.session.flash("Added Persona email address '{0}'".format(email),
                           level=u'success', icon='user')
 
     return  next_url
@@ -185,7 +185,7 @@ def browserid_remove(context, request):
     for target in form.browserids.data:
         user.identity_emails.remove(target)
         request.session.flash(
-            u"Removed BrowserID identity email address: {0}"
+            u"Removed Persona identity email address: {0}"
             .format(target.email), level=u'success')
 
     return HTTPSeeOther(location=request.route_url('controls.browserid'))

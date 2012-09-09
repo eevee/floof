@@ -2,20 +2,20 @@
 <%inherit file="base.mako" />
 <%namespace name="lib" file="/lib.mako" />
 
-<%def name="panel_title()">BrowserID Identity Settings</%def>
+<%def name="panel_title()">Persona Identity Settings</%def>
 <%def name="panel_icon()">${lib.icon('user')}</%def>
 
 <section>
     <noscript>
         <p>It looks like you don't have Javascript enabled for this site.</p>
-        <p>Unfortunately, BrowserID requires Javascript to work.</p>
+        <p>Unfortunately, Persona requires Javascript to work.</p>
     </noscript>
     <%lib:secure_form url="${request.route_url('controls.browserid.remove')}">
     <fieldset>
         <dl>
-            <dt>New BrowserID</dt>
+            <dt>New Persona</dt>
             <dd>
-                <a href="${request.route_url('account.login')}" class="browserid" title="Sign-in with BrowserID to add a new email address to this account">
+                <a href="${request.route_url('account.login')}" class="browserid" title="Sign-in with Persona to add a new email address to this account">
                     <img src="https://browserid.org/i/sign_in_blue.png" height="22" width="79" alt="Sign in to add a new email address identity" />
                 </a>
             </dd>

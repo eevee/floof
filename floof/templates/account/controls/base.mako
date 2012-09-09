@@ -14,7 +14,7 @@
                 ('index',    'fruit',        u'Index??'), \
                 ('info',     'user--pencil', u'User Info'), \
                 ('rels',     'users',        u'Watches'), \
-                ('browserid','user',         u'BrowserID Identities'), \
+                ('browserid','user',         u'Persona Identities'), \
                 ('openid',   'openid',       u'OpenID Identities'), \
                 ('certs',    'certificate',  u'SSL Certificates'), \
                 ('auth',     'key',          u'Authentication Options'), \

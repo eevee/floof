@@ -33,9 +33,9 @@
                 'Require for login' or 'Require for Sensitive Operations only'</li>
             % endif
             % if 'trusted:browserid_recent' in principal_group:
-                <li>Re-authenticate with your BrowserID</li>
+                <li>Re-authenticate with your Persona</li>
             % elif 'trusted:browserid' in principal_group:
-                <li>Authenticate with your BrowserID</li>
+                <li>Authenticate with your Persona</li>
             % endif
             % if 'trusted:openid_recent' in principal_group:
                 <li>Re-authenticate with your OpenID</li>

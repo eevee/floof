@@ -8,7 +8,7 @@
     <h1>Hmm, you look kinda familiar.</h1>
     <p>Hey, you're already logged in as <code>${request.user.name}</code>.</p>
     <p>
-        Feel free to log into another BrowserID or OpenID, though.
+        Feel free to log into another Persona or OpenID, though.
         You can then add it to this account, make a new account, or switch accounts.  Up to you.
     </p>
 </section>
@@ -20,7 +20,7 @@
     <div id="big-ol-browserid-box">
         <button class="browserid">
             <img src="https://browserid.org/i/sign_in_blue.png" height="22" width="79" alt="Sign in">
-            with BrowserID
+            with Persona
         </button>
     </div>
 
@@ -30,9 +30,9 @@
         <em>that</em>, hackers!
     </p>
     <p>
-        Mozilla is the brain behind this system, called BrowserID;
+        Mozilla is the brain behind this system, called Persona;
         it's intended to be built into browsers someday.
-        <a href="https://browserid.org/">Read the spiel, or manage your BrowserID, at browserid.org.</a>
+        <a href="https://persona.org/">Read the spiel, or manage your Persona, at persona.org.</a>
     </p>
     <p>
         Be sure to use a good password, of course.
@@ -47,7 +47,7 @@
     <h1>Alternatives</h1>
 
     <p>
-        At the moment, BrowserID requires JavaScript.  That sucks.  If you
+        At the moment, Persona requires JavaScript.  That sucks.  If you
         prefer to leave JavaScript off, you can use OpenID instead.
     </p>
 
