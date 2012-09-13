@@ -17,17 +17,19 @@ If you're a developer, you probably want `develop` instead of `install`, and
 you may wish to consider using virtualenv to keep floof's Python environment
 separate from the rest of your system.
 
-Create a configuration file:
+Create a floof configuration file by copying the template:
 
     cp paster.ini config.ini
 
 You may call this file whatever you want, for example `development.ini` or
 `production.ini`.
 
-Configure as appropriate, then run the setup script to populate the database
-and configure the CA:
+Configure as appropriate, then set the sqlalchemy.url parameter in alembic.ini
+to point to the same database as the floof config file.
 
-    python bin/setup-floof.py config.ini#floof-prod
+Finally, run the setup script to populate the database and configure the CA:
+
+    python bin/setup-floof.py config.ini#floof-prod alembic.ini
 
 ## File storage
 
