@@ -289,6 +289,7 @@ class ArtworkRating(TableBase):
         Column(Float, CheckConstraint('rating >= -1.0 AND rating <= 1.0'), nullable=False),
         extension=RatingAttributeExtension(),
     )
+    timestamp = Column(TZDateTime, nullable=False, index=True, default=now, onupdate=now)
 
     validates('rating')
     def validate_rating(self, key, rating):
