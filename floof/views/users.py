@@ -63,12 +63,10 @@ def watchstream(target_user, request):
     request_method='GET',
     renderer='users/album.mako')
 def art_by_album(target_user, request):
-    if album not in model.user_artwork_types:
-        raise NotImplementedError  # XXX
-
+    # XXX this is not by album.
     rel = request.matchdict['album']
     gallery_sieve = GallerySieve(user=request.user, formdata=request.GET, countable=True)
-    gallery_sieve.filter_by_user(rel, target_user)
+    gallery_sieve.filter_by_artist(target_user)
 
     return dict(
         rel=rel,

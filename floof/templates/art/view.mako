@@ -36,16 +36,10 @@
             ${lib.user_link(artwork.uploader)}
         </dd>
 
+        <dt>Artist</dt>
         % for user_artwork in artwork.user_artwork:
-        <dt>${user_artwork.relationship_type}</dt>
         <dd>
-            % if user_artwork.relationship_type == u'by':
             ${lib.icon('paint-brush')}
-            % elif user_artwork.relationship_type == u'for':
-            ${lib.icon('present')}
-            % elif user_artwork.relationship_type == u'of':
-            ${lib.icon('camera')}
-            % endif
             ${lib.user_link(user_artwork.user)}
         </dd>
         % endfor

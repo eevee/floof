@@ -8,7 +8,7 @@ want the `GallerySieve` class.
 from datetime import timedelta
 
 from sqlalchemy.orm.exc import NoResultFound
-from sqlalchemy.sql import case, or_
+from sqlalchemy.sql import or_
 import wtforms.form, wtforms.fields
 
 from floof.lib import pager
@@ -220,13 +220,11 @@ class GallerySieve(object):
 
     ### Tag filter methods
 
-    def filter_by_user(self, rel, user):
-        """Filter the gallery by a user relationship: by/for/of.
-        """
+    def filter_by_artist(self, artist):
+        """Filter the gallery by artist."""
         self.query = self.query.filter(
             model.Artwork.user_artwork.any(
-                relationship_type=rel,
-                user_id=user.id,
+                user_id=artist.id,
             )
         )
 
@@ -271,22 +269,14 @@ class GallerySieve(object):
         """Filter the gallery down to only things `user` is watching."""
         # XXX make this work for multiple users
         self.query = self.query.filter(or_(
-            # Check for by/for/of watching
-            # XXX need an index on relationship_type, badly!
+            # Check for artist watching
             model.Artwork.id.in_(
                 self.session.query(model.UserArtwork.artwork_id)
                     .join((model.UserWatch, model.UserArtwork.user_id == model.UserWatch.other_user_id))
                     .filter(model.UserWatch.user_id == user.id)
-                    .filter(case(
-                        value=model.UserArtwork.relationship_type,
-                        whens={
-                            u'by': model.UserWatch.watch_by,
-                            u'for': model.UserWatch.watch_for,
-                            u'of': model.UserWatch.watch_of,
-                        },
-                    ))
             ),
             # Check for upload watching
+            # TODO remove this too; uploader should always be an artist
             model.Artwork.uploader_user_id.in_(
                 self.session.query(model.UserWatch.other_user_id)
                     .filter(model.UserWatch.user_id == user.id)

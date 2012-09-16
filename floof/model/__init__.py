@@ -227,8 +227,7 @@ class Artwork(TableBase):
         # to put directly in filenames
         # TODO: when there's a concept of primary artist, use that first
         for user_artwork in self.user_artwork:
-            if user_artwork.relationship_type == u'by':
-                filename_parts.append(user_artwork.user.name)
+            filename_parts.append(user_artwork.user.name)
         if not filename_parts:
             # Should always have at least one username
             filename_parts.append(u'unknown')
@@ -272,12 +271,10 @@ class MediaText(Artwork):
     paragraphs = Column(Integer, nullable=False)
 
 
-user_artwork_types = (u'by', u'for', u'of')
 class UserArtwork(TableBase):
     __tablename__ = 'user_artwork'
-    user_id = Column(Integer, ForeignKey('users.id'), primary_key=True, nullable=False)
-    artwork_id = Column(Integer, ForeignKey('artwork.id'), primary_key=True, nullable=False)
-    relationship_type = Column(Enum(*user_artwork_types, name='user_artwork_relationship_type'), primary_key=True, nullable=False)
+    user_id = Column(Integer, ForeignKey('users.id'), primary_key=True, nullable=False, index=True)
+    artwork_id = Column(Integer, ForeignKey('artwork.id'), primary_key=True, nullable=False, index=True)
 
 class ArtworkRating(TableBase):
     """The rating that a single user has given a single piece of art"""

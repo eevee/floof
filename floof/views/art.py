@@ -223,16 +223,12 @@ class UploadPage(FormWorkflow):
             **general_data
         )
 
-        # Associate the uploader as artist or recipient
-        # Also as a participant if appropriate
-        # TODO remove this nuttery when commission uploading is a thing
-        for relationship in [u'by'] + form.relationship.data:
-            artwork.user_artwork.append(
-                model.UserArtwork(
-                    user_id = request.user.id,
-                    relationship_type = relationship,
-                )
+        # Associate the uploader as an artist
+        artwork.user_artwork.append(
+            model.UserArtwork(
+                user_id = request.user.id,
             )
+        )
 
         # Attach tags and albums
         for tag in form.tags.data:

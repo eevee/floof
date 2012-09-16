@@ -31,8 +31,6 @@ class TestArt(FunctionalTests):
             self.url('art.upload'),
             params=[
                 ('title', u"test title"),
-                #('relationship', u'by'),
-                ('relationship', u'of'),
             ],
             upload_files=(
                 ('file', 'pk.engiveer.png', png),
@@ -62,9 +60,8 @@ class TestArt(FunctionalTests):
 
         # Check on relationships
         relationships = art.user_artwork
-        assert len(relationships) == 2
-        assert set(_.relationship_type for _ in relationships) == \
-            set([u'by', u'of'])
+        assert len(relationships) == 1
+        assert relationships[0].user == self.user
 
         # Response oughta have a redirect
         assert 'location' in response.headers
