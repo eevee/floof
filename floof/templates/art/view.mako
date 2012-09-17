@@ -49,23 +49,17 @@
 ## Rating
     <div class="column">
         <div class="art-rater">
-        <%
-            if artwork.rating_score is None:
-                rating_score = None
-            else:
-                rating_score = artwork.rating_score # XXX * config['rating_radius']
-        %>\
         % if request.user.can('art.rate', request.context):
             <script type="text/javascript">
             $("div.art-rater").rater({
                 rate_url: "${request.route_url('art.rate', artwork=artwork)}",
                 value: ${current_rating or 'null'},
                 num_ratings: ${artwork.rating_count},
-                rating_sum: ${rating_score or 'null'},
+                rating_sum: ${artwork.rating_score or 'null'},
                 auth_token: "${request.session.get_csrf_token()}", auth_token_field: "csrf_token"})
             </script>
             <noscript>
-                <div class="rater-info"><span class="rater-num-ratings">${artwork.rating_count}</span> (<span class="rater-rating-sum">${rating_score or u'—'}</span>)</div>
+                <div class="rater-info"><span class="rater-num-ratings">${artwork.rating_count}</span> (<span class="rater-rating-sum">${artwork.rating_score}</span>)</div>
                 <% rating_chars = [u'\u2b06', u'\u2022', u'\u2b07'] %>
                 % for r in range(len(rating_chars)):
                     <%lib:secure_form url="${request.route_url('art.rate', artwork=artwork)}" class_="rater-form">
@@ -79,10 +73,10 @@
                 % endfor
             </noscript>
         % elif request.user:
-            <div class="rater-info"><span class="rater-num-ratings">${artwork.rating_count}</span> (<span class="rater-rating-sum">${rating_score or u'—'}</span>)</div>
+            <div class="rater-info"><span class="rater-num-ratings">${artwork.rating_count}</span> (<span class="rater-rating-sum">${artwork.rating_score}</span>)</div>
             <div class="rater-info">You do not have permission to vote.</div>
         % else:
-            <div class="rater-info"><span class="rater-num-ratings">${artwork.rating_count}</span> (<span class="rater-rating-sum">${rating_score or u'—'}</span>)</div>
+            <div class="rater-info"><span class="rater-num-ratings">${artwork.rating_count}</span> (<span class="rater-rating-sum">${artwork.rating_score}</span>)</div>
             <div class="rater-info">Log in to vote!</div>
         % endif
             </div>

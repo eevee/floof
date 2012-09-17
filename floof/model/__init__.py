@@ -8,14 +8,15 @@ import re
 import string
 
 from sqlalchemy import Column, ForeignKey, Table
+from sqlalchemy import event
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import backref, class_mapper, relation, validates
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.orm.exc import NoResultFound
-from sqlalchemy.orm.properties import ColumnProperty
 from sqlalchemy.orm.session import object_session
 from sqlalchemy.schema import CheckConstraint
+from sqlalchemy.sql import func
 from sqlalchemy.types import *
 from floof.model.extensions import *
 from floof.model.types import *
@@ -206,8 +207,7 @@ class Artwork(TableBase):
     mime_type = Column(Unicode(255), nullable=False)
     file_size = Column(Integer, nullable=False)
     rating_count = Column(Integer, nullable=False, default=0)
-    rating_sum = Column(Float, nullable=False, default=0)
-    rating_score = Column(Float, nullable=True, default=None)
+    rating_score = Column(Float, nullable=False, default=0)
     # TODO should this (and the comment prose) be a special column type?
     remark = Column(UnicodeText, nullable=False, default=u'')
 
@@ -247,6 +247,17 @@ class Artwork(TableBase):
 
         return u'.'.join(filename_parts)
 
+    @property
+    def rating_sum(self):
+        q = session.query(func.sum(ArtworkRating.rating)).autoflush(False)
+        q = q.filter_by(artwork_id=self.id)
+        return q.one()[0]
+
+    def recount_ratings(self):
+        q = session.query(ArtworkRating).autoflush(False)
+        q = q.filter_by(artwork_id=self.id)
+        self.rating_count = q.count()
+
 
 # Dynamic subclasses of the 'artwork' table for storing metadata for different
 # types of media
@@ -282,16 +293,15 @@ class ArtworkRating(TableBase):
 
     artwork_id = Column(Integer, ForeignKey(Artwork.id), primary_key=True, nullable=False)
     user_id = Column(Integer, ForeignKey(User.id), primary_key=True, nullable=False)
-    rating = ColumnProperty(
-        Column(Float, CheckConstraint('rating >= -1.0 AND rating <= 1.0'), nullable=False),
-        extension=RatingAttributeExtension(),
-    )
+    rating = Column(Integer, CheckConstraint('rating IN (-1, 0, 1)'), nullable=False, index=True)
     timestamp = Column(TZDateTime, nullable=False, index=True, default=now, onupdate=now)
 
-    validates('rating')
+    @validates('rating')
     def validate_rating(self, key, rating):
-        """Ensures the rating is within the proper rating radius."""
-        return -1.0 <= rating <= 1.0
+        assert rating in (-1, 0, 1)
+        return rating
+
+event.listen(ArtworkRating.rating, 'set', artwork_ratings_set_rating)
 
 
 ### PERMISSIONS
@@ -619,8 +629,10 @@ Artwork.uploader = relation(User, innerjoin=True,
 Artwork.user_artwork = relation(UserArtwork,
     backref=backref('artwork', innerjoin=True))
 Artwork.ratings = relation(ArtworkRating,
-    backref=backref('artwork', innerjoin=True),
-    extension=ArtworkRatingsAttributeExtension())
+    backref=backref('artwork', innerjoin=True))
+event.listen(Artwork.ratings, 'append', artwork_append_ratings, propagate=True)
+event.listen(Artwork.ratings, 'remove', artwork_remove_ratings, propagate=True)
+event.listen(Artwork.ratings, 'set', artwork_set_ratings, propagate=True, active_history=True)
 
 #User.discussion = relation(Discussion, backref='user')
 User.user_artwork = relation(UserArtwork, backref=backref('user', innerjoin=True))

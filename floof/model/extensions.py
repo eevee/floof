@@ -1,86 +1,65 @@
 # encoding: utf8
 from __future__ import division
 
-from math import sqrt
+import logging
+import math
 
-from sqlalchemy.orm.interfaces import AttributeExtension
+log = logging.getLogger(__name__)
 
-def wilson_score(n, total):
-    """Given a number of normalized [-1, 1] ratings and their total, calculates
-    the expected score, using the Wilson score interval.  Blah, blah, math."""
-    # See: http://www.evanmiller.org/how-not-to-sort-by-average-rating.html
-    # And: http://amix.dk/blog/post/19588
-    # This is slightly modified, as the given formula is normally for binary
-    # data; i.e., ratings are 0 or 1.  Ours are normalized to [0, 1], then
-    # unnormalized back to [-1, 1].
-    phat = (total / n + 1) / 2  # normalize [-n, n] to [0, 1]
-    # Confidence, as quantile of the SND.  z = 1.0 → 85%; z = 1.6 → 95%.
-    z = 1.03643337714489
+DIRICHLET_PRIOR = [2, 2, 2]  # default; set by floof.model.initialize
 
-    print n, total, phat, z
-    score = (
-        (phat + z**2 / (2 * n) - z * sqrt(
-            (phat * (1 - phat) + z**2 / (4 * n)) / n))
-        / (1 + z**2 / n)
-    )
 
-    return score * 2 - 1  # denormalize [0, 1] to [-1, 1]
+def weighted_summation(dist):
+    assert len(dist) == 3
+    return sum([p * float(i) for p, i in zip(dist, xrange(-1, 2))])
 
-def recalc_wilson_score(artwork):
-    if artwork.rating_count:
-        artwork.rating_score = wilson_score(
-            artwork.rating_count, artwork.rating_sum)
-    else:
-        artwork.rating_score = None
 
-class RatingAttributeExtension(AttributeExtension):
-    """AttributeExtension to act on the change of a rating.  Updates
-       the rating_sum of the artwork"""
+def dirichlet_score(artwork, add=None, sub=None, prior=None):
+    if not prior:
+        prior = DIRICHLET_PRIOR
+    prior_sum = weighted_summation(prior)
+    prior_count = sum(prior)
 
-    active_history = True
+    # This add/sub business is necessary as artwork.rating_sum won't include
+    # any changes until after its event hooks (the functions below) finish,
+    # but the event hooks call this function.
+    if add is not None:
+        prior_sum += add
+    if sub is not None:
+        prior_sum -= sub
 
-    def append(self, state, value, initiator):
-        return value
+    # Since our ratings are already stored as -1/0/1 and the only fudging we
+    # perform we do through the prior, we cheat by summing & counting the
+    # ratings rather than counting each category.
+    score = ((artwork.rating_sum or 0) + prior_sum) / (artwork.rating_count + prior_count)
 
-    def remove(self, state, value, initiator):
-        return value
+    # The score defaults to 0.  We want new art to start in the middle of the
+    # pack, so scale the score so that the unajusted prior would yield 0.
+    p = (weighted_summation(prior) / sum(prior) + 1) / 2
+    exp = math.log(0.5, p)
+    score = ((score + 1) / 2.0) ** exp * 2 - 1
 
-    def set(self, state, rating, oldrating, initiator):
-        """Update the rating sum of the artwork"""
-        rating_obj = state.obj()
-        artwork = rating_obj.artwork
-        if artwork:
-            artwork.rating_sum = artwork.rating_sum - oldrating + rating
-            recalc_wilson_score(artwork)
-        return rating
+    artwork.rating_score = score
+    return score
 
-class ArtworkRatingsAttributeExtension(AttributeExtension):
-    """AttributeExtension to act on the addition or removal of a rating to
-       a piece of art.  Updates the rating_* columns"""
 
-    active_history = True
+def artwork_ratings_set_rating(artwork_rating, rating, oldrating, initiator):
+    artwork = artwork_rating.artwork
+    if artwork:
+        dirichlet_score(artwork, add=rating, sub=oldrating)
 
-    def append(self, state, rating_obj, initiator):
-        artwork = state.obj()
-        artwork.rating_count += 1
-        artwork.rating_sum += rating_obj.rating
-        recalc_wilson_score(artwork)
 
-        return rating_obj
+def artwork_append_ratings(artwork, rating_obj, initiator):
+    artwork.recount_ratings()
+    artwork.rating_count += 1
+    dirichlet_score(artwork, add=rating_obj.rating)
 
-    def remove(self, state, rating_obj, initiator):
-        artwork = state.obj()
-        artwork.rating_count -= 1
-        artwork.rating_sum -= rating_obj.rating
-        recalc_wilson_score(artwork)
 
-        return rating_obj
+def artwork_remove_ratings(artwork, rating_obj, initiator):
+    artwork.recount_ratings()
+    artwork.rating_count -= 1
+    dirichlet_score(artwork, sub=rating_obj.rating)
 
-    def set(self, state, rating_obj, oldrating_obj, initiator):
-        artwork = state.obj()
-        artwork.rating_sum = (
-            artwork.rating_sum - oldrating_obj.rating + rating_obj.rating)
-        recalc_wilson_score(artwork)
 
-        return rating_obj
-
+def artwork_set_ratings(artwork, rating_obj, oldrating_obj, initiator):
+    dirichlet_score(artwork, add=rating_obj.rating, sub=oldrating_obj.rating)
