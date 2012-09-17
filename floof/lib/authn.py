@@ -453,6 +453,7 @@ class Authenticizer(object):
 
     certificate_serial = property(_get_state('cert_serial'))
     openid_url = property(_get_state('openid_url'))
+    browserid_email = property(_get_state('browserid_email'))
 
     def __repr__(self):
         ages = {}

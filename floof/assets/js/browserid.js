@@ -20,11 +20,11 @@ function gotVerifiedEmail(assertion) {
             }
             else {
                 // TODO handle errors in some more useful manner
-                alert("Whoops, something fucked up.  And this error sucks, too!");
+                alert("Whoops, something fucked up with Persona login.  And this error sucks, too!");
             }
         },
         error: function(xhr, status, error) {
-            alert("Whoops, something fucked up.  And this error sucks, too!");
+            alert("Whoops, something fucked up with Persona login.  And this error sucks, too!");
         }
     });
 }

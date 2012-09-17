@@ -16,7 +16,7 @@
             <dt>New Persona</dt>
             <dd>
                 <a href="${request.route_url('account.login')}" class="browserid" title="Sign-in with Persona to add a new email address to this account">
-                    <img src="https://browserid.org/i/sign_in_blue.png" height="22" width="79" alt="Sign in to add a new email address identity" />
+                    <img src="${request.static_url('floof:assets/images/persona-signin.png')}" height="22" width="79" alt="Sign in to add a new email address identity" />
                 </a>
             </dd>
 

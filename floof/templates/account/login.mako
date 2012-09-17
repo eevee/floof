@@ -19,7 +19,7 @@
 
     <div id="big-ol-browserid-box">
         <button class="browserid">
-            <img src="https://browserid.org/i/sign_in_blue.png" height="22" width="79" alt="Sign in">
+            <img src="${request.static_url('floof:assets/images/persona-signin.png')}" height="22" width="79" alt="Sign in">
             with Persona
         </button>
     </div>
