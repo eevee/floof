@@ -7,6 +7,11 @@ Pyramid.
 
 # Installation
 
+First, make sure you've pulled in git submodules:
+
+    git submodule init
+    git submodule update
+
 Use the setuptools setup script:
 
     python setup.py install
