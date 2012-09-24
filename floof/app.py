@@ -143,7 +143,7 @@ def main(global_config, **settings):
     # Set up SQLAlchemy stuff
     engine = engine_from_config(settings, 'sqlalchemy.')
     floof.model.initialize(
-        engine, extension=ZopeTransactionExtension())
+        engine, settings, extension=ZopeTransactionExtension())
 
     # floof debug panel
     settings['debug'] = asbool(settings.get('floof.debug', False))

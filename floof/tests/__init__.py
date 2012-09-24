@@ -36,6 +36,7 @@ def _prepare_env():
     floof.model.session.remove()
     floof.model.initialize(
         create_engine('sqlite://'),
+        {},
         extension=ZopeTransactionExtension())
 
     transaction.begin()

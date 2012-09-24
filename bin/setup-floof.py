@@ -30,6 +30,7 @@ if __name__ == '__main__':
     # Set up the SQLAlchemy environment
     model.initialize(
         engine_from_config(conf, 'sqlalchemy.'),
+        conf,
         extension=ZopeTransactionExtension())
 
     populate_db(model.TableBase.metadata, model.session)

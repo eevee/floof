@@ -7,6 +7,7 @@ import random
 import re
 import string
 
+from pyramid.settings import aslist
 from sqlalchemy import Column, ForeignKey, Table
 from sqlalchemy import event
 from sqlalchemy.ext.associationproxy import association_proxy
@@ -26,12 +27,18 @@ from floof.model.types import *
 session = scoped_session(sessionmaker())
 TableBase = declarative_base()
 
-def initialize(engine, extension=None):
+def initialize(engine, settings, extension=None):
     """Call me before using any of the tables or classes in the model"""
-    # XXX: Is init_model actually used by anything?  Could these be combined?
     session.configure(bind=engine, extension=extension)
     TableBase.metadata.bind = engine
-    #TableBase.metadata.create_all()
+
+    if 'scoring.prior' in settings:
+        prior = [float(x) for x in aslist(settings['scoring.prior'])]
+        if len(prior) != 3:
+            raise ValueError(
+                'Config setting scoring.prior must have exactly 3 elements.')
+        import floof.model.extensions
+        floof.model.extensions.DIRICHLET_PRIOR = prior
 
 
 def now():
