@@ -149,7 +149,6 @@ def main(global_config, **settings):
     settings['debug'] = asbool(settings.get('floof.debug', False))
 
     # Misc other crap
-    settings['rating_radius'] = int(settings['rating_radius'])
     settings['filestore_factory'] = filestore.get_storage_factory(settings)
 
     ### Configuratify

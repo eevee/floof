@@ -306,10 +306,12 @@ def view(artwork, request):
     renderer='json')
 def rate(artwork, request):
     """Post a rating for a piece of art"""
-    radius = int(request.registry.settings['rating_radius'])
     try:
-        rating = int(request.POST['rating']) / radius
+        rating = int(request.POST['rating'])
     except (KeyError, ValueError):
+        return HTTPBadRequest()
+
+    if rating not in (1, 0, -1):
         return HTTPBadRequest()
 
     # Get the previous rating, if there was one
@@ -335,7 +337,7 @@ def rate(artwork, request):
     if request.is_xhr:
         return dict(
             ratings=artwork.rating_count,
-            rating_sum=artwork.rating_score * radius,
+            rating_sum=artwork.rating_score,
         )
 
     # Otherwise, we're probably dealing with a no-js request and just re-render
