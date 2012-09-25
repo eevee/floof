@@ -107,7 +107,10 @@ class GallerySieve(object):
     combined arbitrarily; they'll be ANDed together.
     """
 
-    default_order_clause = model.Artwork.uploaded_time.desc()
+    default_order_clauses = (
+        model.Artwork.uploaded_time.desc(),
+        model.Artwork.id.desc(),
+    )
     temporal_column_name = 'uploaded_time'
 
     def __init__(self, session=None, user=None, formdata=None, countable=False):
@@ -144,7 +147,7 @@ class GallerySieve(object):
         self.display_mode = 'thumbnails'
 
         self.query = session.query(model.Artwork) \
-            .order_by(self.default_order_clause)
+            .order_by(*self.default_order_clauses)
 
         self.form = GalleryForm(formdata)
         self.original_formdata = formdata or {}
@@ -312,7 +315,7 @@ class GallerySieve(object):
             raise ValueError("No such ordering {0}".format(order))
 
         self.query = self.query.order_by(None) \
-            .order_by(order_column.desc(), self.default_order_clause)
+            .order_by(order_column.desc(), *self.default_order_clauses)
 
 
     ### The fruits of our labors
