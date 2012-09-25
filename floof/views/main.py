@@ -31,7 +31,8 @@ def wsgi_reproxy(url):
 
 @view_config(
     route_name='filestore',
-    request_method='GET')
+    request_method='GET',
+    http_cache=604800)
 def filestore(context, request):
     """Serve a file from storage.
 
@@ -77,7 +78,8 @@ def filestore(context, request):
         # Unknown class
         raise NotFound()
 
-    if 'X-Forwarded-For' in request.headers:
+    if 'X-Forwarded-For' in request.headers or \
+            'FORWARDED_FOR' in request.environ:
         # Reproxy to upstream.
         # nginx will only reproxy to local, internal URLs.  So this needs
         # something a bit special.  Tell nginx to reproxy to a special
