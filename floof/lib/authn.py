@@ -492,27 +492,41 @@ def get_certificate_serial(request):
     """
     # test amenity
     env = request.environ
+    settings = request.registry.settings
     if 'paste.testing' in env and 'tests.auth.cert_serial' in env:
         return env['tests.auth.cert_serial']
 
+    if not asbool(settings.get('auth.certs.enabled')):
+        return
+
     # ATM, the cert serial is passed by the front-end server in an HTTP header.
-    if asbool(request.registry.settings.get('auth.certs.enabled')):
-        # need to check verification status if we pass requests failing
-        # front-end cert auth back to floof (e.g. for user help display)
-        # XXX the below 'verify' codes are nginx-isms
+    transport = settings.get('auth.certs.transport')
+    if transport == 'http_headers':
         verify = request.headers.get('X-Floof-SSL-Client-Verify')
         serial = request.headers.get('X-Floof-SSL-Client-Serial', '')
-        serial = serial.lower()
+    elif transport == 'wsgi_environ':
+        verify = request.environ.get('floof.ssl_client_verify')
+        serial = request.environ.get('floof.ssl_client_serial', '')
+    else:
+        log.warning('Certificate auth enabled, but no valid transport set.')
+        return
 
-        if verify == 'SUCCESS':
-            log.debug("Successful verification of cert with claimed "
-                      "serial '{0}'".format(serial))
-            return serial
+    serial = serial.lower()
 
-        elif verify == 'FAILED':
-            log.warning("Unsuccessful verification of cert with claimed "
-                        "serial '{0}'".format(serial))
-            raise CertVerificationError
+    # Need to check verification status as we anticipate still passing
+    # requests that fail the front-end cert verification back to floof
+    # XXX These 'verify' codes are nginx-isms
+    if verify == 'SUCCESS':
+        log.debug("Successful verification of cert with claimed "
+                  "serial '{0}'".format(serial))
+        return serial
+
+    elif verify == 'FAILED':
+        log.warning("Unsuccessful verification of cert with claimed "
+                    "serial '{0}'".format(serial))
+        raise CertVerificationError
+
+    log.warning('Unknown cert verification status')
 
 
 def check_certreq_override(request, user):
