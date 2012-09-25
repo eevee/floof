@@ -85,10 +85,6 @@ class FileStorage(BaseFileStorage):
             destpath = self._path(self.directory, class_, key)
             destdir, destfile = os.path.split(destpath)
 
-            if os.path.exists(destpath):
-                raise IOError("The destination file for '{0}' already exists "
-                              "('{1}').".format(idx, destpath))
-
             if not os.path.isdir(destdir):
                 os.makedirs(destdir)
 
