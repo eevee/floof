@@ -62,7 +62,7 @@ def filestore(context, request):
         except NoResultFound:
             raise NotFound()
 
-        headerlist.append(('Content-Type', artwork.mime_type))
+        headerlist.append(('Content-Type', artwork.mime_type.encode('utf8')))
 
         # Don't bother setting disposition for thumbnails
         if class_ == u'artwork':
