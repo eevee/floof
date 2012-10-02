@@ -526,7 +526,8 @@ def get_certificate_serial(request):
                     "serial '{0}'".format(serial))
         raise CertVerificationError
 
-    log.warning('Unknown cert verification status')
+    elif verify != 'NONE':
+        log.warning('Unknown cert verification status')
 
 
 def check_certreq_override(request, user):
