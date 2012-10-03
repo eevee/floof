@@ -76,7 +76,7 @@ class FloofAuthnPolicy(object):
 
         return principals
 
-    def remember(self, request, user, openid_url=None, browserid_email=None, **kw):
+    def remember(self, request, user, openid_url=None, persona_addr=None, **kw):
         """Remembers a set of (stateful) credentials authenticating the `user`.
 
         Deviates from the Pyramid authentication policy model in that
@@ -84,7 +84,7 @@ class FloofAuthnPolicy(object):
         principal.
 
         At present, only accepts calls that include both a `user` and either a
-        `openid_url` or `browserid_email` parameter.
+        `openid_url` or `persona_addr` parameter.
 
         Raises Exceptions on error; either `ValueError` if no parameters are
         given or one of the auth-specific exceptions defined in
@@ -93,8 +93,8 @@ class FloofAuthnPolicy(object):
         """
         if openid_url:
             request.auth.login_openid(request, user, openid_url)
-        elif browserid_email:
-            request.auth.login_browserid(request, user, browserid_email)
+        elif persona_addr:
+            request.auth.login_persona(request, user, persona_addr)
         else:
             raise ValueError("A credential, such as openid_url, must be "
                              "passed to this function.")
@@ -125,8 +125,8 @@ class CertRevokedError(Exception): pass
 class CertVerificationError(Exception): pass
 class OpenIDAuthDisabledError(Exception): pass
 class OpenIDNotFoundError(Exception): pass
-class BrowserIDAuthDisabledError(Exception): pass
-class BrowserIDNotFoundError(Exception): pass
+class PersonaAuthDisabledError(Exception): pass
+class PersonaNotFoundError(Exception): pass
 class AuthConflictError(Exception): pass
 
 
@@ -167,9 +167,9 @@ class Authenticizer(object):
     """
     # These are used for injecting tokens and trust flags during tests
     _cred_tokens = ['cert_serial', 'openid_url', 'openid_timestamp',
-                    'browserid_email', 'browserid_timestamp']
-    _trust_flags = ['cert', 'openid', 'openid_recent', 'browserid',
-                    'browserid_recent']
+                    'persona_addr', 'persona_timestamp']
+    _trust_flags = ['cert', 'openid', 'openid_recent', 'persona',
+                    'persona_recent']
 
     def __init__(self, request):
         config = request.registry.settings
@@ -221,10 +221,10 @@ class Authenticizer(object):
             error("Your OpenID conflicted with your certificate and has been cleared.")
 
         try:
-            self.check_browserid(config)
-        except BrowserIDNotFoundError:
+            self.check_persona(config)
+        except PersonaNotFoundError:
             error("I don't recognize your Persona email address.")
-        except BrowserIDAuthDisabledError:
+        except PersonaAuthDisabledError:
             error("Your Persona is no longer accepted as your account has disabled Persona authentication.")
         except AuthConflictError:
             error("Your Persona conflicted with either your certificate or "
@@ -355,51 +355,51 @@ class Authenticizer(object):
         if not self.user:
             self.user = openid.user
 
-    def check_browserid(self, config):
-        """Check BrowserID state and add authentication if valid, else
+    def check_persona(self, config):
+        """Check Persona state and add authentication if valid, else
         clear."""
         # XXX this is very similar to check_openid() above
 
-        email = self.state.pop('browserid_email', None)
-        timestamp = self.state.pop('browserid_timestamp', None)
+        addr = self.state.pop('persona_addr', None)
+        timestamp = self.state.pop('persona_timestamp', None)
 
-        if not email or not timestamp:
-            # No (or corrupted) BrowserID login. By popping, our obligation to
+        if not addr or not timestamp:
+            # No (or corrupted) Persona login. By popping, our obligation to
             # clear relevent state is already fulfilled, so just return
             return
 
         # TODO: Optimize eagerloading
         q = model.session.query(model.IdentityEmail) \
             .options(joinedload_all('user.roles')) \
-            .filter_by(email=email)
+            .filter_by(email=addr)
 
         try:
-            browserid = q.one()
+            persona = q.one()
         except NoResultFound:
-            raise BrowserIDNotFoundError
+            raise PersonaNotFoundError
 
-        if browserid.user.cert_auth == 'required':
-            raise BrowserIDAuthDisabledError
-        if self.user and self.user.id != browserid.user.id:
+        if persona.user.cert_auth == 'required':
+            raise PersonaAuthDisabledError
+        if self.user and self.user.id != persona.user.id:
             raise AuthConflictError
 
-        # At this point, we're confident that the stored BrowserID login is valid
+        # At this point, we're confident that the stored Persona login is valid
 
-        self.state['browserid_email'] = email
-        self.state['browserid_timestamp'] = timestamp
-        self.trust.append('browserid')
+        self.state['persona_addr'] = addr
+        self.state['persona_timestamp'] = timestamp
+        self.trust.append('persona')
 
-        # Evaluate BrowserID freshness
+        # Evaluate Persona freshness
         confidence_expiry_secs = int(config.get(
-            'auth.browserid.expiry_seconds',
+            'auth.persona.expiry_seconds',
             DEFAULT_CONFIDENCE_EXPIRY))
 
         age = datetime.utcnow() - datetime.utcfromtimestamp(timestamp)
         if age <= timedelta(seconds=confidence_expiry_secs):
-            self.trust.append('browserid_recent')
+            self.trust.append('persona_recent')
 
         if not self.user:
-            self.user = browserid.user
+            self.user = persona.user
 
     def login_openid(self, request, user, url):
         """Log in via OpenID, adding appropriate authentication state.
@@ -421,8 +421,8 @@ class Authenticizer(object):
         self.state['openid_url'] = url
         self.state['openid_timestamp'] = calendar.timegm(datetime.utcnow().timetuple())
 
-    def login_browserid(self, request, user, email):
-        """Log in via BrowserID, adding appropriate authentication state.
+    def login_persona(self, request, user, addr):
+        """Log in via Persona, adding appropriate authentication state.
 
         Remember that any authentication change will only take effect on the
         next request.  The typical scenario is that the user is redirected at
@@ -430,16 +430,16 @@ class Authenticizer(object):
 
         Also remember to save the session after this!
         """
-        if email not in (e.email for e in user.identity_emails):
-            raise BrowserIDNotFoundError
+        if addr not in (e.email for e in user.identity_emails):
+            raise PersonaNotFoundError
 
         check_certreq_override(request, user)
 
         if user.cert_auth == 'required':
-            raise BrowserIDAuthDisabledError
+            raise PersonaAuthDisabledError
 
-        self.state['browserid_email'] = email
-        self.state['browserid_timestamp'] = calendar.timegm(datetime.utcnow().timetuple())
+        self.state['persona_addr'] = addr
+        self.state['persona_timestamp'] = calendar.timegm(datetime.utcnow().timetuple())
 
     def clear(self):
         """Clears all auth state, logging out unless certs are in use."""
@@ -453,11 +453,11 @@ class Authenticizer(object):
 
     certificate_serial = property(_get_state('cert_serial'))
     openid_url = property(_get_state('openid_url'))
-    browserid_email = property(_get_state('browserid_email'))
+    persona_addr = property(_get_state('persona_addr'))
 
     def __repr__(self):
         ages = {}
-        for mech in ('openid', 'browserid'):
+        for mech in ('openid', 'persona'):
             idx = mech + '_timestamp'
             if idx in self.state:
                 age = datetime.utcnow() - datetime.utcfromtimestamp(self.state[idx])
@@ -473,9 +473,9 @@ class Authenticizer(object):
         if get('openid_url'):
             ret += 'OpenID: {0} @ {1}, '.format(
                     get('openid_url'), ages.get('openid'))
-        if get('browserid_email'):
+        if get('persona_addr'):
             ret += 'Persona: {0} @ {1}, '.format(
-                    get('browserid_email'), ages.get('browserid'))
+                    get('persona_addr'), ages.get('persona'))
         ret += 'Trust Flags: {0} )>'.format(repr(self.trust))
 
         return ret

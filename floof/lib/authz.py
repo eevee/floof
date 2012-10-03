@@ -28,7 +28,7 @@ UPGRADABLE_PRINCIPALS = ('auth:', 'trusted:')
 
 TRUST_MAP = dict([
     ('trusted_for:auth', [
-        ('role:user', 'auth:insecure', 'trusted:browserid_recent'),
+        ('role:user', 'auth:insecure', 'trusted:persona_recent'),
         ('role:user', 'auth:insecure', 'trusted:openid_recent'),
         ('role:user', 'auth:insecure', 'trusted:cert'),
         ('role:user', 'auth:secure', 'trusted:cert'),
@@ -82,7 +82,7 @@ def attempt_privilege_escalation(permission, context, request):
     entail setting a stash for the current request then redirecting.
 
     """
-    upgradeable = ('trusted:browserid_recent', 'trusted:openid_recent')
+    upgradeable = ('trusted:persona_recent', 'trusted:openid_recent')
 
     if not could_have_permission(permission, context, request):
         return

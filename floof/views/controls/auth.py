@@ -9,8 +9,8 @@ from wtforms.ext.sqlalchemy.fields import QuerySelectMultipleField
 
 from floof import model
 from floof.forms import FloofForm
-from floof.lib.browserid import BrowserIDError
-from floof.lib.browserid import flash_browserid_error, verify_browserid
+from floof.lib.persona import PersonaError
+from floof.lib.persona import flash_persona_error, verify_persona
 from floof.lib.openid_ import OpenIDError, openid_begin, openid_end
 
 log = logging.getLogger(__name__)
@@ -45,10 +45,10 @@ class RemoveOpenIDForm(FloofForm):
                     'are currently logged in.')
 
 
-class RemoveBrowserIDForm(FloofForm):
-    browserids = QuerySelectMultipleField(u'Remove Personas', get_label=lambda row: row.email)
+class RemovePersonaForm(FloofForm):
+    addrs = QuerySelectMultipleField(u'Remove Personas', get_label=lambda row: row.email)
 
-    def validate_browserids(form, field):
+    def validate_addrs(form, field):
         if not field.data:
             raise wtforms.ValidationError(
                     'You must select at least one Persona identity email '
@@ -62,8 +62,8 @@ class RemoveBrowserIDForm(FloofForm):
                     'email address or one OpenID identity URL.')
 
         # XXX see RemoveOpenIDForm.validate_openids
-        curr_email = form.request.auth.state.get('browserid_email')
-        if curr_email in [obj.email for obj in field.data]:
+        curr_addr = form.request.auth.persona_addr
+        if curr_addr in [obj.email for obj in field.data]:
             raise wtforms.ValidationError(
                     'You cannot remove the Persona identity email address '
                     'with which you are currently logged in.')
@@ -95,21 +95,21 @@ class AuthenticationForm(FloofForm):
 
 
 @view_config(
-    route_name='controls.browserid',
-    permission='auth.browserid',
+    route_name='controls.persona',
+    permission='auth.persona',
     request_method='GET',
-    renderer='account/controls/browserid.mako')
-def browserid(context, request):
+    renderer='account/controls/persona.mako')
+def persona(context, request):
     user = request.user
-    form = RemoveBrowserIDForm(request)
-    form.browserids.query = model.session.query(model.IdentityEmail).with_parent(user)
+    form = RemovePersonaForm(request)
+    form.addrs.query = model.session.query(model.IdentityEmail).with_parent(user)
 
     return {'form': form}
 
 
-# XXX: Currently not being hit by the BrowserID address addition flow.
-def browserid_add(context, request):
-    next_url = request.route_url('controls.browserid')
+# XXX: Currently not being hit by the Persona address addition flow.
+def persona_add(context, request):
+    next_url = request.route_url('controls.persona')
 
     def fail(msg=None):
         if msg:
@@ -120,9 +120,9 @@ def browserid_add(context, request):
     assertion = post.get('assertion')
 
     try:
-        data = verify_browserid(assertion, request)
-    except BrowserIDError as e:
-        flash_browserid_error(e, request)
+        data = verify_persona(assertion, request)
+    except PersonaError as e:
+        flash_persona_error(e, request)
         return fail()
 
     email = data.get('email')
@@ -141,8 +141,8 @@ def browserid_add(context, request):
         return fail("The email address '{0}' already belongs to {1}."
                     .format(email, other_account))
 
-    browserid = model.IdentityEmail(email=email)
-    request.user.identity_emails.append(browserid)
+    persona_id = model.IdentityEmail(email=email)
+    request.user.identity_emails.append(persona_id)
     request.session.flash("Added Persona email address '{0}'".format(email),
                           level=u'success', icon='user')
 
@@ -150,45 +150,45 @@ def browserid_add(context, request):
 
 
 @view_config(
-    route_name='controls.browserid.add',
-    permission='auth.browserid',
+    route_name='controls.persona.add',
+    permission='auth.persona',
     request_method='POST',
     xhr=True,
     renderer='json')
-def browserid_add_xhr(context, request):
-    return {'next_url': browserid_add(context, request)}
+def persona_add_xhr(context, request):
+    return {'next_url': persona_add(context, request)}
 
 
 # For catching & handling stashed addition requests.
 @view_config(
-    route_name='controls.browserid.add',
-    permission='auth.browserid',
+    route_name='controls.persona.add',
+    permission='auth.persona',
     request_method='POST',
     xhr=False)
-def browserid_add_noxhr(context, request):
-    return HTTPSeeOther(location=browserid_add(context, request))
+def persona_add_noxhr(context, request):
+    return HTTPSeeOther(location=persona_add(context, request))
 
 
 @view_config(
-    route_name='controls.browserid.remove',
-    permission='auth.browserid',
+    route_name='controls.persona.remove',
+    permission='auth.persona',
     request_method='POST',
-    renderer='account/controls/browserid.mako')
-def browserid_remove(context, request):
+    renderer='account/controls/persona.mako')
+def persona_remove(context, request):
     user = request.user
-    form = RemoveBrowserIDForm(request, request.POST)
-    form.browserids.query = model.session.query(model.IdentityEmail).with_parent(user)
+    form = RemovePersonaForm(request, request.POST)
+    form.addrs.query = model.session.query(model.IdentityEmail).with_parent(user)
 
     if not form.validate():
         return {'form': form}
 
-    for target in form.browserids.data:
+    for target in form.addrs.data:
         user.identity_emails.remove(target)
         request.session.flash(
             u"Removed Persona identity email address: {0}"
             .format(target.email), level=u'success')
 
-    return HTTPSeeOther(location=request.route_url('controls.browserid'))
+    return HTTPSeeOther(location=request.route_url('controls.persona'))
 
 
 @view_config(

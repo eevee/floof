@@ -10,7 +10,7 @@ function gotVerifiedEmail(assertion) {
     // TODO use that cutesy fake browser throbber thing
     $.ajax({
         type: 'POST',
-        url: window.floofdata.browserid_url,
+        url: window.floofdata.persona_url,
         data: { assertion: assertion, csrf_token: window.floofdata.csrf_token },
         success: function(data, status, xhr) {
             // XXX this is kinda generic ajax response handling
@@ -30,7 +30,7 @@ function gotVerifiedEmail(assertion) {
 }
 
 $(function() {
-    $('.browserid').click(function(evt) {
+    $('.persona').click(function(evt) {
         evt.preventDefault();
         navigator.id.get(gotVerifiedEmail);
     });

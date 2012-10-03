@@ -14,10 +14,10 @@ import wtforms.form, wtforms.fields, wtforms.validators
 
 from floof.forms import DisplayNameField, TimezoneField
 from floof.lib.authn import DEFAULT_CONFIDENCE_EXPIRY
-from floof.lib.authn import BrowserIDAuthDisabledError, BrowserIDNotFoundError
+from floof.lib.authn import PersonaAuthDisabledError, PersonaNotFoundError
 from floof.lib.authn import OpenIDAuthDisabledError, OpenIDNotFoundError
-from floof.lib.browserid import BrowserIDError
-from floof.lib.browserid import flash_browserid_error, verify_browserid
+from floof.lib.persona import PersonaError
+from floof.lib.persona import flash_persona_error, verify_persona
 from floof.lib.stash import fetch_stash, get_stash_keys, key_from_request
 from floof.lib.openid_ import OpenIDError, openid_begin, openid_end
 from floof.model import Discussion, IdentityURL, IdentityEmail, Resource
@@ -66,7 +66,7 @@ def account_login(context, request):
 # Catch & handle AJAX requests that have spawned a stash & authentication
 # upgrade attempt.  Obviously, any such request must be able to handle next_url
 # and redirect the user from the current page.  This limits what AJAX-y things
-# can permit auth upgrade; currently the only use case is adding a BrowserID
+# can permit auth upgrade; currently the only use case is adding a Persona
 # address.
 @view_config(
     route_name='account.login',
@@ -82,13 +82,13 @@ def account_login_xhr(context, request):
 
 
 @view_config(
-    route_name='account.browserid.login',
+    route_name='account.persona.login',
     request_method='POST',
     renderer='json')
-def account_login_browserid(context, request):
+def account_login_persona(context, request):
     return_key = key_from_request(request)
 
-    def fail(msg=None):
+    def fail(msg=None, exc=None):
         if msg:
             request.session.flash(msg, level=u'error', icon='key--exclamation')
         # XXX setting the status to 403 triggers Pyramid's exception view
@@ -104,9 +104,9 @@ def account_login_browserid(context, request):
 
     assertion = request.POST.get('assertion')
     try:
-        data = verify_browserid(assertion, request)
-    except BrowserIDError as e:
-        flash_browserid_error(e, request)
+        data = verify_persona(assertion, request)
+    except PersonaError as e:
+        flash_persona_error(e, request)
         return fail()
 
     ## Attempt to resolve the identity to a local user
@@ -131,15 +131,15 @@ def account_login_browserid(context, request):
 
     try:
         auth_headers = security.remember(
-            request, identity_email.user, browserid_email=email)
+            request, identity_email.user, persona_addr=email)
         request.session.changed()
 
-    except BrowserIDNotFoundError:
+    except PersonaNotFoundError:
         return fail("The email address '{0}' is registered against the account "
                     "'{1}'.  To log in as '{1}', log out then back in."
                     .format(email, identity_email.user.name))
 
-    except BrowserIDAuthDisabledError:
+    except PersonaAuthDisabledError:
         return fail("Your Persona is no longer accepted as your account has "
                     "disabled Persona authentication.")
 
@@ -416,7 +416,7 @@ def register(context, request):
     identity_url = request.session.get('pending_identity_url')
     identity_email = request.session.get('pending_identity_email')
     openid_q = model.session.query(IdentityURL).filter_by(url=identity_url)
-    browserid_q = model.session.query(IdentityEmail).filter_by(email=identity_email)
+    persona_q = model.session.query(IdentityEmail).filter_by(email=identity_email)
 
     # Must register against (or add) exactly one ID
     if not identity_url and not identity_email:
@@ -427,7 +427,7 @@ def register(context, request):
     # Cannot re-register an ID
     if identity_url and openid_q.count():
         return bail()
-    if identity_email and browserid_q.count():
+    if identity_email and persona_q.count():
         return bail()
 
     form = RegistrationForm(request.POST)
@@ -472,8 +472,8 @@ def register(context, request):
         openid = IdentityURL(url=identity_url)
         user.identity_urls.append(openid)
     else:
-        browserid = IdentityEmail(email=identity_email)
-        user.identity_emails.append(browserid)
+        persona_id = IdentityEmail(email=identity_email)
+        user.identity_emails.append(persona_id)
 
     model.session.flush()
 
@@ -484,7 +484,7 @@ def register(context, request):
     auth_headers = security.forget(request)
     headers = security.remember(
             request, user, openid_url=identity_url,
-            browserid_email=identity_email)
+            persona_addr=identity_email)
     if headers is None:
         log.error("Failed to log in new registrant.")  # shouldn't happen
     else:
@@ -526,7 +526,7 @@ def add_identity(context, request):
     request.session.flash(
         u"Added a new identity: {0}".format(identity_url or identity_email),
         level=u'success', icon=u'user--plus')
-    dest = 'controls.openid' if identity_url else 'controls.browserid'
+    dest = 'controls.openid' if identity_url else 'controls.persona'
     return HTTPSeeOther(location=request.route_url(dest))
 
 

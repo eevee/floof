@@ -8,7 +8,7 @@
     ${h.javascript_link('https://login.persona.org/include.js', async=True)}
     ${h.javascript_link(request.static_url('floof:assets/js/vendor/jquery-1.7.2.min.js'))}
     ${h.javascript_link(request.static_url('floof:assets/js/vendor/jquery.cookie.js'))}
-    ${h.javascript_link(request.static_url('floof:assets/js/browserid.js'))}
+    ${h.javascript_link(request.static_url('floof:assets/js/persona.js'))}
 
     ## Allow templates to define their script dependencies to include in head
     ${self.script_dependencies()}
@@ -18,8 +18,8 @@
         <%! import json %>
         window.floofdata = ${json.dumps(dict(
             csrf_token=request.session.get_csrf_token(),
-            browserid_url=h.update_params(
-                request.route_path("account.browserid.login"),
+            persona_url=h.update_params(
+                request.route_path("account.persona.login"),
                 return_key=request.params.get('return_key')),
         )) | n};
     </script>
@@ -46,7 +46,7 @@
                 </li>
             % else:
                 <li>
-                    <a href="${request.route_url('account.login')}" class="browserid">
+                    <a href="${request.route_url('account.login')}" class="persona">
                         <img src="${request.static_url('floof:assets/images/persona-signin.png')}" height="22" width="79" alt="Sign in with Persona" title="Sign in with Persona">
                         or register
                     </a>

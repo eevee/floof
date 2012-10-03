@@ -17,8 +17,8 @@
 <section>
     <h1>Log in or register</h1>
 
-    <div id="big-ol-browserid-box">
-        <button class="browserid">
+    <div id="big-ol-persona-box">
+        <button class="persona">
             <img src="${request.static_url('floof:assets/images/persona-signin.png')}" height="22" width="79" alt="Sign in">
             with Persona
         </button>

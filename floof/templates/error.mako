@@ -32,9 +32,9 @@
                 <li>Configure your certificate authentication option to either
                 'Require for login' or 'Require for Sensitive Operations only'</li>
             % endif
-            % if 'trusted:browserid_recent' in principal_group:
+            % if 'trusted:persona_recent' in principal_group:
                 <li>Re-authenticate with your Persona</li>
-            % elif 'trusted:browserid' in principal_group:
+            % elif 'trusted:persona' in principal_group:
                 <li>Authenticate with your Persona</li>
             % endif
             % if 'trusted:openid_recent' in principal_group:

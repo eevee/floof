@@ -91,7 +91,7 @@ class FloofRoot(ORMContext):
 
         (Allow, 'trusted_for:auth', (
             'auth.method', 'auth.certificates', 'auth.openid',
-            'auth.browserid')),
+            'auth.persona')),
     ]
 
     def __init__(self, request=None):

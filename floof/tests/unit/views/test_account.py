@@ -60,8 +60,8 @@ class TestAccountViews(UnitTests):
 
         return request
 
-    def test_account_login_browserid(self):
-        from floof.views.account import account_login_browserid as view
+    def test_account_login_persona(self):
+        from floof.views.account import account_login_persona as view
 
         def verify(request, next_url, flash_msg):
             response = view(request.context, request)
@@ -71,10 +71,10 @@ class TestAccountViews(UnitTests):
             assert response['redirect-to'] == next_url
 
         audience = 'https://localhost'
-        self.config.add_settings({'auth.browserid.audience': audience})
+        self.config.add_settings({'auth.persona.audience': audience})
         request = self._make_request()
         request.method = 'POST'
-        request.user = sim.sim_user(credentials=[('browserid', OLD_ASSERTION_ADDR)])
+        request.user = sim.sim_user(credentials=[('persona', OLD_ASSERTION_ADDR)])
 
         # Test failures
 
@@ -99,10 +99,10 @@ class TestAccountViews(UnitTests):
         a = make_assertion(email, audience)
 
         request.POST = MultiDict({'assertion': a})
-        request.user = sim.sim_user(credentials=[('browserid', email)])
+        request.user = sim.sim_user(credentials=[('persona', email)])
         request.environ['paste.testing'] = True
-        request.environ['tests.auth.browserid.verifier'] = verifier
-        request.environ['tests.auth.browserid.audience'] = audience
+        request.environ['tests.auth.persona.verifier'] = verifier
+        request.environ['tests.auth.persona.audience'] = audience
         with patched_supportdoc_fetching():
             verify(request,
                    next_url=request.route_url('root'),

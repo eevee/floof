@@ -59,10 +59,8 @@ class TestFloofAuthnPolicy(UnitTests):
             assert 'auth:{0}'.format(nature) in principals
 
     def test_principals_trusted(self):
-        authn_flags = ['cert', 'openid', 'browserid']
-        additional_flags = [
-                'openid_recent', 'openid_recent',
-                'browserid_recent', 'browserid_recent']
+        authn_flags = ['cert', 'openid', 'persona']
+        additional_flags = ['openid_recent', 'persona_recent']
         all_flags = authn_flags + additional_flags
 
         for i in xrange(len(all_flags)):
