@@ -2,6 +2,7 @@
 import logging
 
 from pyramid import httpexceptions
+from pyramid.renderers import render_to_response
 from pyramid.view import view_config
 
 from floof.app import NoCookiesError
@@ -13,7 +14,7 @@ log = logging.getLogger(__name__)
 
 
 def error_view(exc, request, default_message, status=None,
-               outstanding_principals=None):
+               outstanding_principals=None, renderer='error.mako'):
 
     # Preserve a previously set status code unless specifically overridden
     if request.response.status != '200 OK':
@@ -28,24 +29,26 @@ def error_view(exc, request, default_message, status=None,
     else:
         message = default_message
 
-    return {
+    data = {
         'http_status': status,
         'message': message,
         'outstanding_principals': outstanding_principals,
     }
 
+    if not renderer:
+        return data
+    elif request.is_xhr:
+        return render_to_response('json', data, request)
+    return render_to_response(renderer, data, request)
 
-@view_config(
-    context=httpexceptions.HTTPBadRequest,
-    renderer='error.mako')
+
+@view_config(context=httpexceptions.HTTPBadRequest)
 def error400(exc, request):
     default_msg = u"I'm afraid I can't let you do that"
     return error_view(exc, request, default_msg)
 
 
-@view_config(
-    context=httpexceptions.HTTPForbidden,
-    renderer='error.mako')
+@view_config(context=httpexceptions.HTTPForbidden)
 def error403(exc, request):
     outstanding = []
 
@@ -64,18 +67,14 @@ def error403(exc, request):
                       outstanding_principals=outstanding)
 
 
-@view_config(
-    context=httpexceptions.HTTPNotFound,
-    renderer='error.mako')
+@view_config(context=httpexceptions.HTTPNotFound)
 def error404(exc, request):
     # XXX this can probably be improved
     default_msg = u"No such number // no such zone  ♪"
     return error_view(exc, request, default_msg)
 
 
-@view_config(
-    context=NoCookiesError,
-    renderer='error.mako')
+@view_config(context=NoCookiesError)
 def no_cookies_error(exc, request):
     msg = (u"It appears cookies may be disabled in your browser.  "
            "Unfortunately, this site requires cookies in order for you to log "

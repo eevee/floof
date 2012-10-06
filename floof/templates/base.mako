@@ -8,6 +8,7 @@
     ${h.javascript_link('https://login.persona.org/include.js', async=True)}
     ${h.javascript_link(request.static_url('floof:assets/js/vendor/jquery-1.7.2.min.js'))}
     ${h.javascript_link(request.static_url('floof:assets/js/vendor/jquery.cookie.js'))}
+    ${h.javascript_link(request.static_url('floof:assets/js/lib.js'))}
     ${h.javascript_link(request.static_url('floof:assets/js/persona.js'))}
 
     ## Allow templates to define their script dependencies to include in head
@@ -77,9 +78,9 @@
         </nav>
     </header>
 
+    <ul id="flash">
     <% flash_queue = request.session.pop_flash() %>
     % if flash_queue:
-    <ul id="flash">
         % for flash in flash_queue:
         <li class="flash-level-${flash['level']}">
             ${lib.icon(flash['icon'])}
@@ -90,8 +91,8 @@
             % endif
         </li>
         % endfor
-    </ul>
     % endif
+    </ul>
 
     ${next.body()}
 

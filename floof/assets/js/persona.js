@@ -12,20 +12,8 @@ function gotVerifiedEmail(assertion) {
         type: 'POST',
         url: window.floofdata.persona_url,
         data: { assertion: assertion, csrf_token: window.floofdata.csrf_token },
-        success: function(data, status, xhr) {
-            // XXX this is kinda generic ajax response handling
-            // XXX even moreso now that it's copy-pasted from uploading.js
-            if (data['status'] == 'redirect') {
-                window.location = data['redirect-to'];
-            }
-            else {
-                // TODO handle errors in some more useful manner
-                alert("Whoops, something fucked up with Persona login.  And this error sucks, too!");
-            }
-        },
-        error: function(xhr, status, error) {
-            alert("Whoops, something fucked up with Persona login.  And this error sucks, too!");
-        }
+        success: floofHandleAJAX(),
+        error: floofHandleAJAXError
     });
 }
 
@@ -39,5 +27,3 @@ $(function() {
 
 // TODO: handle persistent login correctly, oops!
 // see: https://developer.mozilla.org/en/BrowserID/Advanced_Features
-
-// TODO stop copy/pasting code around  :)

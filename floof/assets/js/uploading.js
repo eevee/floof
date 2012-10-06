@@ -243,21 +243,13 @@ $.extend(UploadController.prototype, {
             processData: false,
             contentType: false,
 
-            success: function(data, status, xhr) {
-                // XXX this is kinda generic ajax response handling
-                if (data['status'] == 'redirect') {
-                    window.location = data['redirect-to'];
-                }
-                else {
-                    // TODO handle errors in some more useful manner
-                    alert("Whoops, something fucked up.  And this error sucks, too!");
-                }
-            },
+            success: floofHandleAJAX(),
+            error: floofHandleAJAXError,
             complete: function() {
                 $iframe.remove();
             }
         });
-        // TODO error handling, where does a progress indicator go...
+        // TODO where does a progress indicator go...
     },
 
     null:null
