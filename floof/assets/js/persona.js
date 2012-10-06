@@ -11,7 +11,11 @@ function gotVerifiedEmail(assertion) {
     $.ajax({
         type: 'POST',
         url: window.floofdata.persona_url,
-        data: { assertion: assertion, csrf_token: window.floofdata.csrf_token },
+        data: {
+            assertion: assertion,
+            pathq: window.location.pathname + window.location.search,
+            csrf_token: window.floofdata.csrf_token
+        },
         success: floofHandleAJAX(),
         error: floofHandleAJAXError
     });

@@ -2,6 +2,8 @@
 import logging
 import re
 
+from urlparse import urlparse, urlunparse
+
 from pyramid import security
 from pyramid.httpexceptions import HTTPBadRequest, HTTPSeeOther
 from pyramid.renderers import render_to_response
@@ -16,10 +18,9 @@ from floof.forms import DisplayNameField, TimezoneField
 from floof.lib.authn import DEFAULT_CONFIDENCE_EXPIRY
 from floof.lib.authn import PersonaAuthDisabledError, PersonaNotFoundError
 from floof.lib.authn import OpenIDAuthDisabledError, OpenIDNotFoundError
-from floof.lib.persona import PersonaError
-from floof.lib.persona import flash_persona_error, verify_persona
-from floof.lib.stash import fetch_stash, get_stash_keys, key_from_request
 from floof.lib.openid_ import OpenIDError, openid_begin, openid_end
+from floof.lib.persona import PersonaError, flash_persona_error, verify_persona
+from floof.lib.stash import fetch_stash, get_stash_keys, key_from_request
 from floof.model import Discussion, IdentityURL, IdentityEmail, Resource
 from floof.model import Role, User, UserProfileRevision
 from floof import model
@@ -50,8 +51,8 @@ def account_login(context, request):
     openid = request.auth.openid_url if return_key else None
 
     # just_landed is imprecise, but should serve to reduce false positives
-    just_landed = request.referrer is None
-    just_landed = just_landed or (request.host not in request.referrer)
+    just_landed = (request.referrer is None or
+                   request.host not in request.referrer)
     if not request.cookies and not just_landed:
         request.session.flash(
                 'It looks like you might not have cookies enabled in your '
@@ -170,9 +171,16 @@ def account_login_persona(context, request):
         request.session.flash(
                 'Logged in with Persona', level=u'success', icon='user')
 
+    # XXX this seems a mite fragile
+    redirect = request.route_url('root')
+    pathq = request.POST.get('pathq')
+    if pathq and not pathq.startswith(request.route_path('account.login')):
+        scheme, netloc = urlparse(redirect)[:2]
+        redirect = urlunparse((scheme, netloc, pathq, '', '', ''))
+
     return {
         'status': 'redirect',
-        'redirect-to': request.route_url('root'),
+        'redirect-to': redirect,
     }
 
 
