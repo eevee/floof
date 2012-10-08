@@ -128,6 +128,26 @@ class CommentCtx(ORMContext):
         ]
 
 
+class ArtworkCtx(ORMContext):
+    @property
+    def __acl__(self):
+        artwork = self.ormobj
+        return [
+            (Allow, 'user:{0}'.format(artwork.uploader_user_id),
+                ('art.view_score',)),
+            (Deny, 'user:{0}'.format(artwork.uploader_user_id),
+                ('art.rate',)),
+        ]
+
+
+class MediaImageCtx(ArtworkCtx):
+    pass
+
+
+class MediaTextCtx(ArtworkCtx):
+    pass
+
+
 class AlbumCtx(ORMContext):
     @property
     def __acl__(self):

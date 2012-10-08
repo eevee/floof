@@ -49,35 +49,50 @@
 ## Rating
     <div class="column">
         <div class="art-rater">
+        <%
+            rating_score = None
+            if request.user.show_art_scores and request.user.can('art.view_score'):
+                rating_score = '{0:.3f}'.format(artwork.rating_score) # XXX * config['rating_radius']
+        %>\
         % if request.user.can('art.rate', request.context):
             <script type="text/javascript">
             $("div.art-rater").rater({
                 rate_url: "${request.route_url('art.rate', artwork=artwork)}",
-                value: ${current_rating or 'null'},
+                value: ${current_rating if current_rating is not None else 'null'},
                 num_ratings: ${artwork.rating_count},
-                rating_sum: ${artwork.rating_score or 'null'},
-                auth_token: "${request.session.get_csrf_token()}", auth_token_field: "csrf_token"})
+                rating_score: ${'"' + rating_score + '"' if rating_score is not None else 'null' | n}});
             </script>
             <noscript>
-                <div class="rater-info"><span class="rater-num-ratings">${artwork.rating_count}</span> (<span class="rater-rating-sum">${artwork.rating_score}</span>)</div>
-                <% rating_chars = [u'\u2b06', u'\u2022', u'\u2b07'] %>
-                % for r in range(len(rating_chars)):
+                <div class="rater-info">
+                    <p class="rater-num-ratings">${artwork.rating_count}</p>
+                    % if rating_score is not None:
+                        <p class="rater-rating-score">(${rating_score})</p>
+                    % endif
+                </div>
+                <% rating_opts = [(1, u'\u2b06'), (0, u'\u2022'), (-1, u'\u2b07')] %>
+                % for rating, sigil in rating_opts:
                     <%lib:secure_form url="${request.route_url('art.rate', artwork=artwork)}" class_="rater-form">
-                        ${h.hidden(name="rating", value=(len(rating_chars) / 2 - r))}
-                    % if current_rating == (len(rating_chars) / 2 - r):
-                        ${h.submit(value=rating_chars[r], name="commit", disabled="disabled")}
+                        ${h.hidden(name="rating", value=rating)}
+                    % if current_rating == rating:
+                        ${h.submit(value=sigil, name="commit", disabled="disabled")}
                     % else:
-                        ${h.submit(value=rating_chars[r], name="commit")}
+                        ${h.submit(value=sigil, name="commit")}
                     % endif
                     </%lib:secure_form>
                 % endfor
             </noscript>
-        % elif request.user:
-            <div class="rater-info"><span class="rater-num-ratings">${artwork.rating_count}</span> (<span class="rater-rating-sum">${artwork.rating_score}</span>)</div>
-            <div class="rater-info">You do not have permission to vote.</div>
         % else:
-            <div class="rater-info"><span class="rater-num-ratings">${artwork.rating_count}</span> (<span class="rater-rating-sum">${artwork.rating_score}</span>)</div>
-            <div class="rater-info">Log in to vote!</div>
+            <div class="rater-info">
+                <p class="rater-num-ratings">${artwork.rating_count}</p>
+                % if rating_score is not None:
+                    <p class="rater-rating-score">(${rating_score})</p>
+                % endif
+            </div>
+            % if request.user == artwork.uploader:
+                <p>You uploaded this artwork.</p>
+            % elif request.user:
+                <p>You do not have permission to vote.</p>
+            % endif
         % endif
             </div>
         </div>

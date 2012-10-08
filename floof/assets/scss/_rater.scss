@@ -2,11 +2,7 @@
     color: #000;
     cursor: pointer;
     text-decoration: none;
-    font-size: x-large
-}
-
-@mixin rater-button-active {
-    font-weight: bolder;
+    font-size: x-large;
 }
 
 .art-rater {
@@ -22,7 +18,11 @@
     text-align: center;
 }
 
-.rater-rating-sum {
+.rater-info p {
+    margin: 0;
+}
+
+.rater-rating-score {
     color: #22a;
 }
 
@@ -38,26 +38,26 @@
     @include rater-button;
 }
 
-.ui-rater-button-up.ui-rater-button-active {
-    @include rater-button-active;
-    color: #1a1
+.ui-rater-button-up.ui-rater-button-active,
+.ui-rater-button-up:hover {
+    color: #1a1;
 }
 
 .ui-rater-button-ambi {
     @include rater-button;
-    color: #222
+    color: #222;
 }
 
-.ui-rater-button-ambi.ui-rater-button-active {
-    @include rater-button-active;
-    color: #888
+.ui-rater-button-ambi.ui-rater-button-active,
+.ui-rater-button-ambi:hover {
+    color: #888;
 }
 
 .ui-rater-button-down {
     @include rater-button;
 }
 
-.ui-rater-button-down.ui-rater-button-active {
-    @include rater-button-active;
-    color: #a11
+.ui-rater-button-down.ui-rater-button-active,
+.ui-rater-button-down:hover {
+    color: #a11;
 }

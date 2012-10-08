@@ -335,10 +335,14 @@ def rate(artwork, request):
     # If the request has the asynchronous parameter, we return the number/sum
     # of ratings to update the widget
     if request.is_xhr:
-        return dict(
-            ratings=artwork.rating_count,
-            rating_sum=artwork.rating_score,
+        ret = dict(
+            num_ratings=artwork.rating_count,
+            rating_score=None,
         )
+        if request.user.show_art_scores and \
+                request.user.can('art.view_score', artwork):
+            ret['rating_score'] = str('{0:.3f}'.format(artwork.rating_score))
+        return ret
 
     # Otherwise, we're probably dealing with a no-js request and just re-render
     # the art page
