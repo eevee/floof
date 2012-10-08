@@ -105,7 +105,7 @@ class AnonymousUser(object):
     """
 
     watches = ()
-    show_art_scores = True
+    show_art_scores = False
 
     def __nonzero__(self):
         return False
@@ -140,8 +140,7 @@ class User(TableBase):
         u'sensitive_required',
         u'required',
         name='user_cert_auth'), nullable=False, default=u'disabled')
-
-    show_art_scores = True
+    show_art_scores = Column(Boolean, nullable=False, default=False)
 
     def localtime(self, dt):
         """Return a datetime localized to this user's preferred timezone."""

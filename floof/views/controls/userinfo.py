@@ -25,6 +25,7 @@ class UserInfoForm(wtforms.form.Form):
             wtforms.validators.Email(message=u'That does not appear to be an email address.'),
             ])
     timezone = TimezoneField(u'Timezone')
+    show_art_scores = wtforms.fields.BooleanField(u'Show Art Scores')
     submit = wtforms.SubmitField(u'Update')
 
 @view_config(

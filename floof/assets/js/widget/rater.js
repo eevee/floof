@@ -67,7 +67,13 @@
                         self.options.rating_score = data.rating_score;
                         $('.rater-info').hide('fade', 100, function() {
                             $('.rater-num-ratings').text(self.options.num_ratings);
-                            $('.rater-rating-score').text('(' + self.options.rating_score + ')');
+                            // TODO support creating the score element if it
+                            // starts being sent (this only deletes it if it
+                            // stops)
+                            if (self.options.rating_score !== null)
+                                $('.rater-rating-score').text('(' + self.options.rating_score + ')');
+                            else
+                                $('.rater-rating-score').remove();
                             $('.rater-info').show('fade', 100);
                         });
                     }

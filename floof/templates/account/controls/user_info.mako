@@ -6,24 +6,29 @@
 
 <%
 fields = [
-        'display_name',
-        'email',
-        'timezone',
-        ]
+    ('display_name', None),
+    ('email', None),
+    ('timezone', None),
+    ('show_art_scores', 'View the computed rating score of your own artwork'),
+]
 %>
 
 <section>
     <%lib:secure_form>
     <fieldset>
         <dl>
-            % for f in fields:
-                <% field = form[f] %>\
-                <% maxlen = getattr(form, '_{0}_maxlen'.format(f), None) %>\
-                % if maxlen:
-                    ${lib.field(field, size=maxlen, maxlength=maxlen)}
-                % else:
-                    ${lib.field(field)}
-                % endif
+            % for f, hint in fields:
+                <%
+                    field = form[f]
+                    kw = {}
+                    maxlen = getattr(form, '_{0}_maxlen'.format(f), None)
+                    if maxlen:
+                        kw['size'] = maxlen
+                        kw['maxlength'] = maxlen
+                    if hint:
+                        kw['hint_text'] = hint
+                %>\
+                ${lib.field(field, **kw)}
             % endfor
         </dl>
         <footer>
